@@ -1,4 +1,4 @@
 %% measure function
-function y = runaway_measure(x,params)
+function y = measure_pendulum(x,params)
     y = x(params.observed_state);
 end

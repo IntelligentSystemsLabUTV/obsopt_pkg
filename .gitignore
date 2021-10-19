@@ -1,0 +1,8 @@
+# gitignore file
+
+# dir
+simulations/*
+workspace/*
+
+# files
+*.asv

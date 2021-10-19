@@ -1,4 +1,4 @@
 %% measure function
-function y = cubli_measure(x,params)
+function y = measure_runaway(x,params)
     y = x(params.observed_state);
 end

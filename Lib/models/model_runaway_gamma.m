@@ -1,9 +1,13 @@
 %% Runaway electrons model
 % x = [T W]'
-function x_dot = runaway_model(t,x,params)
+function x_dot = model_runaway_gamma(t,x,params)
 
     % state init
     x_dot = zeros(length(x),1);
+    
+    % get gamma
+    params.gamma1 = x(3);
+    params.gamma = x(4);
     
     % just for reading ease
     T = x(1);
@@ -11,4 +15,7 @@ function x_dot = runaway_model(t,x,params)
 
     x_dot(1) = params.eps_coef*(-2*T*W - 2*params.S + params.Q);
     x_dot(2) = params.eps_coef*(-params.ni*W + params.gamma*(T*W + params.S) - params.gamma1*W/(1+W/params.Wt));
+    
+    % parameters dynamics
+    x_dot(3) = 0;
 end
