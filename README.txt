@@ -18,9 +18,10 @@
 # v1.2 - changelog
 - main program: simulation_general_v2
 - observer class: Lib/obs/obsopt_general_adaptive
-- Adaptive sampling has been implemented. It can be enabled through the    'AdaptiveSampling' boolean flag in the setup.
+- Adaptive sampling has been implemented. It can be enabled through the        'AdaptiveSampling' boolean flag in the setup.
 
 # how to run the observer in the general example (simulation_general_v2):
 
+MATLAB prompt
 >> [params,obs] = simulation_general_v2();
 
