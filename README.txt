@@ -22,6 +22,6 @@
 
 # how to run the observer in the general example (simulation_general_v2):
 
-MATLAB prompt
+on a MATLAB prompt
 >> [params,obs] = simulation_general_v2();
 
