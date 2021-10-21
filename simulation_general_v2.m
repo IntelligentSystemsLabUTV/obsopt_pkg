@@ -17,7 +17,7 @@ if ~default
     
     % set initial and final time instant
     t0 = 0;
-    tend = 10;
+    tend = 30;
     
     %%%%%%%%%%% params function %%%%%%%%%%%
     % params function: this file shall be in the following form:
@@ -29,7 +29,7 @@ if ~default
     % params.b = friction coefficient
     % params.observed_state = [2 4] array defining the state elements which
     % are actually observed. This will come useful in the measure function
-    params_init = @params_runaway_gamma;
+    params_init = @params_pendulum_mass;
     %%%%%%%%%%%%%%%%%%%%%%%%%%%%%
     
     %%%%%%%%%%% model function %%%%%%%%%%%
@@ -41,7 +41,7 @@ if ~default
     % params = structure with model parameters (see params_init)
     % OUTPUT:
     % xdot = output of the state space model
-    model = @model_runaway_gamma;
+    model = @model_pendulum_mass;
     %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
     
     %%%%%%%%%%% measure function %%%%%%%%%%%
@@ -53,7 +53,7 @@ if ~default
     % OUTPUT:
     % y = measure (no noise added). In the following examples it holds
     % y = x(params.observed_state) (see params_init)
-    measure = @measure_runaway;
+    measure = @measure_pendulum;
     %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
     
     % set the integration method
@@ -63,19 +63,20 @@ if ~default
     % options (varargin). The most important is the 'params_init' option, 
     % which takes as input the function handle to the previously defined
     % @params_init. For more information see directly the file.
-    params = model_init('Ts',Ts,'T0',[t0, tend],'noise',1,'noise_spec',[1e-2, 5e-3],...
-            'model',model,'measure',measure,'StateDim',4,'ObservedState',2,'ode',ode,...
+    params = model_init('Ts',Ts,'T0',[t0, tend],'noise',1,'noise_spec',[0, 1e-2],...
+            'model',model,'measure',measure,'StateDim',3,'ObservedState',2,'ode',ode,...
             'params_init',params_init);
     
     % init observer buffer
-    Nw = 10;
+    Nw = 5;
     Nts = 3;
 
     % create observer class instance. For more information on the setup
     % options check directly the class constructor
-    obs = obsopt_general_filters('Nw',Nw,'Nts',Nts,'ode',ode,...    
-          'params',params, 'filters',[1,1e-1,1,1e-1],'Jdot_thresh',0.9,'MaxIter',100,...
-          'AlwaysOpt',0);
+    obs = obsopt_general_adaptive('Nw',Nw,'Nts',Nts,'ode',ode,...    
+          'params',params, 'filters',[1,1e-1,1,5e-1],'Jdot_thresh',0.9,'MaxIter',50,...
+          'AlwaysOpt',0,'print',0,'SafetyDensity',10,'AdaptiveHist',[5e-5, 1e-4],...
+          'AdaptiveSampling',0);
 else
     % default example, no parameters needed as everything is hard coded in
     % the class constructor

@@ -119,8 +119,9 @@ function params = model_init(varargin)
     params.u = params.input(:,1);
     
     % set initial condition perturbed
-    perc = 0.1;
+%     perc = [0.3, 0.3, 0.1, 0.1];
+    perc = 0.3;
 %     params.X_est(:,1) = params.X(:,1).*(1 + perc*params.noise*randn(params.StateDim,1));
-    params.X_est(:,1) = params.X(:,1).*(1 + perc*params.noise*ones(params.StateDim,1));
+    params.X_est(:,1) = params.X(:,1).*(1 + perc.*params.noise*ones(params.StateDim,1));
     
 end

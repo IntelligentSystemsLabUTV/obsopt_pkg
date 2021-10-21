@@ -1,3 +1,4 @@
+%% runge kutta 4 integration
 function out = oderk4(ode,tspan,y0,options,varargin)
 
 %%% general stuff %%%

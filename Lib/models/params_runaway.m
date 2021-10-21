@@ -20,7 +20,7 @@ function params = params_runaway
     params.chi = 1;
 
     % eps_coef
-    params.eps_coef = 10;
+    params.eps_coef = 5;
 
     % initial condition
     params.T0 = 9.255;
