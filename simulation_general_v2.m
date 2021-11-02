@@ -41,7 +41,7 @@ if ~default
     % params = structure with model parameters (see params_init)
     % OUTPUT:
     % xdot = output of the state space model
-    model = @model_pendulum_mass;
+    model = @model_pendulum_mass_mex;
     %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
     
     %%%%%%%%%%% measure function %%%%%%%%%%%
@@ -63,7 +63,7 @@ if ~default
     % options (varargin). The most important is the 'params_init' option, 
     % which takes as input the function handle to the previously defined
     % @params_init. For more information see directly the file.
-    params = model_init('Ts',Ts,'T0',[t0, tend],'noise',1,'noise_spec',[0, 1e-2],...
+    params = model_init('Ts',Ts,'T0',[t0, tend],'noise',0,'noise_spec',[0, 1e-2],...
             'model',model,'measure',measure,'StateDim',3,'ObservedState',2,'ode',ode,...
             'params_init',params_init);
     
@@ -89,6 +89,7 @@ end
 
 %% %%%%%%%%%%%%%%%%%%%%%%%%%%%% SIMULATION %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % integration loop
+tic
 for i = 1:obs.setup.Niter
     
     % Display iteration step
@@ -125,6 +126,7 @@ for i = 1:obs.setup.Niter
     obs = obs.observer(obs.init.X_est(:,obs.init.ActualTimeIndex),y_meas);
 
 end
+obs.init.total_time = toc;
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 %% %%%%%%%%%%%%%%%%%%%%%%%%%%%% PLOTS %%%%%%%%%%%%%%%%%%%%%
