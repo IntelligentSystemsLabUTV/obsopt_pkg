@@ -8,7 +8,7 @@
 % 4) newton-like observer (obsopt)
 % -----> back to 2
 % 5) plot section (optional)
-classdef obsopt_general_adaptive
+classdef obsopt_general_C
     %%% class properties
     properties
         % setup: set of flags defining the main characteristics. These
@@ -27,7 +27,7 @@ classdef obsopt_general_adaptive
         % set by calling the constructor with specific properties, i.e. by
         % properly using the varargin parameter. Otherwise a default system
         % is set up
-        function obj = obsopt_general_adaptive(varargin)
+        function obj = obsopt_general_C(varargin)
             
             if any(strcmp(varargin,'params'))
                 pos = find(strcmp(varargin,'params'));

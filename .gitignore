@@ -3,7 +3,9 @@
 # dir
 simulations/*
 workspace/*
-Paper/*
+Papers/*
+codegen/*
 
 # files
 *.asv
+codegeneration.m
