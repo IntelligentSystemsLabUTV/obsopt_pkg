@@ -3,6 +3,7 @@
 # dir
 simulations/*
 workspace/*
+Paper/*
 
 # files
 *.asv
