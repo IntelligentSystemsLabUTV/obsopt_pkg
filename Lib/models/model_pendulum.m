@@ -1,3 +1,4 @@
+%% model for pendulum
 function x_dot = model_pendulum(t,x,params)
 
     x_dot = zeros(length(x),1);

@@ -1,5 +1,5 @@
 %% runaway init model
-function params = params_runaway
+function params = params_runaway_all
 
     % plant data
 
@@ -22,9 +22,12 @@ function params = params_runaway
     params.T0 = 5;
     params.W0 = 1;
     
-    % initial condition
-    params.X = [params.T0; params.W0];
+    % initial condition with gamma
+    params.X = [params.T0; params.W0; params.Q; params.S ; params.gamma; params.gamma1; params.ni; params.Wt];
+%     params.X = [params.T0; params.W0; params.S];
+    endparams = length(params.X);
+    endstate = 2;
     
     % position in the state vector of the parameters
-    params.estimated_params = [];
+    params.estimated_params = [endstate+1:endparams];
 end

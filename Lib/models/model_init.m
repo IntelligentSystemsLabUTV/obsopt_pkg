@@ -107,21 +107,40 @@ function params = model_init(varargin)
     else
         params.ode = @ode45;
     end
-
-    % input 
-    if any(strcmp(varargin,'input'))
-        pos = find(strcmp(varargin,'input'));
-        params.input = varargin{pos+1};
+    
+    % input enable
+    if any(strcmp(varargin,'input_enable'))
+        pos = find(strcmp(varargin,'input_enable'));
+        params.input_enable = varargin{pos+1};
     else
-        params.input = 0*sin(params.time);
+        params.input_enable = 0;
+    end
+    
+    % input 
+    if any(strcmp(varargin,'dim_input'))
+        pos = find(strcmp(varargin,'dim_input'));
+        params.dim_input = varargin{pos+1};
+    else
+        params.dim_input = 1;
+    end
+
+    % input law 
+    % default case 
+    params.input = params.input_enable*randn(params.dim_input,1).*sin(params.time);
+    % now check varargin
+    if any(strcmp(varargin,'input_law'))
+        pos = find(strcmp(varargin,'input_law'));
+        if ~isempty(params.input_enable*varargin{pos+1})
+            params.input = params.input_enable*varargin{pos+1};
+        end
     end
     % set initial input
     params.u = params.input(:,1);
     
     % set initial condition perturbed
 %     perc = [0.3, 0.3, 0.1, 0.1];
-    perc = 0.3;
+    perc = 0.6;
 %     params.X_est(:,1) = params.X(:,1).*(1 + perc*params.noise*randn(params.StateDim,1));
-    params.X_est(:,1) = params.X(:,1).*(1 + perc.*params.noise*ones(params.StateDim,1));
+    params.X_est(:,1) = params.X(:,1).*(1 + perc.*params.noise*ones(params.StateDim,1)) + 0*params.noise_std*randn(params.StateDim,1);
     
 end

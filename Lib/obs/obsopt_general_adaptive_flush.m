@@ -8,7 +8,7 @@
 % 4) newton-like observer (obsopt)
 % -----> back to 2
 % 5) plot section (optional)
-classdef obsopt_general_adaptive
+classdef obsopt_general_adaptive_flush
     %%% class properties
     properties
         % setup: set of flags defining the main characteristics. These
@@ -27,7 +27,7 @@ classdef obsopt_general_adaptive
         % set by calling the constructor with specific properties, i.e. by
         % properly using the varargin parameter. Otherwise a default system
         % is set up
-        function obj = obsopt_general_adaptive(varargin)
+        function obj = obsopt_general_adaptive_flush(varargin)
             
             if any(strcmp(varargin,'params'))
                 pos = find(strcmp(varargin,'params'));
@@ -107,6 +107,15 @@ classdef obsopt_general_adaptive
             % in the integration procedure (e.g. ode45)
             obj.setup.tspan = [0, obj.setup.Ts];
             
+            % get if data are simulated or from real measurements (used in)
+            % plot section
+            if any(strcmp(varargin,'DataType'))
+                pos = find(strcmp(varargin,'print'));
+                obj.setup.DataType = varargin{pos+1};
+            else
+                obj.setup.DataType = 'simulated';
+            end
+            
             % option to print out the optimisation process or not. Default
             % is not (0).
             if any(strcmp(varargin,'print'))
@@ -130,6 +139,14 @@ classdef obsopt_general_adaptive
                 obj.setup.AdaptiveSampling = varargin{pos+1};
             else
                 obj.setup.AdaptiveSampling = 0;
+            end
+            
+            % enable or not the buffer flush on the adaptive sampling
+            if any(strcmp(varargin,'FlushBuffer'))
+                pos = find(strcmp(varargin,'FlushBuffer'));
+                obj.setup.FlushBuffer = (obj.setup.AdaptiveSampling && varargin{pos+1});
+            else
+                obj.setup.FlushBuffer = 0;
             end
             
             % option to define the safety interval in adaptive sampling. If
@@ -209,6 +226,64 @@ classdef obsopt_general_adaptive
             else
                 obj.setup.fmin = @fminsearch;
             end
+            
+            % handle fmincon
+            if strcmp(func2str(obj.setup.fmin),'fmincon')
+                if any(strcmp(varargin,'Acon'))
+                    pos = find(strcmp(varargin,'Acon'));
+                    obj.setup.Acon = varargin{pos+1};
+                else
+                    obj.setup.Acon = [];
+                end
+                if any(strcmp(varargin,'Bcon'))
+                    pos = find(strcmp(varargin,'Bcon'));
+                    obj.setup.Bcon = varargin{pos+1};
+                else
+                    obj.setup.Bcon = [];
+                end
+                if any(strcmp(varargin,'Acon_eq'))
+                    pos = find(strcmp(varargin,'Acon_eq'));
+                    obj.setup.Acon_eq = varargin{pos+1};
+                else
+                    obj.setup.Acon_eq = [];
+                end
+                if any(strcmp(varargin,'Bcon_eq'))
+                    pos = find(strcmp(varargin,'Bcon_eq'));
+                    obj.setup.Bcon_eq = varargin{pos+1};
+                else
+                    obj.setup.Bcon_eq = [];
+                end
+                if any(strcmp(varargin,'LBcon'))
+                    pos = find(strcmp(varargin,'LBcon'));
+                    obj.setup.LBcon = varargin{pos+1};
+                else
+                    obj.setup.LBcon = zeros(obj.setup.dim_state,1);
+                end
+                if any(strcmp(varargin,'UBcon'))
+                    pos = find(strcmp(varargin,'UBcon'));
+                    obj.setup.UBcon = varargin{pos+1};
+                else
+                    obj.setup.UBcon = [];
+                end
+                if any(strcmp(varargin,'NONCOLcon'))
+                    pos = find(strcmp(varargin,'NONCOLcon'));
+                    obj.setup.NONCOLcon = varargin{pos+1};
+                else
+                    obj.setup.NONCOLcon = [];
+                end
+            end
+            
+            % store J terms
+            if any(strcmp(varargin,'Jterm_store')) && (~strcmp(obj.setup.fmin,'broyden'))
+                pos = find(strcmp(varargin,'Jterm_store'));
+                obj.setup.Jterm_store = varargin{pos+1};
+            else
+                if (~strcmp(obj.setup.fmin,'broyden'))
+                    obj.setup.Jterm_store = 1;
+                else
+                    obj.setup.Jterm_store = 0;
+                end
+            end
 
             % get the algorithm direction (forward or backward). V1.1 has
             % only forward implemented
@@ -234,14 +309,14 @@ classdef obsopt_general_adaptive
             % compute the actual number of terms in the cost function.
             % Maximum is 3 as only the y-filters terms are considered.
             % Other terms as the spring-like aren't taken into account here
-            obj.setup.J_nterm = min(3,size(nonzeros(obj.setup.J_temp_scale),1));
+            obj.setup.J_nterm = min(3,size(nonzeros(temp_scale(1:3)),1));
             % This variable instead taske into account the whole set of
             % terms. It's used to create the scale factor (see obs.scale_factor())
-            obj.setup.J_nterm_total = size(nonzeros(obj.setup.J_temp_scale),1);
+            obj.setup.J_nterm_total = size(nonzeros(temp_scale),1);
             
             % get spring like term in cost function
             obj.setup.J_term_spring = (temp_scale(4) ~= 0);
-            obj.setup.J_term_spring_position = 4;
+            obj.setup.J_term_spring_position = length(obj.setup.J_temp_scale);
             
             % set of the integral resets or not
             if any(strcmp(varargin,'int_reset'))
@@ -323,10 +398,16 @@ classdef obsopt_general_adaptive
             % observer cost function init
             obj.init.J = 0;
             obj.init.Jstory = obj.init.J;
+            obj.init.Jterm_store = zeros(obj.setup.J_nterm_total,1);
+            obj.init.Jterm_story = obj.init.Jterm_store;
             obj.init.Jdot_story = 0;
             % J_components is used to keep track of the different cost
             % function terms amplitude. Not implemented in V1.1
             obj.init.J_components = ones(obj.setup.dim_out,obj.setup.J_nterm);
+            
+            % Broyden
+            obj.init.A_fin = 1e-2*rand(obj.setup.w*obj.setup.dim_out*obj.setup.J_nterm,obj.setup.dim_state);
+            obj.init.alpha = 1e-2;
             
             % time instants in which the optimisation is run
             obj.init.temp_time = [];
@@ -357,7 +438,7 @@ classdef obsopt_general_adaptive
     
             % optimset 
             obj.init.myoptioptions = optimset('MaxIter', obj.setup.max_iter,'display',obj.init.display,...
-                                            'TolFun',obj.init.TolFun,'TolX',obj.init.TolX,'MaxFunEvals',Inf,'OutputFcn',@obj.outfun);
+                                            'TolFun',obj.init.TolFun,'TolX',obj.init.TolX,'MaxFunEvals',Inf,'OutputFcn',@obj.outfun, 'GradObj', 'off');
             %%% end of optimisation setup %%%
 
         end
@@ -458,6 +539,9 @@ classdef obsopt_general_adaptive
             n_iter = n_item;
 
             shift = obj.setup.w-n_item;
+            
+            % init Jterm store
+            obj.init.Jterm_store = zeros(obj.setup.J_nterm_total,1);
 
             for j=1:n_iter
 
@@ -475,15 +559,17 @@ classdef obsopt_general_adaptive
                         % get the J
                         for i=1:obj.setup.dim_out
                             diff = (obj.init.Y(term,i,shift+j)-Yhat(i,term));
-                            J(term,i) = obj.init.scale_factor(i,term)*(diff)^2;
+                            J(term,i) = (diff)^2;
                         end
                     end
 
-                    for term=1:obj.setup.J_nterm
-                        tmp = sum(J(term,:));
+                    for term=1:obj.setup.dim_out
+                        tmp = obj.init.scale_factor(term,1:obj.setup.J_nterm)*J(:,term);
                         Jtot = Jtot + tmp; 
                     end
 
+                    % store terms
+                    obj.init.Jterm_store(1:obj.setup.J_nterm) = obj.init.Jterm_store(1:obj.setup.J_nterm) + J(:,term);
                 end
 
             end
@@ -499,6 +585,9 @@ classdef obsopt_general_adaptive
             else
                 Jspring = 0;
             end
+            
+            % store terms
+            obj.init.Jterm_store(end) = Jspring;
             
             Jtot = Jtot+Jspring;
 
@@ -528,7 +617,7 @@ classdef obsopt_general_adaptive
             params = obj.init.params;
                         
             %%%% sampling %%%%
-            buf_dist = diff([obj.init.BackIterIndex, obj.init.Y_space]);
+            buf_dist = diff([obj.init.BackIterIndex, transpose(nonzeros(obj.init.Y_space))]);
             n_iter = sum(buf_dist(1:W_buf_pos));
             %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
@@ -601,17 +690,25 @@ classdef obsopt_general_adaptive
 
             buffer_ready = (nnz(obj.init.Y_space) >= 1) || (size(obj.init.Yhat_full_story,3) > obj.setup.Nts);
 
-            if 1 && buffer_ready
+            if buffer_ready
 
+                % where to check
                 [~, pos_hat] = find(obj.init.Y_space ~= 0);
                 pos_hat = obj.init.Y_space(pos_hat)-1;
+                
+                % Y measure
                 Yhat = obj.init.Yhat_full_story(1,:,pos_hat);
                 Y_buf = obj.init.Y_full_story(1,:,pos_hat);
+                
+                % Y derivative measure
+                Yhat_der = obj.init.Yhat_full_story(2,:,pos_hat);
+                Y_buf_der = obj.init.Y_full_story(2,:,pos_hat);
 
+                % build the condition
                 n_sum = size(Y_buf,2);
                 temp_e = 0;
                 for i=1:n_sum
-                    temp_e = temp_e + norm(Y_buf(:,i)-(Yhat(:,i)));
+                    temp_e = temp_e + norm(Y_buf(:,i)-(Yhat(:,i))) + norm(Y_buf_der(:,i)-(Yhat_der(:,i)));
                 end
 
                 obj.init.dJ_cond = norm(temp_e);
@@ -620,6 +717,133 @@ classdef obsopt_general_adaptive
             end
             
             obj.init.dJ_cond_story(:,obj.init.ActualTimeIndex) = obj.init.dJ_cond;
+        end
+        
+        % Broyden gradient method
+        function [x_fin, obj] = Broyden(obj,x0,A0)          
+            
+            % init optimisation
+            Ai = A0;
+            xi = x0;
+            d = 0;
+            delta = Inf;
+            c1 = 1e-3;
+            alpha_min = 1e-5;
+            % init alpha
+            alpha = obj.init.alpha;
+            % init J
+            J = -8;
+            
+            % iterate Broyden's method
+            while (d < obj.setup.max_iter) && (delta > obj.init.TolFun)
+
+                %%%%% CREATE Pi %%%%%
+                [Pi, Hrank] = Pi_Broyden(obj,xi);
+                
+                % Solve for the gradient step
+                si = -pinv(Ai)*Pi;
+                
+                %%% armijo conditions for stepsize %%%
+                % compute result
+                xii = xi + alpha*si;
+                Pii = Pi_Broyden(obj,xii);
+                
+                % check condition 1
+                c1_cond = norm(Pii) > c1*norm(Pi);
+                
+                if (c1_cond) && (0.5*alpha > (alpha_min))
+                    alpha = 0.5*alpha;
+                else
+                    alpha = 2*alpha;
+                end
+                %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+                
+                % compute result
+                xii = xi + alpha*si;
+                Pii = Pi_Broyden(obj,xii);
+                
+                vi = Pii - Pi;
+                A_update = (vi-Ai*si)*transpose(si)/(transpose(si)*si);
+                check = isnan(A_update);
+                if ~check
+                    Ai = Ai + A_update;
+                else
+                    break;
+                end
+                
+                delta = norm(xii-xi);
+                d = d + 1;
+                xi = xii;
+                
+                J = norm(Pi);
+                if obj.setup.print
+                    disp(['J: ',num2str(J)]);
+                end
+                
+            end
+            
+            x_fin = xi;
+            obj.init.J_last = J;
+            obj.init.A_fin = Ai;
+            obj.init.alpha = alpha;
+            obj.init.Hrank(obj.init.ActualTimeIndex) = Hrank;
+            
+            
+        end
+        
+        function [Pi, Hrank] = Pi_Broyden(obj,x0)
+            
+            % init H matrix and Y
+            Y = zeros(obj.setup.w*obj.setup.dim_out*obj.setup.J_nterm,1);
+            H = zeros(obj.setup.w*obj.setup.dim_out*obj.setup.J_nterm,1);
+            
+            % set the derivative buffer as before the optimisation process (multiple f computation)
+            back_time = obj.init.BackIterIndex;
+            % set the derivative buffer as before the optimisation process (multiple f computation)
+            if back_time >= obj.init.d1_derivative
+                temp_buf_dyhat = obj.init.Yhat_full_story(1,:,back_time-(obj.init.d1_derivative-1):back_time);
+            else
+                init_pos = obj.init.d1_derivative-back_time;
+                stack = reshape(obj.init.Yhat_full_story(1,:,1:back_time),obj.setup.dim_out,1);
+                temp_buf_dyhat = [zeros(obj.setup.dim_out,init_pos), stack];
+            end
+
+            n_item = length(find((obj.init.Y_space)));
+            n_iter = n_item;
+
+            for i=1:n_iter
+
+                % evaluate the weighted in time cost function at this iteration time
+                if(obj.setup.forward ~= 1) %backward        
+                    %%%%%% TO BE DONE %%%%%%
+                else
+                    % get measure - hat
+                    [temp_buf_dyhat, Yhat] = obj.measure_function(x0,i,temp_buf_dyhat,obj.init.Yhat_full_story);
+                    for j=1:obj.setup.dim_out  
+                        shift = obj.setup.J_nterm*obj.setup.dim_out;
+                        H(1+(i-1)*shift:i*shift) = repmat(obj.setup.J_temp_scale(1:obj.setup.J_nterm),1,obj.setup.dim_out).*reshape(Yhat(:,1:obj.setup.J_nterm),1,obj.setup.J_nterm*obj.setup.dim_out);
+                    end
+                    
+                    % get measure - true 
+                    shift = obj.setup.J_nterm*obj.setup.dim_out;
+                    spaces = nonzeros(obj.init.Y_space);
+                    Ytrue = transpose(obj.init.Y_full_story(:,:,spaces(i)));
+                    Y(1+(i-1)*shift:i*shift) = repmat(obj.setup.J_temp_scale(1:obj.setup.J_nterm),1,obj.setup.dim_out).*reshape(Ytrue,1,obj.setup.J_nterm*obj.setup.dim_out);
+                end
+            end
+            
+            %%%%%%%%%%%%%%%%%%%%%
+
+            % create Pi
+            Pi = Y-H;
+            
+            % get rank H
+            try
+                Hrank = rank(H);
+            catch
+                Hrank = -1;
+            end
+            
         end
         
         % observer function: this method wraps up all the afromentioned
@@ -692,16 +916,29 @@ classdef obsopt_general_adaptive
 
                     if obj.setup.forward
 
-                        %%%% FLUSH THE BUFFER IF SAFETY FLAG %%%%
+                        % get the maximum distance
                         first_nonzero = find(obj.init.Y_space,1,'first');
                         Y_space_nonzero = obj.init.Y_space(first_nonzero:end);
                         max_dist = max(diff(Y_space_nonzero));
                         if isempty(max_dist)
                             max_dist = 1;
                         end
+                        
+                        % setup buffers
                         n_samples = min(length(obj.init.Y_space_full_story)-1,obj.setup.w);
                         buf_Y_space_full_story = obj.init.Y_space_full_story(end-n_samples:end);
-
+                        
+                        %%%% FLUSH THE BUFFER IF SAFETY FLAG %%%%
+                        if (obj.setup.FlushBuffer) && (max_dist >= obj.init.safety_interval)
+                            
+                            % buffer adaptive sampling: these buffers keep track of the
+                            % time instants in which the measured data have been stored. 
+                            obj.init.Y_space = buf_Y_space_full_story(2:end);
+                            
+                            % down samplingbuffer
+                            obj.init.Y =  obj.init.Y_full_story(:,:,obj.init.Y_space);
+                        end
+                        
                         % back time index
                         buf_dist = diff(buf_Y_space_full_story);
                         obj.init.BackTimeIndex = obj.setup.time(max(obj.init.ActualTimeIndex-sum(buf_dist),1)); 
@@ -709,17 +946,28 @@ classdef obsopt_general_adaptive
 
                         % set of initial conditions
                         obj.init.temp_x0 = obj.init.X_est(:,obj.init.BackIterIndex);
-
-                        % Optimisation
-
+                        
                         % Optimisation (only if distance_safe_flag == 1)
                         opt_time = tic;
-                        % save J before the optimisation to confront it later
-                        J_before = obj.cost_function(obj.init.temp_x0);
-
-
+                        
                         %%%%% OPTIMISATION - NORMAL MODE %%%%%%
-                        [NewXopt, J, obj.init.exitflag] = obj.setup.fmin(@(x)obj.cost_function(x),obj.init.temp_x0,obj.init.myoptioptions);
+                        if strcmp(obj.setup.fmin,'broyden')
+                            %%%%% OPTIMISATION - BROYDEN %%%%%%
+                            % save J before the optimisation to confront it later
+                            J_before = norm(Pi_Broyden(obj,obj.init.temp_x0));
+                            [NewXopt, obj] = Broyden(obj,obj.init.temp_x0,obj.init.A_fin);
+                            J = obj.init.J_last;
+                        elseif strcmp(func2str(obj.setup.fmin),'fmincon')
+                            % save J before the optimisation to confront it later
+                            [J_before, obj_tmp] = obj.cost_function(obj.init.temp_x0);
+                            [NewXopt, J, obj.init.exitflag] = obj.setup.fmin(@(x)obj.cost_function(x,1),obj.init.temp_x0, obj.setup.Acon, obj.setup.Bcon,...
+                                                              obj.setup.Acon_eq, obj.setup.Bcon_eq, obj.setup.LBcon, obj.setup.UBcon, obj.setup.NONCOLcon, obj.init.myoptioptions);
+                        else
+                            % save J before the optimisation to confront it later
+                            [J_before, obj_tmp] = obj.cost_function(obj.init.temp_x0);
+                            [NewXopt, J, obj.init.exitflag] = obj.setup.fmin(@(x)obj.cost_function(x,1),obj.init.temp_x0, obj.init.myoptioptions);
+                        end
+                        
 
                         % opt counter
                         obj.init.opt_counter = obj.init.opt_counter + 1;
@@ -799,6 +1047,9 @@ classdef obsopt_general_adaptive
                             end
                             %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%    
                             obj.init.Jstory(1,end+1) = J;
+                            if obj.setup.Jterm_store
+                                obj.init.Jterm_story(:,end+1) = obj_tmp.init.Jterm_store;
+                            end
                             obj.init.buf_dYhat = obj.init.Yhat_full_story(1,:,obj.init.ActualTimeIndex-obj.init.d1_derivative+1:obj.init.ActualTimeIndex);
                             obj.init.buf_dYhat = reshape(obj.init.buf_dYhat,obj.setup.dim_out,obj.init.d1_derivative);
                         else
@@ -827,6 +1078,15 @@ classdef obsopt_general_adaptive
             % save measures
             obj.init.Y_est = obj.init.X_est(obj.setup.observed_state,:);
             obj.init.Y_est_runtime = obj.init.X_est_runtime(obj.setup.observed_state,:);
+            
+%             try
+%                 X0 = obj.setup.ode(@(t,x)obj.setup.model(t, x, obj.init.params), [obj.setup.time(end):-obj.setup.Ts:obj.setup.time(1)], obj.init.X_est(:,end));
+%                 obj.init.X0_est = X0.y(:,end);
+%             catch
+%                 obj.init.X0_est = -ones(obj.setup.dim_state,1);
+%             end
+%             obj.init.X0_true = obj.setup.params.X;
+%             obj.init.X0 = obj.setup.params.X_est;
 
         end
         
@@ -841,10 +1101,17 @@ classdef obsopt_general_adaptive
                 hold on
                 grid on
                 box on
-                plot(obj.setup.time,obj.init.X(i,:),'b--');
+                if strcat(obj.setup.DataType,'simulated')
+                    plot(obj.setup.time,obj.init.X(i,:),'b--');
+                end
                 plot(obj.setup.time,obj.init.X_est(i,:),'r.');
                 plot(obj.setup.time,obj.init.X_est_runtime(i,:),'g');
-                %legend('True','Stored','Runtime')
+                
+                if strcat(obj.setup.DataType,'simulated')
+                    legend('True','Stored','Runtime')
+                else
+                    legend('Stored','Runtime')
+                end
             end
             
             
@@ -877,7 +1144,7 @@ classdef obsopt_general_adaptive
                 plot(OptTime,data,'r+','MarkerSize',5);
                 
                 % plot measures
-                plot(obj.setup.time,obj.init.Y_est_runtime(k,:),'k.')
+                plot(obj.setup.time,obj.init.Y_est(k,:),'k.')
                 
                 % plot true values
                 y_meas = reshape(obj.init.Y_full_story(1,k,:),size(obj.setup.time));
@@ -885,7 +1152,7 @@ classdef obsopt_general_adaptive
                 
                 ylabel(strcat('y_',num2str(k)));
                 xlabel('simulation time [s]');
-                %legend('measures','opt shots','estimation','true')
+                legend('measures','opt shots','estimation','true')
             end
             linkaxes(ax,'x');
             
@@ -927,6 +1194,23 @@ classdef obsopt_general_adaptive
             plot(OptTime,obj.init.Jstory);
             ylabel('cost function J');
             xlabel('simulation time [s]');
+            
+            %%% plot cost function terms %%%
+            if obj.setup.Jterm_store
+                figure()
+                title('Cost function terms')
+                hold on
+                box on
+                grid on
+                obj.init.Jterm_story(:,1) = [];
+                OptTime = obj.setup.time(obj.init.opt_chosen_time);
+                for i=1:obj.setup.J_nterm_total
+                    plot(OptTime,obj.init.Jterm_story(i,:));
+                end
+                legend
+                ylabel('cost function J');
+                xlabel('simulation time [s]'); 
+            end
             
             %%%% plot adaptive sampling %%%%
             if obj.setup.AdaptiveSampling

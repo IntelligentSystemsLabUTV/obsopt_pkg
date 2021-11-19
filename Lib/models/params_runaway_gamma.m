@@ -7,24 +7,24 @@ function params = params_runaway_gamma
     params.Q = 1;
 
     % spontaneous emission
-    params.S = 0.01;
+    params.S = 0;
 
     % parameters
     params.gamma = 0.5;
-    params.gamma1 = 4;
+    params.gamma1 = 2.5;
     params.ni = 0.5;
     params.Wt = 0.1;
 
-    % ringing
-    params.wq = 1;
-    params.chi = 1;
-
     % eps_coef
-    params.eps_coef = 10;
+    params.eps_coef = 1;
 
     % initial condition
-    params.T0 = 9.255;
-    params.W0 = 0.02176;
+    params.T0 = 0;
+    params.W0 = 0.001;
+
+    % initial condition
+    params.T0 = 0;
+    params.W0 = 0.001;
     
     % initial condition with gamma
     params.X = [params.T0; params.W0; params.gamma1; params.gamma];

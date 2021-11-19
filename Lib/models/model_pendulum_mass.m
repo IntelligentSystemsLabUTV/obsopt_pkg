@@ -1,6 +1,7 @@
+%% model function 
 function x_dot = model_pendulum_mass(t,x,params)
 
-    x_dot = zeros(length(x),1);
+%     x_dot = zeros(length(x),1);
     
     params.M = x(3);
     

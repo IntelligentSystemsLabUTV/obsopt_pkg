@@ -4,23 +4,27 @@ function params = params_runaway
     % plant data
 
     % electric charge
-    params.Q = 15;
+    params.Q = 1;
 
     % spontaneous emission
-    params.S = 0;
+    params.S = 0.01;
 
     % parameters
-    params.gamma = 2;
-    params.gamma1 = 10;
-    params.ni = 20;
-    params.Wt = 0.3;
+    params.gamma = 0.5;
+    params.gamma1 = 4;
+    params.ni = 0.5;
+    params.Wt = 0.1;
+
+    % ringing
+    params.wq = 1;
+    params.chi = 1;
 
     % eps_coef
-    params.eps_coef = 1;
+    params.eps_coef = 5;
 
     % initial condition
-    params.T0 = 5;
-    params.W0 = 1;
+    params.T0 = 9.255;
+    params.W0 = 0.02176;
     
     % initial condition
     params.X = [params.T0; params.W0];

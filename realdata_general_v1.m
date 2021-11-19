@@ -1,4 +1,4 @@
-function [params,obs] = simulation_general_v2
+function [params,obs] = realdata_general_v1(data,time,step)
 
 %% Init Section
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -13,11 +13,12 @@ default = 0;
 if ~default
     
     % set sampling time
-    Ts = 5e-2;
+    tmp = diff(time);
+    Ts = step*tmp(1);
     
     % set initial and final time instant
-    t0 = 0;
-    tend = 50;
+    t0 = time(1);
+    tend = time(end);
     
     %%%%%%%%%%% params function %%%%%%%%%%%
     % params function: this file shall be in the following form:
@@ -69,19 +70,19 @@ if ~default
     % which takes as input the function handle to the previously defined
     % @params_init. For more information see directly the file.
     params = model_init('Ts',Ts,'T0',[t0, tend],'noise',0,'noise_spec',[0, 0],...
-            'model',model,'measure',measure,'StateDim',5,'ObservedState',[2],'ode',ode,...
+            'model',model,'measure',measure,'StateDim',8,'ObservedState',[2],'ode',ode,...
             'input_enable',0,'dim_input',1,'input_law',[],'params_init',params_init);
     
     % init observer buffer
-    Nw = 10;
+    Nw = 7;
     Nts = 3;
 
     % create observer class instance. For more information on the setup
     % options check directly the class constructor
     obs = obsopt_general_adaptive_flush('Nw',Nw,'Nts',Nts,'ode',ode,...    
-          'params',params, 'filters',[1,1*5e-1,1*1e-1,1*5e-1],'Jdot_thresh',0.9,'MaxIter',200,...
-          'AlwaysOpt',0,'print',0,'SafetyDensity',5,'AdaptiveHist',[5e-3, 1e-2],...
-          'AdaptiveSampling',1, 'FlushBuffer', 1, 'Jterm_store',0, 'opt', @fminsearch);
+          'params',params, 'filters',[1,1*5e1,1*1e-1,1*5e-1],'Jdot_thresh',0.9,'MaxIter',200,...
+          'AlwaysOpt',0,'print',0,'SafetyDensity',4,'AdaptiveHist',[5e-1, 9e-1],...
+          'AdaptiveSampling',1, 'FlushBuffer', 0, 'Jterm_store',0, 'opt', @fmincon);
 else
     % default example, no parameters needed as everything is hard coded in
     % the class constructor
@@ -98,9 +99,14 @@ tic
 for i = 1:obs.setup.Niter
     
     % Display iteration step
-    if ((mod(i,10) == 0) || (i == 1))
+    if ((mod(i,1) == 0) || (i == 1))
         clc
         disp(['Iteration Number: ', num2str(obs.setup.time(i)),'/',num2str(obs.setup.time(obs.setup.Niter))])
+        disp(['Last cost function: ', num2str(obs.init.Jstory(end))]);
+        try
+            disp(['Last dJ condition: ', num2str(obs.init.dJ_cond_story(end))]);
+        catch
+        end
     end
     
     % set current interation in the class
@@ -113,10 +119,6 @@ for i = 1:obs.setup.Niter
         % input
         obs.init.params.u = obs.setup.params.input(:,i-1);
         
-        % true system
-        X = obs.setup.ode(@(t,x)obs.setup.model(t, x, obs.init.params), obs.setup.tspan, obs.init.X(:,obs.init.ActualTimeIndex-1));   
-        obs.init.X(:,obs.init.ActualTimeIndex) = X.y(:,end);
-        
         % real system
         X = obs.setup.ode(@(t,x)obs.setup.model(t, x, obs.init.params), obs.setup.tspan, obs.init.X_est(:,obs.init.ActualTimeIndex-1));
         obs.init.X_est(:,obs.init.ActualTimeIndex) = X.y(:,end);      
@@ -125,7 +127,7 @@ for i = 1:obs.setup.Niter
     
     %%%%%%%%%%%%%%%%%%% REAL MEASUREMENT %%%%%%%%%%%%%%%%%%%%%%%   
     % here the noise is added
-    y_meas = obs.setup.measure(obs.init.X(:,obs.init.ActualTimeIndex),obs.init.params) + obs.setup.noise*(obs.setup.noise_mu  + obs.setup.noise_std*randn(obs.setup.dim_out,1)*1);
+    y_meas = data(min(length(time),obs.init.ActualTimeIndex*step));
     
     %%%%%%%%%%%%%%%%%%%%%% OBSERVER %%%%%%%%%%%%%%%%%%%%%%%%%%%%
     obs = obs.observer(obs.init.X_est(:,obs.init.ActualTimeIndex),y_meas);
