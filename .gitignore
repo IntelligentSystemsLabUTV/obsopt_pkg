@@ -5,7 +5,9 @@ simulations/*
 workspace/*
 Papers/*
 codegen/*
+fig/*
 
 # files
 *.asv
+*.mat
 codegeneration.m

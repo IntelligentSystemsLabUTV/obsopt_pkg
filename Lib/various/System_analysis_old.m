@@ -7,9 +7,8 @@ clc
 
 % down sampling
 N = 2;
-plot_flag = 1;
+plot = 1;
 filter = 1;
-params = 1;
 
 % sym vars
 syms y [1 N] real
@@ -22,13 +21,9 @@ syms k real
 
 % model
 theta_true = 1;
-x0_true = 1.1052;y
+x0_true = 1;
 T_true = 0.1;
-if params
-    state = [x0, theta];
-else
-    state = [x0];
-end
+state = [x0, theta];
 
 % flow
 phi = x0.*exp(theta*k*T);
@@ -75,18 +70,9 @@ end
 
 
 % function evaluation
-% define evaluation grid
-Tgran = [5e-2;5e-2];
-x_range = [0.8*params.X, 1.2*params.X];
-for i=1:params.StateDim
-    x_grid(i).val = x_range(i,1):Tgran(i):x_range(i,2);
-end
-x0_range = x_range(1).val;
-if params
-    theta_range = x_range(2).val;
-else
-    theta_range = theta_true*ones(1,2);
-end
+Ts = 0.05;
+x0_range = [0.8 1.2];
+theta_range = [0.8 1.2];
 x0_grid = x0_range(1)*x0_true:Ts:x0_range(2)*x0_true;
 theta_grid = theta_range(1)*theta_true:Ts:theta_range(2)*theta_true;
 [X,THETA] = meshgrid(x0_grid,theta_grid);
@@ -106,15 +92,10 @@ if filter
 end
 tmp_str = [tmp_str, '));'];
 eval(tmp_str);
-if plot_flag
+if plot
     % plot
     figure;
-    if length(state) > 1
-        surf(X,THETA,V_val);
-    else
-        plot3(X,THETA,V_val);
-        grid on
-    end
+    surf(X,THETA,V_val);
 
     % stuff
     xlabel('x_0');
@@ -137,45 +118,65 @@ if filter
 end
 tmp_str = [tmp_str, ');'];
 eval(tmp_str);
-
 for i=1:length(x0_grid)
    for j=1:length(theta_grid)
-       if params
-           for a=1:length(state)
-               for b=1:length(state)
-                   tmp_V(a,b) = double(V_hess_val{a,b}(i,j));
-               end
-           end
-       else
-           tmp = V_hess_val';
-           tmp_V = double(tmp(i,j));
-       end
+       tmp_V = double([ V_hess_val{1,1}(i,j), V_hess_val{1,2}(i,j); ...
+                 V_hess_val{2,1}(i,j), V_hess_val{2,2}(i,j)]);
        V_hess_eig(i,j,:) = eig(tmp_V); 
    end
 end
 
-if plot_flag
+if plot
     for i=1:size(V_hess,1)
         figure()
         EIG = reshape(V_hess_eig(:,:,i),[length(x0_grid),length(theta_grid)]);
-        
-        if length(state) > 1
-            surf(X,THETA,EIG);
-        else
-            plot3(X,THETA,EIG);
-            grid on
-        end
-        
-        % stuff
-        xlabel('x_0');
-        ylabel('\theta');
-        zlabel('EIG');
-        title(['EIG',num2str(i)]);
-        
+        surf(X,THETA,EIG);
     end
 end
-
-for i=1:size(V_hess,1)
-   V_hess_eig_min(i) = min(min(V_hess_eig(:,:,i)));
-end
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+% %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% % check positive definite - pivots
+% IsSymmetric = ~any(any(V_hess-V_hess'));
+% orl = cell(size(V_hess,1),1);
+% for i=1:size(V_hess,1)
+%     orl{i} = factor(subs(det(V_hess(1:i,1:i)),'T',1));
+% end
+% 
+% 
+% orl_sub = cell(size(V_hess,1),1);
+% for i=1:size(V_hess,1)
+%     tmp = subs(orl{i}(:),T,1);
+%     tmp = subs(tmp,y,y_star);
+%     orl_sub{i} = transpose(vpa(tmp,2));
+% end
+% 
+% for i=1:size(V_hess,1)
+% 
+%     % number fo subplots depending on the Nterm
+%     n_subplot = length(orl_sub{i});
+% 
+%     F_tot{i} = ones(length(x0_grid),length(theta_grid))';
+%     for k=1:n_subplot
+%              
+%     % get function
+%     f = symfun(orl_sub{i}(k),[x0, theta]);
+%     F{i,k} = double(f(X,THETA));
+%     F_tot{i} = F_tot{i}.*F{i,k};
+%  
+%     end
+%     
+%     if plot
+% 
+%         % plot
+%         figure(i);
+%         surf(X,THETA,F_tot{i});
+% 
+%         % stuff
+%         xlabel('x_0');
+%         ylabel('\theta');
+%         zlabel('pivot');
+%         title(['pivot ',num2str(i)]);
+%     end
+% end
+% %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%

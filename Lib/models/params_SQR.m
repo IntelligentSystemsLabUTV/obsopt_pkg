@@ -11,8 +11,10 @@ function params = params_SQR
     params.eps_coef = 1;
     
     % initial condition
-    params.X = [2; 0; 1; params.a; params.b];
+%     params.X = [2; 0; 1; params.a; params.b];
+    params.X = [2; 0.5; 1];
     
     % position in the state vector of the parameters
-    params.estimated_params = [4, 5];
+%     params.estimated_params = [4, 5];
+    params.estimated_params = [];
 end

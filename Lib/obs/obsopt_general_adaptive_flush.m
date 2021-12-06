@@ -110,12 +110,20 @@ classdef obsopt_general_adaptive_flush
             % get if data are simulated or from real measurements (used in)
             % plot section
             if any(strcmp(varargin,'DataType'))
-                pos = find(strcmp(varargin,'print'));
+                pos = find(strcmp(varargin,'DataType'));
                 obj.setup.DataType = varargin{pos+1};
             else
                 obj.setup.DataType = 'simulated';
             end
             
+            % run or no the optimisation
+            if any(strcmp(varargin,'optimise'))
+                pos = find(strcmp(varargin,'optimise'));
+                obj.setup.optimise = varargin{pos+1};
+            else
+                obj.setup.optimise = 1;
+            end
+                       
             % option to print out the optimisation process or not. Default
             % is not (0).
             if any(strcmp(varargin,'print'))
@@ -217,6 +225,14 @@ classdef obsopt_general_adaptive_flush
             else
                 obj.setup.J_thresh = [1e-10, 1e3];
             end
+            
+            % change max iterations depending on PE 
+            if any(strcmp(varargin,'PE_maxiter'))
+                pos = find(strcmp(varargin,'PE_maxiter'));
+                obj.setup.PE_maxiter = varargin{pos+1};
+            else
+                obj.setup.PE_maxiter = 0;
+            end
 
             % get the optimisation method. Default is fminsearch from
             % MATLAB
@@ -228,7 +244,12 @@ classdef obsopt_general_adaptive_flush
             end
             
             % handle fmincon
-            if strcmp(func2str(obj.setup.fmin),'fmincon')
+            try
+                test = func2str(obj.setup.fmin);
+            catch
+                test = 'null';
+            end
+            if strcmp(test,'fmincon')
                 if any(strcmp(varargin,'Acon'))
                     pos = find(strcmp(varargin,'Acon'));
                     obj.setup.Acon = varargin{pos+1};
@@ -257,7 +278,7 @@ classdef obsopt_general_adaptive_flush
                     pos = find(strcmp(varargin,'LBcon'));
                     obj.setup.LBcon = varargin{pos+1};
                 else
-                    obj.setup.LBcon = zeros(obj.setup.dim_state,1);
+                    obj.setup.LBcon = [];
                 end
                 if any(strcmp(varargin,'UBcon'))
                     pos = find(strcmp(varargin,'UBcon'));
@@ -349,6 +370,8 @@ classdef obsopt_general_adaptive_flush
             % get initial state
             obj.init.X = obj.setup.X;
             obj.init.X_est = obj.setup.X_est;
+            obj.init.X_est_runtime = obj.setup.X_est;
+            obj.init.X_wrong = obj.setup.X_est;
             
             % create scale factor, namely the weight over time for all the
             % cost function terms. In V1.1 no forgetting factor is
@@ -377,6 +400,10 @@ classdef obsopt_general_adaptive_flush
             % buffer used for measured and estimated variables derivarive. 
             obj.init.buf_dY = zeros(obj.setup.dim_out,obj.init.d1_derivative);
             obj.init.buf_dYhat = zeros(obj.setup.dim_out,obj.init.d1_derivative);
+            
+            obj.init.c1_PE = 5;
+            obj.init.d1_PE = 20;
+            obj.init.buf_PE = zeros(1,obj.init.d1_PE);
 
             % measure buffer: these buffers are used to store the measured
             % and estimated values on the observed states. 
@@ -407,7 +434,7 @@ classdef obsopt_general_adaptive_flush
             
             % Broyden
             obj.init.A_fin = 1e-2*rand(obj.setup.w*obj.setup.dim_out*obj.setup.J_nterm,obj.setup.dim_state);
-            obj.init.alpha = 1e-2;
+            obj.init.alpha = 1e-3;
             
             % time instants in which the optimisation is run
             obj.init.temp_time = [];
@@ -688,7 +715,7 @@ classdef obsopt_general_adaptive_flush
         % dJ_cond: function for the adaptive sampling
         function obj = dJ_cond_v5_function(obj)
 
-            buffer_ready = (nnz(obj.init.Y_space) >= 1) || (size(obj.init.Yhat_full_story,3) > obj.setup.Nts);
+            buffer_ready = (nnz(obj.init.Y_space) >= 1) && (size(obj.init.Yhat_full_story,3) > obj.setup.Nts);
 
             if buffer_ready
 
@@ -701,14 +728,19 @@ classdef obsopt_general_adaptive_flush
                 Y_buf = obj.init.Y_full_story(1,:,pos_hat);
                 
                 % Y derivative measure
-                Yhat_der = obj.init.Yhat_full_story(2,:,pos_hat);
-                Y_buf_der = obj.init.Y_full_story(2,:,pos_hat);
+                if obj.setup.J_nterm > 1
+                    Yhat_der = obj.init.Yhat_full_story(2,:,pos_hat);
+                    Y_buf_der = obj.init.Y_full_story(2,:,pos_hat);
+                end
 
                 % build the condition
                 n_sum = size(Y_buf,2);
                 temp_e = 0;
                 for i=1:n_sum
-                    temp_e = temp_e + norm(Y_buf(:,i)-(Yhat(:,i))) + norm(Y_buf_der(:,i)-(Yhat_der(:,i)));
+                    temp_e = temp_e + norm(Y_buf(:,i)-(Yhat(:,i))); 
+                    if obj.setup.J_nterm > 1
+                       temp_e = temp_e + + norm(Y_buf_der(:,i)-(Yhat_der(:,i))); 
+                    end
                 end
 
                 obj.init.dJ_cond = norm(temp_e);
@@ -717,6 +749,27 @@ classdef obsopt_general_adaptive_flush
             end
             
             obj.init.dJ_cond_story(:,obj.init.ActualTimeIndex) = obj.init.dJ_cond;
+        end
+        
+        % Get Persistent Excitation and its derivative
+        function obj = PE(obj)
+             %%% compute signal richness %%%
+             obj.init.PE_num(obj.init.ActualTimeIndex) = trapz(obj.setup.Ts,obj.init.Y(1,:).^2);
+             
+             [obj.init.buf_PE, dPE] = obj.derivative(obj.setup.Ts,obj.init.PE_num(obj.init.ActualTimeIndex),obj.init.c1_PE,obj.init.d1_PE,0,obj.init.buf_PE);
+             obj.init.PE_num_dot(obj.init.ActualTimeIndex) = dPE;
+             
+             if obj.setup.PE_maxiter
+                 if abs(dPE) > 1e0 || (obj.setup.AdaptiveSampling && obj.init.hyst_flag)
+                     if dPE > 0
+                        obj.setup.max_iter = max(10,floor(0.9*obj.setup.max_iter)); 
+                     else
+                        obj.setup.max_iter = min(200,ceil(1.1*obj.setup.max_iter));  
+                     end
+                 end
+             end
+             
+             obj.init.maxIterStory(obj.init.ActualTimeIndex) = obj.setup.max_iter;
         end
         
         % Broyden gradient method
@@ -852,6 +905,7 @@ classdef obsopt_general_adaptive_flush
         function obj = observer(obj,xhat,y)
             
             params = obj.init.params;
+            obj.init.just_optimised = 0;
             
             % save runtime state
             obj.init.X_est_runtime(:,obj.init.ActualTimeIndex) = obj.init.X_est(:,obj.init.ActualTimeIndex);
@@ -881,7 +935,10 @@ classdef obsopt_general_adaptive_flush
             hyst_low = (obj.init.dJ_cond_story(max(1,obj.init.ActualTimeIndex-1)) < obj.setup.dJ_low) && (obj.init.dJ_cond >= obj.setup.dJ_low);
             hyst_high = (obj.init.dJ_cond >= obj.setup.dJ_high);
             obj.init.hyst_flag = ~(hyst_low || hyst_high);
-            if  ~(((distance < obj.setup.Nts) || obj.init.hyst_flag) && (obj.init.distance_safe_flag))
+            %%%% persistent excitation %%%%
+            obj = obj.PE();
+            %%%% observer %%%%
+            if  (~(((distance < obj.setup.Nts) || obj.init.hyst_flag) && (obj.init.distance_safe_flag))) && (obj.setup.optimise)
 
                 if obj.setup.print
                     % Display iteration slengthtep
@@ -913,6 +970,7 @@ classdef obsopt_general_adaptive_flush
                 cols_nonzeros = length(find(sum(obj.init.Y ~= 0,1)));
 
                 if cols_nonzeros >= obj.setup.w
+%                 if cols_nonzeros*obj.setup.J_nterm >= 2*obj.setup.dim_state+1
 
                     if obj.setup.forward
 
@@ -986,6 +1044,7 @@ classdef obsopt_general_adaptive_flush
 
                             % store measure times
                             obj.init.opt_chosen_time = [obj.init.opt_chosen_time obj.init.ActualTimeIndex];
+                            obj.init.just_optimised = 1;
 
                             % counters
                             obj.init.jump_flag = 0;

@@ -1,6 +1,6 @@
 %% params_pendulum
 % create params structure for pendulum 
-function params = params_double_pendulum_mass
+function params = params_double_pendulum_params
 
     % pendulum parameters
     params.Lt1 = 1;
@@ -12,8 +12,8 @@ function params = params_double_pendulum_mass
     params.c2 = 0.1;
     
     
-    params.X(:,1) = [-pi/2+0.3;-pi/2-0.2;0.1;-0.2; params.M1; params.M2];
+    params.X(:,1) = [-pi/2+0.3;-pi/2-0.2;0.1;-0.2; params.c1; params.c2];
     
     % position in the state vector of the parameters
-    params.estimated_params = [3, 4];
+    params.estimated_params = [5, 6];
 end

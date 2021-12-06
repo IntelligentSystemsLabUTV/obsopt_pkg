@@ -1,10 +1,10 @@
 %% double pendlum model
-function x_dot = model_double_pendulum_mass(t, x, params)
+function x_dot = model_double_pendulum_params(t, x, params)
 
     x_dot = zeros(length(x),1);
     
-    params.M1 = x(5);
-    params.M2 = x(6);
+    params.c1 = x(5);
+    params.c2 = x(6);
     
     L1 = params.Lt1;
     L2 = params.Lt2;
@@ -24,5 +24,7 @@ function x_dot = model_double_pendulum_mass(t, x, params)
     x_dot(3) = (-C1*x(3) + delta*tau(1)/(M2*L1) - delta*L2*x(4)^2*sin(x(1)-x(2)) - g*cos(x(1)) - delta*cos(x(1)-x(2))*(tau(2)/(M2*L2) + L1*x(3)^2*sin(x(1)-x(2) - g*cos(x(2)))))/(L1*(1-delta*cos(x(1)-x(2))^2));
     
     x_dot(4) = (-C2*x(4) + tau(2)/(M2*L2) + L1*x(3)^2*sin(x(1)-x(2)) - g*cos(x(2)) - cos(x(1)-x(2))*(delta*tau(1)/(M2*L1) + delta*L2*x(4)^2*sin(x(1)-x(2) - g*cos(x(1)))))/(L2*(1-delta*cos(x(1)-x(2))^2));
+    
+    x_dot(5:end) = 0;
 
 end
