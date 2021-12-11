@@ -8,7 +8,7 @@ function params = params_SQR
     params.b = 0.4;
 
     % eps_coef
-    params.eps_coef = 1;
+    params.eps_coef = 0.5;
     
     % initial condition
 %     params.X = [2; 0; 1; params.a; params.b];

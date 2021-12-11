@@ -125,17 +125,16 @@ function params = model_init(varargin)
     end
 
     % input law 
-    % default case 
-    params.input = params.input_enable*randn(params.dim_input,1).*sin(params.time);
+    % default case
     % now check varargin
     if any(strcmp(varargin,'input_law'))
         pos = find(strcmp(varargin,'input_law'));
-        if ~isempty(params.input_enable*varargin{pos+1})
-            params.input = params.input_enable*varargin{pos+1};
-        end
+        if ~isempty(varargin{pos+1})
+            params.input = varargin{pos+1};
+        else
+            params.input = @(x,params) 0;
+        end 
     end
-    % set initial input
-    params.u = params.input(:,1);
     
     % set initial condition perturbed
 %     perc = [0.3, 0.3, 0.1, 0.1];

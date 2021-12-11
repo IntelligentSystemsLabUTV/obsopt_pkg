@@ -68,6 +68,8 @@ classdef obsopt_general_adaptive_flush
                 
                 % estimated param
                 obj.setup.estimated_params = params.estimated_params;
+                obj.setup.opt_vars = params.opt_vars;
+                obj.setup.nonopt_vars = params.nonopt_vars;
                                 
             else
                 obj.setup.model = @(t,x,params) -2*x;
@@ -94,7 +96,7 @@ classdef obsopt_general_adaptive_flush
                 obj.setup.observed_state = 1;
                 
                 % input
-                params.input = zeros(1,length(obj.setup.time));
+                params.input = @(x,params) 0;
                 
                 % estimated param
                 obj.setup.estimated_params = [];
@@ -540,7 +542,7 @@ classdef obsopt_general_adaptive_flush
         
         % cost function: actual cost function. Check the reference for more 
         % information 
-        function [Jtot,obj] = cost_function(obj,varargin) %#codegen
+        function [Jtot,obj] = cost_function_measure(obj,varargin) 
 
             % get state
             x = varargin{1};
@@ -626,6 +628,100 @@ classdef obsopt_general_adaptive_flush
             end
         end
         
+        function [Jtot,obj] = cost_function(obj,varargin) 
+
+            % get state
+            x = varargin{1};
+            
+            % reset true vals for non optimised vals
+            x_nonopt = varargin{2};
+            x(obj.setup.nonopt_vars) = x_nonopt(obj.setup.nonopt_vars);
+            
+            % get desired trajectory
+            y_target = varargin{3};
+            
+            % set the derivative buffer as before the optimisation process (multiple f computation)
+            back_time = obj.init.BackIterIndex;
+            % set the derivative buffer as before the optimisation process (multiple f computation)
+            if back_time >= obj.init.d1_derivative
+                temp_buf_dyhat = obj.init.Yhat_full_story(1,:,back_time-(obj.init.d1_derivative-1):back_time);
+            else
+                init_pos = obj.init.d1_derivative-back_time;
+                stack = reshape(obj.init.Yhat_full_story(1,:,1:back_time),obj.setup.dim_out,1);
+                temp_buf_dyhat = [zeros(obj.setup.dim_out,init_pos), stack];
+            end
+            
+            % cost function init
+            Jtot = 0;
+
+            %optimization vector  
+            X = x; 
+
+            n_item = length(find((obj.init.Y_space)));
+            n_iter = n_item;
+
+            shift = obj.setup.w-n_item;
+            
+            % init Jterm store
+            obj.init.Jterm_store = zeros(obj.setup.J_nterm_total,1);
+
+            for j=1:n_iter
+
+                %evaluate the weighted in time cost function at this iteration time
+                if(obj.setup.forward ~= 1) %backward        
+                    %%%%%% TO BE DONE %%%%%%
+                else
+
+                    % get measure
+                    [temp_buf_dyhat, Yhat] = obj.measure_function(X,j,temp_buf_dyhat,obj.init.Yhat_full_story);
+
+                    J = zeros(obj.setup.J_nterm,size(Yhat,1));
+
+                    for term=1:obj.setup.J_nterm
+                        % get the J
+                        for i=1:obj.setup.dim_out
+                            diff = (y_target(term,i,shift+j)-Yhat(i,term));
+                            J(term,i) = (diff)^2;
+                        end
+                    end
+
+                    for term=1:obj.setup.dim_out
+                        tmp = obj.init.scale_factor(term,1:obj.setup.J_nterm)*J(:,term);
+                        Jtot = Jtot + tmp; 
+                    end
+
+                    % store terms
+                    obj.init.Jterm_store(1:obj.setup.J_nterm) = obj.init.Jterm_store(1:obj.setup.J_nterm) + J(:,term);
+                end
+
+            end
+            
+            %%% spring like term %%%
+            if ~isempty(obj.setup.estimated_params) && obj.setup.J_term_spring
+                x0 = obj.init.temp_x0;
+                params0 = x0(obj.setup.estimated_params);
+                paramsNow = x(obj.setup.estimated_params);
+                paramsDiff = params0-paramsNow;
+                paramsDiff = reshape(paramsDiff,1,length(obj.setup.estimated_params));
+                Jspring = paramsDiff*obj.init.scale_factor(1,obj.setup.J_term_spring_position)*transpose(paramsDiff);
+            else
+                Jspring = 0;
+            end
+            
+            % store terms
+            obj.init.Jterm_store(end) = Jspring;
+            
+            Jtot = Jtot+Jspring;
+
+            %%% final stuff %%%
+            if n_iter > 0
+                obj.init.Yhat_temp = Yhat;
+            else
+                Jtot = 1; 
+            end
+        end
+
+        
         % get measure: from the setup.measure imported function, this
         % method computes the filters defined in setup.temp_scale as well
         function [buf_dy, y_read] = measure_function(obj,varargin)
@@ -653,7 +749,8 @@ classdef obsopt_general_adaptive_flush
                 for i=1:n_iter
                     
                     % integration
-                    params.u = params.input(:,obj.init.BackIterIndex+i-1);
+                    back_time = obj.init.BackIterIndex -1 + i;
+                    params.u = params.input(x_propagate,params);
                     X = obj.setup.ode(@(t,x)obj.setup.model(t, x, params), obj.setup.tspan, x_propagate);
                     x_propagate = X.y(:,end);
                     
@@ -1003,7 +1100,14 @@ classdef obsopt_general_adaptive_flush
                         obj.init.BackIterIndex = find(obj.setup.time==obj.init.BackTimeIndex);
 
                         % set of initial conditions
+                        % start from the correct one
+                        obj.init.temp_x0_true = obj.init.X_est(:,obj.init.BackIterIndex);
+                        % change only the values which are to be optimised
                         obj.init.temp_x0 = obj.init.X_est(:,obj.init.BackIterIndex);
+                        
+                        % set target
+%                         obj.init.target = obj.init.Y;
+                        obj.init.target = 2*ones(1,1,obj.setup.w);
                         
                         % Optimisation (only if distance_safe_flag == 1)
                         opt_time = tic;
@@ -1017,13 +1121,13 @@ classdef obsopt_general_adaptive_flush
                             J = obj.init.J_last;
                         elseif strcmp(func2str(obj.setup.fmin),'fmincon')
                             % save J before the optimisation to confront it later
-                            [J_before, obj_tmp] = obj.cost_function(obj.init.temp_x0);
-                            [NewXopt, J, obj.init.exitflag] = obj.setup.fmin(@(x)obj.cost_function(x,1),obj.init.temp_x0, obj.setup.Acon, obj.setup.Bcon,...
+                            [J_before, obj_tmp] = obj.cost_function(obj.init.temp_x0,obj.init.temp_x0_true,obj.init.target);
+                            [NewXopt, J, obj.init.exitflag] = obj.setup.fmin(@(x)obj.cost_function(x,obj.init.temp_x0_true,obj.init.target,1),obj.init.temp_x0, obj.setup.Acon, obj.setup.Bcon,...
                                                               obj.setup.Acon_eq, obj.setup.Bcon_eq, obj.setup.LBcon, obj.setup.UBcon, obj.setup.NONCOLcon, obj.init.myoptioptions);
                         else
                             % save J before the optimisation to confront it later
-                            [J_before, obj_tmp] = obj.cost_function(obj.init.temp_x0);
-                            [NewXopt, J, obj.init.exitflag] = obj.setup.fmin(@(x)obj.cost_function(x,1),obj.init.temp_x0, obj.init.myoptioptions);
+                            [J_before, obj_tmp] = obj.cost_function(obj.init.temp_x0,obj.init.temp_x0_true,obj.init.target);
+                            [NewXopt, J, obj.init.exitflag] = obj.setup.fmin(@(x)obj.cost_function(x,obj.init.temp_x0_true,obj.init.target,1),obj.init.temp_x0, obj.init.myoptioptions);
                         end
                         
 
@@ -1086,7 +1190,7 @@ classdef obsopt_general_adaptive_flush
                                 back_time = obj.init.BackIterIndex+j;
 
                                 % integrate
-                                params.u = params.input(:,back_time-1);
+                                params.u = params.input(obj.init.X_est(:,back_time),params);
                                 X = obj.setup.ode(@(t,x)obj.setup.model(back_time, x, params), obj.setup.tspan, x_propagate);
                                 x_propagate = X.y(:,end);                      
                                 obj.init.X_est(:,back_time) = x_propagate;
