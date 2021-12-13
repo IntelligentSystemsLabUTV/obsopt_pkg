@@ -137,9 +137,7 @@ function params = model_init(varargin)
     end
     
     % set initial condition perturbed
-%     perc = [0.3, 0.3, 0.1, 0.1];
-    perc = 2;
-%     params.X_est(:,1) = params.X(:,1).*(1 + perc*params.noise*randn(params.StateDim,1));
-    params.X_est(:,1) = params.X(:,1).*(1 + perc.*params.noise*ones(params.StateDim,1)) + 0*params.noise_std*randn(params.StateDim,1);
+    perc = [0; 0; 0.5; 0.3];
+    params.X_est(:,1) = params.X(:,1).*(1 + params.noise*perc.*ones(params.StateDim,1)) + params.noise*params.noise_std*randn(params.StateDim,1);
     
 end

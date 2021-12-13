@@ -3,15 +3,16 @@
 function params = params_double_integrator
 
     % control params
-    params.K = -1;
+    params.K1 = -2;
+    params.K2 = -3;
     
-    params.X(:,1) = [1;1;params.K];
+    params.X(:,1) = [1;1;params.K1; params.K2];
     
     % position in the state vector of the parameters
-    params.estimated_params = [];
+    params.estimated_params = [3, 4];
     
     % which vars am i optimising
-    params.opt_vars = [3];
+    params.opt_vars = [3, 4];
     
     % not opt vars
     tmp = 1:length(params.X(:,1));

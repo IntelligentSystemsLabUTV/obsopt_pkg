@@ -13,7 +13,7 @@ default = 0;
 if ~default
     
     % init observer buffer
-    Nw = 3;
+    Nw = 10;
     Nts = 3;
     
     % set sampling time
@@ -21,7 +21,7 @@ if ~default
     
     % set initial and final time instant
     t0 = 0;
-    tend = 5;
+    tend = 3;
 %     tend = (Nw*Nts+1)*Ts;
     
     %%%%%%%%%%% params function %%%%%%%%%%%
@@ -59,7 +59,7 @@ if ~default
     % y = measure (no noise added). In the following examples it holds
     % y = x(params.observed_state) (see params_init)
     measure = @measure_general;
-    %%%%%%%%%%%%%%%%%%%%%%%%%%0%%%%%%%%%%%%%
+    %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
     
     % set the integration method
     ode = @oderk4;
@@ -73,16 +73,16 @@ if ~default
     % options (varargin). The most important is the 'params_init' option, 
     % which takes as input the function handle to the previously defined
     % @params_init. For more information see directly the file.
-    params = model_init('Ts',Ts,'T0',[t0, tend],'noise',0,'noise_spec',[0, 0],...
-            'model',model,'measure',measure,'StateDim',3,'ObservedState',[1],'ode',ode,...
+    params = model_init('Ts',Ts,'T0',[t0, tend],'noise',1,'noise_spec',[0, 0],...
+            'model',model,'measure',measure,'StateDim',4,'ObservedState',[1],'ode',ode,...
             'input_enable',1,'dim_input',1,'input_law',input_law,'params_init',params_init);
 
     % create observer class instance. For more information on the setup
     % options check directly the class constructor
     obs = obsopt_general_adaptive_flush('DataType', 'simulated', 'optimise', 1, ... 
-          'Nw', Nw, 'Nts', Nts, 'ode', ode, 'PE_maxiter', 0, ...    
+          'Nw', Nw, 'Nts', Nts, 'ode', ode, 'PE_maxiter', 0, 'control_design', 1 ,...    
           'params',params, 'filters', [1e0,0,0,0],'Jdot_thresh',0.9,'MaxIter',100,...
-          'Jterm_store', 0, 'AlwaysOpt', 1 , 'print', 0 , 'SafetyDensity', 5, 'AdaptiveHist', [5e-3, 1e-2], ...
+          'Jterm_store', 0, 'AlwaysOpt', 0 , 'print', 0 , 'SafetyDensity', 5, 'AdaptiveHist', [5e-3, 1e-2], ...
           'AdaptiveSampling', 0, 'FlushBuffer', 1, 'Jterm_store', 0, 'opt', @fminsearch);
       
 else
@@ -139,6 +139,6 @@ obs.init.total_time = toc;
 
 %% %%%%%%%%%%%%%%%%%%%%%%%%%%%% PLOTS %%%%%%%%%%%%%%%%%%%%%
 % obs self plots
-obs.plot_section(); 
+obs.plot_section_control(); 
 end
 
