@@ -325,14 +325,13 @@ classdef obsopt_general_adaptive_flush
                 obj.setup.control_design = 0;
             end
             
-            % number of reference trajectories (>1 for control design)
-            if any(strcmp(varargin,'Ntraj')) && (obj.setup.control_design)
-                pos = find(strcmp(varargin,'Ntraj'));
-                obj.setup.Ntraj = varargin{pos+1};
+            % reference model
+            if any(strcmp(varargin,'model_reference')) && (obj.setup.control_design)
+                pos = find(strcmp(varargin,'model_reference'));
+                obj.setup.model_reference = varargin{pos+1};
             else
-                obj.setup.Ntraj = 1;
+                obj.setup.model_reference = obj.setup.model;
             end
-            
             
             % get the cost function terms. Default uses measures only, 
             % without any additional filter (e.g. [1 0 0])
@@ -369,9 +368,18 @@ classdef obsopt_general_adaptive_flush
             if ~any(strcmp(varargin,'params'))
                 % set initial condition perturbed
                 obj.setup.X_est(:,1) = obj.setup.X(:,1) + 1e1*obj.setup.noise*(obj.setup.noise_mu + obj.setup.noise_std.*randn(obj.setup.dim_state,1));
+                
+                obj.setup.Ntraj = 1;
             end
             % complete the params update in .setup
             obj.setup.params = params;
+            
+            % number of reference trajectories (>1 for control design)
+            if (obj.setup.control_design)
+                obj.setup.Ntraj = params.Ntraj;
+            else
+                obj.setup.Ntraj = 1;
+            end
             
             % initialise the class
             obj = obj.obs_init();
@@ -417,20 +425,29 @@ classdef obsopt_general_adaptive_flush
             obj.init.d1_derivative = 3;
             
             % buffer used for measured and estimated variables derivarive. 
-            obj.init.buf_dY = zeros(obj.setup.dim_out,obj.init.d1_derivative);
-            obj.init.buf_dYhat = zeros(obj.setup.dim_out,obj.init.d1_derivative);
+            for i=1:obj.setup.Ntraj
+                obj.init.buf_dY(i).val = zeros(obj.setup.dim_out,obj.init.d1_derivative);
+                obj.init.buf_dYhat(i).val = zeros(obj.setup.dim_out,obj.init.d1_derivative);
+            end
             
+            
+            % persistenct excitation setup
             obj.init.c1_PE = 5;
             obj.init.d1_PE = 20;
-            obj.init.buf_PE = zeros(1,obj.init.d1_PE);
+            
+            for i=1:obj.setup.Ntraj
+                obj.init.buf_PE(i).val = zeros(1,obj.init.d1_PE);
+            end
 
             % measure buffer: these buffers are used to store the measured
-            % and estimated values on the observed states. 
-            obj.init.Y =  zeros(obj.setup.J_nterm,obj.setup.dim_out,obj.setup.w);
-            obj.init.Ytrue_full_story = zeros(obj.setup.J_nterm,obj.setup.dim_out,0);
-            obj.init.Y_full_story = zeros(obj.setup.J_nterm,obj.setup.dim_out,0);
-            obj.init.Yhat_full_story = zeros(obj.setup.J_nterm,obj.setup.dim_out,0);
-            obj.init.target_story = zeros(obj.setup.J_nterm,obj.setup.dim_out,0);
+            % and estimated values on the observed states.           
+            for i=1:obj.setup.Ntraj
+                obj.init.Y(i).val =  zeros(obj.setup.J_nterm,obj.setup.dim_out,obj.setup.w);
+                obj.init.Ytrue_full_story(i).val = zeros(obj.setup.J_nterm,obj.setup.dim_out,0);
+                obj.init.Y_full_story(i).val = zeros(obj.setup.J_nterm,obj.setup.dim_out,0);
+                obj.init.Yhat_full_story(i).val = zeros(obj.setup.J_nterm,obj.setup.dim_out,0);
+                obj.init.target_story(i).val = zeros(obj.setup.J_nterm,obj.setup.dim_out,0);
+            end
 
             % buffer adaptive sampling: these buffers keep track of the
             % time instants in which the measured data have been stored. 
@@ -646,37 +663,43 @@ classdef obsopt_general_adaptive_flush
             end
         end
         
-        function [Jtot,obj] = cost_function(obj,varargin) 
-
-            % get state
-            x = varargin{1};
+        function [J_final,obj] = cost_function(obj,varargin) 
             
-            % reset true vals for non optimised vals
-            x_nonopt = varargin{2};
-            
-            % get desired trajectory
-            y_target = varargin{3};
-            
-            % cost function init
-            Jtot = 0;
-            
+            % above ntraj init
+            J_final = 0;
+                
             for Nstart = 1:obj.setup.Ntraj
+                
+                % cost function init
+                Jtot = 0;
+                
+                % get opt state
+                x_opt = varargin{1};
+
+                % non optimised vals
+                x_nonopt = varargin{2}(Nstart).val;
+
+                % create state
+                x = zeros(obj.setup.dim_state,1);
+                x(obj.setup.opt_vars) = x_opt;
+                x(obj.setup.nonopt_vars) = x_nonopt;  
+                
+                % get desired trajectory
+                y_target = varargin{3}(Nstart).val;
             
                 % set the derivative buffer as before the optimisation process (multiple f computation)
                 back_time = obj.init.BackIterIndex;
                 % set the derivative buffer as before the optimisation process (multiple f computation)
                 if back_time >= obj.init.d1_derivative
-                    temp_buf_dyhat = obj.init.Yhat_full_story(1,:,back_time-(obj.init.d1_derivative-1):back_time);
+                    temp_buf_dyhat = obj.init.Yhat_full_story(Nstart).val(1,:,back_time-(obj.init.d1_derivative-1):back_time);
                 else
                     init_pos = obj.init.d1_derivative-back_time;
-                    stack = reshape(obj.init.Yhat_full_story(1,:,1:back_time),obj.setup.dim_out,1);
+                    stack = reshape(obj.init.Yhat_full_story(Nstart).val(1,:,1:back_time),obj.setup.dim_out,1);
                     temp_buf_dyhat = [zeros(obj.setup.dim_out,init_pos), stack];
                 end
               
 
                 %optimization vector  
-%                 delta = randn(size(x));
-%                 delta(obj.setup.opt_vars) = 0*delta(obj.setup.nonopt_vars);
                 X = x;                
 
                 n_item = length(find((obj.init.Y_space)));
@@ -695,7 +718,7 @@ classdef obsopt_general_adaptive_flush
                     else
 
                         % get measure
-                        [temp_buf_dyhat, Yhat] = obj.measure_function(X,j,temp_buf_dyhat,obj.init.Yhat_full_story);
+                        [temp_buf_dyhat, Yhat] = obj.measure_function(X,j,temp_buf_dyhat,obj.init.Yhat_full_story(Nstart).val);
 
                         J = zeros(obj.setup.J_nterm,size(Yhat,1));
 
@@ -720,7 +743,7 @@ classdef obsopt_general_adaptive_flush
 
                 %%% spring like term %%%
                 if ~isempty(obj.setup.estimated_params) && obj.setup.J_term_spring
-                    x0 = obj.init.temp_x0;
+                    x0 = obj.init.temp_x0(1).val;
                     params0 = x0(obj.setup.estimated_params);
                     paramsNow = x(obj.setup.estimated_params);
                     paramsDiff = params0-paramsNow;
@@ -735,15 +758,15 @@ classdef obsopt_general_adaptive_flush
                 
                 % non opt vars barrier term
                 diff = x(obj.setup.nonopt_vars) - x_nonopt(obj.setup.nonopt_vars);
-                J_barr = 1e8*any(diff);
+                J_barr = 1e8*any(diff)*0;
                 
-                Jtot = Jtot+Jspring+J_barr;
+                J_final = J_final + Jtot + Jspring + J_barr;
 
                 %%% final stuff %%%
                 if n_iter > 0
                     obj.init.Yhat_temp = Yhat;
                 else
-                    Jtot = 1; 
+                    J_final = 1; 
                 end
             end
         end
@@ -847,32 +870,38 @@ classdef obsopt_general_adaptive_flush
         % dJ_cond: function for the adaptive sampling
         function obj = dJ_cond_v5_function(obj)
 
-            buffer_ready = (nnz(obj.init.Y_space) >= 1) && (size(obj.init.Yhat_full_story,3) > obj.setup.Nts);
+            buffer_ready = (nnz(obj.init.Y_space) >= 1) && (size(obj.init.Yhat_full_story(1).val,3) > obj.setup.Nts);
 
             if buffer_ready
-
-                % where to check
-                [~, pos_hat] = find(obj.init.Y_space ~= 0);
-                pos_hat = obj.init.Y_space(pos_hat)-1;
                 
-                % Y measure
-                Yhat = obj.init.Yhat_full_story(1,:,pos_hat);
-                Y_buf = obj.init.Y_full_story(1,:,pos_hat);
-                
-                % Y derivative measure
-                if obj.setup.J_nterm > 1
-                    Yhat_der = obj.init.Yhat_full_story(2,:,pos_hat);
-                    Y_buf_der = obj.init.Y_full_story(2,:,pos_hat);
-                end
-
-                % build the condition
-                n_sum = size(Y_buf,2);
+                % init
                 temp_e = 0;
-                for i=1:n_sum
-                    temp_e = temp_e + norm(Y_buf(:,i)-(Yhat(:,i))); 
+                
+                for traj = 1:obj.setup.Ntraj
+
+                    % where to check
+                    [~, pos_hat] = find(obj.init.Y_space ~= 0);
+                    pos_hat = obj.init.Y_space(pos_hat)-1;
+
+                    % Y measure
+                    Yhat = obj.init.Yhat_full_story(traj).val(1,:,pos_hat);
+                    Y_buf = obj.init.Y_full_story(traj).val(1,:,pos_hat);
+
+                    % Y derivative measure
                     if obj.setup.J_nterm > 1
-                       temp_e = temp_e + + norm(Y_buf_der(:,i)-(Yhat_der(:,i))); 
+                        Yhat_der = obj.init.Yhat_full_story(traj).val(2,:,pos_hat);
+                        Y_buf_der = obj.init.Y_full_story(traj).val(2,:,pos_hat);
                     end
+
+                    % build the condition
+                    n_sum = size(Y_buf,2);
+                    
+                    for i=1:n_sum
+                        temp_e = temp_e + norm(Y_buf(:,i)-(Yhat(:,i))); 
+                        if obj.setup.J_nterm > 1
+                           temp_e = temp_e + + norm(Y_buf_der(:,i)-(Yhat_der(:,i))); 
+                        end
+                    end                 
                 end
 
                 obj.init.dJ_cond = norm(temp_e);
@@ -885,11 +914,14 @@ classdef obsopt_general_adaptive_flush
         
         % Get Persistent Excitation and its derivative
         function obj = PE(obj)
+            
+            for traj = 1:obj.setup.Ntraj
+            
              %%% compute signal richness %%%
-             obj.init.PE_num(obj.init.ActualTimeIndex) = trapz(obj.setup.Ts,obj.init.Y(1,:).^2);
+             obj.init.PE_num(traj).val(obj.init.ActualTimeIndex) = trapz(obj.setup.Ts,obj.init.Y(traj).val(1,:).^2);
              
-             [obj.init.buf_PE, dPE] = obj.derivative(obj.setup.Ts,obj.init.PE_num(obj.init.ActualTimeIndex),obj.init.c1_PE,obj.init.d1_PE,0,obj.init.buf_PE);
-             obj.init.PE_num_dot(obj.init.ActualTimeIndex) = dPE;
+             [obj.init.buf_PE(traj).val, dPE] = obj.derivative(obj.setup.Ts,obj.init.PE_num(traj).val(obj.init.ActualTimeIndex),obj.init.c1_PE,obj.init.d1_PE,0,obj.init.buf_PE(traj).val);
+             obj.init.PE_num_dot(traj).val(obj.init.ActualTimeIndex) = dPE;
              
              if obj.setup.PE_maxiter
                  if abs(dPE) > 1e0 || (obj.setup.AdaptiveSampling && obj.init.hyst_flag)
@@ -900,6 +932,8 @@ classdef obsopt_general_adaptive_flush
                      end
                  end
              end
+             
+            end
              
              obj.init.maxIterStory(obj.init.ActualTimeIndex) = obj.setup.max_iter;
         end
@@ -1032,8 +1066,10 @@ classdef obsopt_general_adaptive_flush
         end
         
         % target function (observer or control design)
-        function obj = target(obj)
-            obj.init.target = obj.init.Y;
+        function obj = target(obj)          
+            for i=1:obj.setup.Ntraj
+                obj.init.target(i).val = obj.init.Y(i).val;
+            end
         end
         
         % observer function: this method wraps up all the afromentioned
@@ -1041,26 +1077,38 @@ classdef obsopt_general_adaptive_flush
         % for more information. 
         function obj = observer(obj,xhat,y)
             
+            % get estimations
+            for traj=1:obj.setup.Ntraj
+                xhat_tmp(traj).val = xhat(traj).val(:,obj.init.ActualTimeIndex);
+            end
+            xhat = xhat_tmp;
+            
             params = obj.init.params;
             obj.init.just_optimised = 0;
             
-            % save runtime state
-            obj.init.X_est_runtime(:,obj.init.ActualTimeIndex) = obj.init.X_est(:,obj.init.ActualTimeIndex);
-
-            yhat = obj.setup.measure(xhat,params);
+            for traj=1:obj.setup.Ntraj
+                % save runtime state
+                obj.init.X_est_runtime(traj).val(:,obj.init.ActualTimeIndex) = obj.init.X_est(traj).val(:,obj.init.ActualTimeIndex);
+                % get measure
+                yhat(traj).val = obj.setup.measure(xhat(traj).val,params);
+            end
             
-            % get filters - y
-            [obj.init.buf_dY, dy, y_int] = obj.measure_filter(y,obj.init.buf_dY,obj.init.Y_full_story,obj.init.ActualTimeIndex);
-            y = [y, dy, y_int];
+            for traj=1:obj.setup.Ntraj
+                % get filters - y
+                [obj.init.buf_dY(traj).val, dy, y_int] = obj.measure_filter(y(traj).val,obj.init.buf_dY(traj).val,obj.init.Y_full_story(traj).val,obj.init.ActualTimeIndex);
+                y(traj).val = [y(traj).val, dy, y_int];
+                
+                % get filters - yhat
+                [obj.init.buf_dYhat(traj).val, dyhat, yhat_int] = obj.measure_filter(yhat(traj).val,obj.init.buf_dYhat(traj).val,obj.init.Yhat_full_story(traj).val,obj.init.ActualTimeIndex);
+                yhat(traj).val = [yhat(traj).val, dyhat, yhat_int];
+            end
             
-            % get filters - yhat
-            [obj.init.buf_dYhat, dyhat, yhat_int] = obj.measure_filter(yhat,obj.init.buf_dYhat,obj.init.Yhat_full_story,obj.init.ActualTimeIndex);
-            yhat = [yhat, dyhat, yhat_int];
-
             %%%%%%%%%%%%%%%%%%%%% INSERT OPT %%%%%%%%%%%%%%%%%%%%%
             for term=1:obj.setup.J_nterm
-                obj.init.Y_full_story(term,:,obj.init.ActualTimeIndex) = y(:,term);
-                obj.init.Yhat_full_story(term,:,obj.init.ActualTimeIndex) = yhat(:,term);
+                for traj=1:obj.setup.Ntraj
+                    obj.init.Y_full_story(traj).val(term,:,obj.init.ActualTimeIndex) = y(traj).val(:,term);
+                    obj.init.Yhat_full_story(traj).val(term,:,obj.init.ActualTimeIndex) = yhat(traj).val(:,term);
+                end
             end
 
             % fisrt bunch of data - read Y every Nts and check if the signal is
@@ -1088,8 +1136,10 @@ classdef obsopt_general_adaptive_flush
                 %%%% OUTPUT measurements - buffer of w elements
                 % measures
                 for term=1:obj.setup.J_nterm
-                    obj.init.Y(term,:,1:end-1) = obj.init.Y(term,:,2:end);
-                    obj.init.Y(term,:,end) = y(:,term);
+                    for traj=1:obj.setup.Ntraj
+                        obj.init.Y(traj).val(term,:,1:end-1) = obj.init.Y(traj).val(term,:,2:end);
+                        obj.init.Y(traj).val(term,:,end) = y(traj).val(:,term);
+                    end
                 end
 
                 % backup
@@ -1104,7 +1154,9 @@ classdef obsopt_general_adaptive_flush
                 % store measure times
                 obj.init.temp_time = [obj.init.temp_time obj.init.ActualTimeIndex];
 
-                cols_nonzeros = length(find(sum(obj.init.Y ~= 0,1)));
+                % check only on the first traj as the sampling is coherent
+                % on the 2.
+                cols_nonzeros = length(find(sum(obj.init.Y(1).val ~= 0,1:2)));
 
                 if cols_nonzeros >= obj.setup.w
 %                 if cols_nonzeros*obj.setup.J_nterm >= 2*obj.setup.dim_state+1
@@ -1131,7 +1183,9 @@ classdef obsopt_general_adaptive_flush
                             obj.init.Y_space = buf_Y_space_full_story(2:end);
                             
                             % down samplingbuffer
-                            obj.init.Y =  obj.init.Y_full_story(:,:,obj.init.Y_space);
+                            for traj=1:obj.setup.Ntraj
+                                obj.init.Y(traj).val =  obj.init.Y_full_story(traj).val(:,:,obj.init.Y_space);
+                            end
                         end
                         
                         % back time index
@@ -1140,14 +1194,29 @@ classdef obsopt_general_adaptive_flush
                         obj.init.BackIterIndex = find(obj.setup.time==obj.init.BackTimeIndex);
 
                         % set of initial conditions
-                        % start from the correct one
-                        obj.init.temp_x0_true = obj.init.X_est_runtime(:,obj.init.BackIterIndex);
-                        % change only the values which are to be optimised
-                        obj.init.temp_x0 = obj.init.X_est(:,obj.init.BackIterIndex);
+                        for traj=1:obj.setup.Ntraj
+                            % start from the correct one
+                            if 1 || obj.setup.control_design 
+                                obj.init.temp_x0_nonopt(traj).val = obj.init.X_est(traj).val(obj.setup.nonopt_vars,obj.init.BackIterIndex);
+                            else
+                                obj.init.temp_x0_nonopt(traj).val = obj.init.X(traj).val(obj.setup.nonopt_vars,obj.init.BackIterIndex);
+                            end
+                            % change only the values which are to be optimised
+                            % only 1 set of vars regardless to the number
+                            % of trajectories used
+                            obj.init.temp_x0_opt = obj.init.X_est(1).val(obj.setup.opt_vars,obj.init.BackIterIndex);
+
+                            % reconstruct temp_x0 from opt/nonopt vars
+                            obj.init.temp_x0(traj).val = zeros(obj.setup.dim_state,1);
+                            obj.init.temp_x0(traj).val(obj.setup.opt_vars) = obj.init.temp_x0_opt;
+                            obj.init.temp_x0(traj).val(obj.setup.nonopt_vars) = obj.init.temp_x0_nonopt(traj).val;
+                        end
                         
                         % set target
                         obj = obj.target();
-                        obj.init.target_story(:,:,obj.init.Y_space) = obj.init.target;
+                        for traj = 1:obj.setup.Ntraj
+                            obj.init.target_story(traj).val(:,:,obj.init.Y_space) = obj.init.target(traj).val;
+                        end
                         
                         % Optimisation (only if distance_safe_flag == 1)
                         opt_time = tic;
@@ -1161,15 +1230,24 @@ classdef obsopt_general_adaptive_flush
                             J = obj.init.J_last;
                         elseif strcmp(func2str(obj.setup.fmin),'fmincon')
                             % save J before the optimisation to confront it later
-                            [J_before, obj_tmp] = obj.cost_function(obj.init.temp_x0,obj.init.temp_x0_true,obj.init.target);
-                            [NewXopt, J, obj.init.exitflag] = obj.setup.fmin(@(x)obj.cost_function(x,obj.init.temp_x0_true,obj.init.target,1),obj.init.temp_x0, obj.setup.Acon, obj.setup.Bcon,...
+                            [J_before, obj_tmp] = obj.cost_function(obj.init.temp_x0_opt,obj.init.temp_x0_nonopt,obj.init.target);
+                            [NewXopt, J, obj.init.exitflag] = obj.setup.fmin(@(x)obj.cost_function(x,obj.init.temp_x0_nonopt,obj.init.target,1),obj.init.temp_x0_opt, obj.setup.Acon, obj.setup.Bcon,...
                                                               obj.setup.Acon_eq, obj.setup.Bcon_eq, obj.setup.LBcon, obj.setup.UBcon, obj.setup.NONCOLcon, obj.init.myoptioptions);
                         else
                             % save J before the optimisation to confront it later
-                            [J_before, obj_tmp] = obj.cost_function(obj.init.temp_x0,obj.init.temp_x0_true,obj.init.target);
-                            [NewXopt, J, obj.init.exitflag] = obj.setup.fmin(@(x)obj.cost_function(x,obj.init.temp_x0_true,obj.init.target,1),obj.init.temp_x0, obj.init.myoptioptions);
+                            [J_before, obj_tmp] = obj.cost_function(obj.init.temp_x0_opt,obj.init.temp_x0_nonopt,obj.init.target);
+                            [NewXopt, J, obj.init.exitflag] = obj.setup.fmin(@(x)obj.cost_function(x,obj.init.temp_x0_nonopt,obj.init.target,1),obj.init.temp_x0_opt, obj.init.myoptioptions);
                         end
                         
+                        % reconstruct NewXopt from opt/nonopt vars
+                        NewXopt_tmp = [];
+                        for traj = 1:obj.setup.Ntraj
+                            NewXopt_end = zeros(obj.setup.dim_state,1);
+                            NewXopt_end(obj.setup.opt_vars) = NewXopt;
+                            NewXopt_end(obj.setup.nonopt_vars) = obj.init.temp_x0_nonopt(traj).val;                          
+                            NewXopt_tmp(traj).val = NewXopt_end;
+                        end
+                        NewXopt = NewXopt_tmp;
 
                         % opt counter
                         obj.init.opt_counter = obj.init.opt_counter + 1;
@@ -1183,63 +1261,32 @@ classdef obsopt_general_adaptive_flush
 
                         if (obj.setup.AlwaysOpt) || ( (J_diff <= obj.setup.Jdot_thresh) || (distance > obj.init.safety_interval) )
 
-                            % update
-                            obj.init.X_est(:,obj.init.BackIterIndex) = NewXopt;
+                            % on each trajectory
+                            for traj=1:obj.setup.Ntraj
+                                % update
+                                obj.init.X_est(traj).val(:,obj.init.BackIterIndex) = NewXopt(traj).val;
 
-                            % store measure times
-                            obj.init.opt_chosen_time = [obj.init.opt_chosen_time obj.init.ActualTimeIndex];
-                            obj.init.just_optimised = 1;
+                                % store measure times
+                                obj.init.opt_chosen_time = [obj.init.opt_chosen_time obj.init.ActualTimeIndex];
+                                obj.init.just_optimised = 1;
 
-                            % counters
-                            obj.init.jump_flag = 0;
-                            obj.init.select_counter = obj.init.select_counter + 1;
+                                % counters
+                                obj.init.jump_flag = 0;
+                                obj.init.select_counter = obj.init.select_counter + 1;
 
-                            x_propagate = NewXopt;
+                                x_propagate = NewXopt(traj).val;
 
-                            %%%%%%%%%%%%%%%%% FIRST MEASURE UPDATE %%%%%%%%
-                            % manage measurements
-                            back_time = obj.init.BackIterIndex;
-                            % set the derivative buffer as before the optimisation process (multiple f computation)
-                            if back_time > obj.init.d1_derivative
-                                temp_buf_dyhat = obj.init.Yhat_full_story(1,:,obj.init.BackIterIndex-(obj.init.d1_derivative):back_time-1);
-                            else
-                                temp_buf_dyhat = zeros(obj.setup.dim_out,obj.init.d1_derivative);
-                                range = 1:back_time-1;
-                                temp_buf_dyhat(:,end-length(range)+1:end) = obj.init.Yhat_full_story(1,:,range);
-                            end
-
-                            %%%% ESTIMATED measurements
-                            % measures       
-                            % NB: the output storage has to be done in
-                            % back_time+1 as the propagation has been
-                            % performed 
-                            Yhat = obj.setup.measure(x_propagate,params);
-                            % get filters - yhat
-                            [temp_buf_dyhat, dyhat, yhat_int] = obj.measure_filter(Yhat,temp_buf_dyhat,obj.init.Yhat_full_story,back_time);
-                            yhat = [Yhat, dyhat, yhat_int];
-                            for term=1:obj.setup.J_nterm
-                                obj.init.Yhat_full_story(term,:,back_time) = yhat(:,term);
-                            end
-                            %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%   
-
-                            %%%%%%%%%%% PROPAGATION %%%%%%%%%%%%%%%%%%%%%%%
-                            n_iter_propagate = obj.init.ActualTimeIndex-obj.init.BackIterIndex;
-
-                            for j =1:n_iter_propagate
-                                % back time
-                                back_time = obj.init.BackIterIndex+j;
-
-                                % how do you handle the input?
-                                if obj.setup.control_design
-                                    params.u = params.input(x_propagate,params);
+                                %%%%%%%%%%%%%%%%% FIRST MEASURE UPDATE %%%%%%%%
+                                % manage measurements
+                                back_time = obj.init.BackIterIndex;
+                                % set the derivative buffer as before the optimisation process (multiple f computation)
+                                if back_time > obj.init.d1_derivative
+                                    temp_buf_dyhat = obj.init.Yhat_full_story(traj).val(1,:,obj.init.BackIterIndex-(obj.init.d1_derivative):back_time-1);
                                 else
-                                    params.u = params.input(obj.init.X(:,back_time),params);
+                                    temp_buf_dyhat = zeros(obj.setup.dim_out,obj.init.d1_derivative);
+                                    range = 1:back_time-1;
+                                    temp_buf_dyhat(:,end-length(range)+1:end) = obj.init.Yhat_full_story(traj).val(1,:,range);
                                 end
-                                
-                                % integrate
-                                X = obj.setup.ode(@(t,x)obj.setup.model(back_time, x, params), obj.setup.tspan, x_propagate);
-                                x_propagate = X.y(:,end);                      
-                                obj.init.X_est(:,back_time) = x_propagate;
 
                                 %%%% ESTIMATED measurements
                                 % measures       
@@ -1248,22 +1295,62 @@ classdef obsopt_general_adaptive_flush
                                 % performed 
                                 Yhat = obj.setup.measure(x_propagate,params);
                                 % get filters - yhat
-                                [temp_buf_dyhat, dyhat, yhat_int] = obj.measure_filter(Yhat,temp_buf_dyhat,obj.init.Yhat_full_story,back_time);
+                                [temp_buf_dyhat, dyhat, yhat_int] = obj.measure_filter(Yhat,temp_buf_dyhat,obj.init.Yhat_full_story(traj).val,back_time);
                                 yhat = [Yhat, dyhat, yhat_int];
                                 for term=1:obj.setup.J_nterm
-                                    obj.init.Yhat_full_story(term,:,back_time) = yhat(:,term);
+                                    obj.init.Yhat_full_story(traj).val(term,:,back_time) = yhat(:,term);
                                 end
+                                %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%   
+
+                                %%%%%%%%%%% PROPAGATION %%%%%%%%%%%%%%%%%%%%%%%
+                                n_iter_propagate = obj.init.ActualTimeIndex-obj.init.BackIterIndex;
+
+                                for j =1:n_iter_propagate
+                                    % back time
+                                    back_time = obj.init.BackIterIndex+j;
+
+                                    % how do you handle the input?
+                                    if obj.setup.control_design
+                                        params.u = params.input(x_propagate,params);
+                                    else
+                                        % recall that if control_design == 0
+                                        % there is at most 1 Ntraj and
+                                        % therefore obj.init.X has only 1 field
+                                        params.u = params.input(obj.init.X(1).val(:,back_time),params);
+                                    end
+
+                                    % integrate
+                                    X = obj.setup.ode(@(t,x)obj.setup.model(back_time, x, params), obj.setup.tspan, x_propagate);
+                                    x_propagate = X.y(:,end);                      
+                                    obj.init.X_est(traj).val(:,back_time) = x_propagate;
+
+                                    %%%% ESTIMATED measurements
+                                    % measures       
+                                    % NB: the output storage has to be done in
+                                    % back_time+1 as the propagation has been
+                                    % performed 
+                                    Yhat = obj.setup.measure(x_propagate,params);
+                                    % get filters - yhat
+                                    [temp_buf_dyhat, dyhat, yhat_int] = obj.measure_filter(Yhat,temp_buf_dyhat,obj.init.Yhat_full_story(traj).val,back_time);
+                                    yhat = [Yhat, dyhat, yhat_int];
+                                    for term=1:obj.setup.J_nterm
+                                        obj.init.Yhat_full_story(traj).val(term,:,back_time) = yhat(:,term);
+                                    end
+                                end
+                                %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%    
+                                obj.init.Jstory(1,end+1) = J;
+                                if obj.setup.Jterm_store
+                                    obj.init.Jterm_story(:,end+1) = obj_tmp.init.Jterm_store;
+                                end
+                                obj.init.buf_dYhat(traj).val = obj.init.Yhat_full_story(traj).val(1,:,obj.init.ActualTimeIndex-obj.init.d1_derivative+1:obj.init.ActualTimeIndex);
+                                obj.init.buf_dYhat(traj).val = reshape(obj.init.buf_dYhat(traj).val,obj.setup.dim_out,obj.init.d1_derivative);
                             end
-                            %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%    
-                            obj.init.Jstory(1,end+1) = J;
-                            if obj.setup.Jterm_store
-                                obj.init.Jterm_story(:,end+1) = obj_tmp.init.Jterm_store;
-                            end
-                            obj.init.buf_dYhat = obj.init.Yhat_full_story(1,:,obj.init.ActualTimeIndex-obj.init.d1_derivative+1:obj.init.ActualTimeIndex);
-                            obj.init.buf_dYhat = reshape(obj.init.buf_dYhat,obj.setup.dim_out,obj.init.d1_derivative);
                         else
-                            % keep the initial guess
-                            obj.init.X_est(:,obj.init.BackIterIndex) = obj.init.temp_x0;
+                            % on each trajectory
+                            for traj=1:obj.setup.Ntraj
+                                % keep the initial guess
+                                obj.init.X_est(traj).val(:,obj.init.BackIterIndex) = obj.init.temp_x0(traj).val;
+                            end
                         end                        
 
                         % adaptive sampling
@@ -1284,9 +1371,12 @@ classdef obsopt_general_adaptive_flush
 
             end
 
-            % save measures
-            obj.init.Y_est = obj.init.X_est(obj.setup.observed_state,:);
-            obj.init.Y_est_runtime = obj.init.X_est_runtime(obj.setup.observed_state,:);
+            % on each trajectory
+            for traj=1:obj.setup.Ntraj
+                % save measures
+                obj.init.Y_est(traj).val = obj.init.X_est(traj).val(obj.setup.observed_state,:);
+                obj.init.Y_est_runtime(traj).val = obj.init.X_est_runtime(traj).val(obj.setup.observed_state,:);
+            end
             
 %             try
 %                 X0 = obj.setup.ode(@(t,x)obj.setup.model(t, x, obj.init.params), [obj.setup.time(end):-obj.setup.Ts:obj.setup.time(1)], obj.init.X_est(:,end));
@@ -1311,10 +1401,10 @@ classdef obsopt_general_adaptive_flush
                 grid on
                 box on
                 if strcat(obj.setup.DataType,'simulated')
-                    plot(obj.setup.time,obj.init.X(i,:),'b--');
+                    plot(obj.setup.time,obj.init.X(1).val(i,:),'b--');
                 end
-                plot(obj.setup.time,obj.init.X_est(i,:),'r.');
-                plot(obj.setup.time,obj.init.X_est_runtime(i,:),'g');
+                plot(obj.setup.time,obj.init.X_est(1).val(i,:),'r.');
+                plot(obj.setup.time,obj.init.X_est_runtime(1).val(i,:),'g');
                 
                 if strcat(obj.setup.DataType,'simulated')
                     legend('True','Stored','Runtime')
@@ -1345,22 +1435,22 @@ classdef obsopt_general_adaptive_flush
                 OptTime = obj.setup.time(obj.init.opt_chosen_time);
                 
                 % plot down sampling
-                data = reshape(obj.init.Y_full_story(1,k,obj.init.temp_time),1,length(WindowTime));
+                data = reshape(obj.init.Y_full_story(1).val(1,k,obj.init.temp_time),1,length(WindowTime));
                 plot(WindowTime,data,'s','MarkerSize',5);
                 
                 % plot accepted optimisations
-                data = reshape(obj.init.Y_full_story(1,k,obj.init.opt_chosen_time),1,length(OptTime));
+                data = reshape(obj.init.Y_full_story(1).val(1,k,obj.init.opt_chosen_time),1,length(OptTime));
                 plot(OptTime,data,'r+','MarkerSize',5);
                 
                 % plot measures
-                plot(obj.setup.time,obj.init.Y_est(k,:),'k.')
+                plot(obj.setup.time,obj.init.Y_est(1).val(k,:),'k.')
                 
                 % plot true values
-                y_meas = reshape(obj.init.Y_full_story(1,k,:),size(obj.setup.time));
+                y_meas = reshape(obj.init.Y_full_story(1).val(1,k,:),size(obj.setup.time));
                 plot(obj.setup.time,y_meas,'m--')
                 
                 % plot targe values
-                data = reshape(obj.init.target_story(1,k,obj.init.temp_time),1,length(WindowTime));
+                data = reshape(obj.init.target_story(1).val(1,k,obj.init.temp_time),1,length(WindowTime));
                 plot(WindowTime,data,'bo','MarkerSize',2);
                 
                 ylabel(strcat('y_',num2str(k)));
@@ -1385,8 +1475,8 @@ classdef obsopt_general_adaptive_flush
                 % plot
                 hold on
                 for dim=1:obj.setup.dim_out
-                    y_plot = reshape(obj.init.Y_full_story(k,dim,:),size(obj.setup.time));
-                    yhat_plot = reshape(obj.init.Yhat_full_story(k,dim,:),size(obj.setup.time));
+                    y_plot = reshape(obj.init.Y_full_story(1).val(k,dim,:),size(obj.setup.time));
+                    yhat_plot = reshape(obj.init.Yhat_full_story(1).val(k,dim,:),size(obj.setup.time));
                     plot(obj.setup.time,y_plot,'b--');
                     plot(obj.setup.time,yhat_plot,'r.');
                 end
@@ -1459,15 +1549,20 @@ classdef obsopt_general_adaptive_flush
                 hold on
                 grid on
                 box on
-                if strcat(obj.setup.DataType,'simulated')
-                    plot(obj.setup.time,obj.init.X(i,:),'b--');
-                end
-                plot(obj.setup.time,obj.init.X_est_runtime(i,:),'g');
                 
-                if strcat(obj.setup.DataType,'simulated')
-                    legend('True','Runtime')
-                else
-                    legend('Stored','Runtime')
+                for traj=1:obj.setup.Ntraj
+                    if strcat(obj.setup.DataType,'simulated')
+                        plot(obj.setup.time,obj.init.X(traj).val(i,:),'b--');
+                    end
+                    plot(obj.setup.time,obj.init.X_est(traj).val(i,:),'r.');
+                    plot(obj.setup.time,obj.init.X_est_runtime(traj).val(i,:),'g');
+
+                    if strcat(obj.setup.DataType,'simulated')
+%                         legend('True','Est')
+                        legend('Stored','Est','Runtime')
+                    else
+                        legend('Stored','Est','Runtime')
+                    end
                 end
             end
             
@@ -1491,17 +1586,49 @@ classdef obsopt_general_adaptive_flush
                 % dpwn sampling instants
                 WindowTime = obj.setup.time(obj.init.temp_time);
                 
-                % plot down sampling
-                data = reshape(obj.init.Yhat_full_story(1,k,obj.init.temp_time),1,length(WindowTime));
-                plot(WindowTime,data,'s','MarkerSize',5);
-                     
-                % plot targe values
-                data = reshape(obj.init.target_story(1,k,obj.init.temp_time),1,length(WindowTime));
-                plot(WindowTime,data,'bo','MarkerSize',2);
+                for traj=1:obj.setup.Ntraj
+                    % plot down sampling
+                    data = reshape(obj.init.Yhat_full_story(traj).val(1,k,obj.init.temp_time),1,length(WindowTime));
+                    plot(WindowTime,data,'s','MarkerSize',5);
+
+                    % plot targe values
+                    data = reshape(obj.init.target_story(traj).val(1,k,obj.init.temp_time),1,length(WindowTime));
+                    plot(WindowTime,data,'bo','MarkerSize',2);
+
+                    ylabel(strcat('y_',num2str(k)));
+                    xlabel('simulation time [s]');
+                    legend('estimation','target')
+                end
+            end
+            linkaxes(ax,'x');
+            
+            %%%% plot filters %%%%%
+            figure()
+            title('Filters on measures')
+            ax = zeros(1,3);
+            for k=1:obj.setup.J_nterm
                 
-                ylabel(strcat('y_',num2str(k)));
-                xlabel('simulation time [s]');
-                legend('estimation','target')
+                % number fo subplots depending on the Nterm
+                n_subplot = obj.setup.J_nterm;
+                
+                % indicize axes
+                ax_index = k;
+                ax(ax_index)=subplot(n_subplot,1,ax_index);
+                
+                % plot
+                hold on
+                for traj=1:obj.setup.Ntraj
+                    for dim=1:obj.setup.dim_out
+                        y_plot = reshape(obj.init.Y_full_story(traj).val(k,dim,:),size(obj.setup.time));
+                        yhat_plot = reshape(obj.init.Yhat_full_story(traj).val(k,dim,:),size(obj.setup.time));
+                        plot(obj.setup.time,y_plot,'b--');
+                        plot(obj.setup.time,yhat_plot,'r.');
+                    end
+                    
+                    ylabel(strcat('y_filter',num2str(k)));
+                    xlabel('simulation time [s]');
+                end            
+                
             end
             linkaxes(ax,'x');
             

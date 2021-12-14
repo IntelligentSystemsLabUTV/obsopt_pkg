@@ -5,6 +5,7 @@ function x_dot = model_double_integrator(t,x,params)
     
     params.K1 = x(3);
     params.K2 = x(4);
+    params.K3 = x(5);
     
     params.u = params.input(x,params);
     

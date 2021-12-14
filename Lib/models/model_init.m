@@ -125,8 +125,6 @@ function params = model_init(varargin)
     end
 
     % input law 
-    % default case
-    % now check varargin
     if any(strcmp(varargin,'input_law'))
         pos = find(strcmp(varargin,'input_law'));
         if ~isempty(varargin{pos+1})
@@ -136,8 +134,15 @@ function params = model_init(varargin)
         end 
     end
     
+    % number of reference trajectories (>1 for control design)
+    params.Ntraj = length(params.X);
+    
     % set initial condition perturbed
-    perc = [0; 0; 0.5; 0.3];
-    params.X_est(:,1) = params.X(:,1).*(1 + params.noise*perc.*ones(params.StateDim,1)) + params.noise*params.noise_std*randn(params.StateDim,1);
+    perc = 1*[0 0 0.5 0.3 0.2; ...
+              -0.4 -0.4 0.6 0.2 0.2]';
+    
+    for traj=1:params.Ntraj
+        params.X_est(traj).val(:,1) = params.X(traj).val(:,1).*(1 + params.noise*perc(:,traj).*ones(params.StateDim,1)) + params.noise*params.noise_std*randn(params.StateDim,1);
+    end
     
 end
