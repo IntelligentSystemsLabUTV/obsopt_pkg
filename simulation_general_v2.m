@@ -13,7 +13,7 @@ default = 0;
 if ~default
     
     % init observer buffer
-    Nw = 20;
+    Nw = 30;
     Nts = 10;
     
     % set sampling time
