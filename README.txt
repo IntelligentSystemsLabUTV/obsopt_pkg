@@ -9,16 +9,24 @@
 					Lib/models/params_pendulum
 	2) runaway electrons shots: 	Lib/models/model_runaway AND
 					Lib/models/params_runaway  
+	3) mockup model (GES):		Lib/models/model_mockup AND
+					Lib/models/params_mockup
 - Parameters estimate has been implemented. Examples can be run by selecting 
   the follwing files as @params_init and @measure functions: 
 	1) Lib/models/model_pendulum_mass AND Lib/models/params_pendulum_mass
 	2) Lib/models/model_runaway_gamma AND Lib/models/params_runaway_gamma
+	3) Lib/models/model_mockup AND Lib/models/params_mockup
 	Remark: remember to correctly set the state dimension
 
 # v1.2 - changelog
 - main program: simulation_general_v2
 - observer class: Lib/obs/obsopt_general_adaptive
-- Adaptive sampling has been implemented. It can be enabled through the        'AdaptiveSampling' boolean flag in the setup.
+- Adaptive sampling has been implemented. It can be enabled through the 'AdaptiveSampling' boolean flag in the setup.
+
+# v1.3 - changelog
+- main program: simulation_general_v2
+- observer class: Lib/obs/obsopt_general_adaptive_flush
+- Flushing Buffer on Adaptive sampling has been implemented. It can be enabled through the 'FlushBuffer' boolean flag in the setup.
 
 # how to run the observer in the general example (simulation_general_v2):
 
