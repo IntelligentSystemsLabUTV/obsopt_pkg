@@ -1203,7 +1203,8 @@ classdef obsopt_general_adaptive_flush
                             end
                             % change only the values which are to be optimised
                             % only 1 set of vars regardless to the number
-                            % of trajectories used
+                            % of trajectories used as we're not estimating
+                            % the state or the model parameters
                             obj.init.temp_x0_opt = obj.init.X_est(1).val(obj.setup.opt_vars,obj.init.BackIterIndex);
 
                             % reconstruct temp_x0 from opt/nonopt vars
@@ -1555,11 +1556,11 @@ classdef obsopt_general_adaptive_flush
                         plot(obj.setup.time,obj.init.X(traj).val(i,:),'b--');
                     end
                     plot(obj.setup.time,obj.init.X_est(traj).val(i,:),'r.');
-                    plot(obj.setup.time,obj.init.X_est_runtime(traj).val(i,:),'g');
+%                     plot(obj.setup.time,obj.init.X_est_runtime(traj).val(i,:),'g');
 
                     if strcat(obj.setup.DataType,'simulated')
-%                         legend('True','Est')
-                        legend('Stored','Est','Runtime')
+                        legend('True','Est')
+%                         legend('Stored','Est','Runtime')
                     else
                         legend('Stored','Est','Runtime')
                     end

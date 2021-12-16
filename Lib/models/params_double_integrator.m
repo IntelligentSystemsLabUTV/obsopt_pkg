@@ -9,13 +9,13 @@ function params = params_double_integrator
     
     params.X(1).val(:,1) = [1;1;params.K1; params.K2; params.K3];
     
-%     params.X(2).val(:,1) = [2;2;params.K1; params.K2];
+%     params.X(2).val(:,1) = [2;2;params.K1; params.K2; params.K3];
 %     params.X(2).val(:,1) = params.X(1).val(:,1);
     
     % position in the state vector of the parameters
     params.estimated_params = [3 4 5];
     
-    % which vars am i optimising
+    % which vars am I optimising
     params.opt_vars = [3 4 5];
     
     % not opt vars

@@ -139,8 +139,9 @@ function params = model_init(varargin)
     
     % set initial condition perturbed
     perc = 1*[0 0 0.5 0.3 0.2; ...
-              -0.4 -0.4 0.6 0.2 0.2]';
-    
+              0 0 0.6 0.2 0.2]';
+%     perc = 1*[0.3 0.5 0.5 0.3 0.2; ...
+%               -0.2 0.2 0.6 0.2 0.2]';
     for traj=1:params.Ntraj
         params.X_est(traj).val(:,1) = params.X(traj).val(:,1).*(1 + params.noise*perc(:,traj).*ones(params.StateDim,1)) + params.noise*params.noise_std*randn(params.StateDim,1);
     end
