@@ -13,15 +13,15 @@ default = 0;
 if ~default
     
     % init observer buffer
-    Nw = 5;
-    Nts = 3;
+    Nw = 20;
+    Nts = 10;
     
     % set sampling time
     Ts = 5e-2;
     
     % set initial and final time instant
     t0 = 0;
-    tend = 5;
+    tend = 20;
 %     tend = (Nw*Nts+1)*Ts;
     
     %%%%%%%%%%% params function %%%%%%%%%%%
@@ -76,7 +76,7 @@ if ~default
     % which takes as input the function handle to the previously defined
     % @params_init. For more information see directly the file.
     params = model_init('Ts',Ts,'T0',[t0, tend],'noise',1,'noise_spec',[0, 0],...
-            'model',model,'measure',measure,'StateDim',5,'ObservedState',[1],'ode',ode,...
+            'model',model,'measure',measure,'StateDim',6,'ObservedState',[1],'ode',ode,...
             'input_enable',1,'dim_input',1,'input_law',input_law,'params_init',params_init);
 
     % create observer class instance. For more information on the setup

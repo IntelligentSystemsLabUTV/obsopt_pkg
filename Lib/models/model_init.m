@@ -133,17 +133,16 @@ function params = model_init(varargin)
             params.input = @(x,params) 0;
         end 
     end
-    
-    % number of reference trajectories (>1 for control design)
-    params.Ntraj = length(params.X);
-    
-    % set initial condition perturbed
-    perc = 1*[0 0 0.5 0.3 0.2; ...
-              0 0 0.6 0.2 0.2]';
-%     perc = 1*[0.3 0.5 0.5 0.3 0.2; ...
-%               -0.2 0.2 0.6 0.2 0.2]';
+           
+    params.perc = zeros(params.StateDim,params.Ntraj);
     for traj=1:params.Ntraj
-        params.X_est(traj).val(:,1) = params.X(traj).val(:,1).*(1 + params.noise*perc(:,traj).*ones(params.StateDim,1)) + params.noise*params.noise_std*randn(params.StateDim,1);
+        
+        % define perturbation
+        params.perc(params.nonopt_vars,traj) = 1*randn(1,length(params.opt_vars))*5e-2;
+        params.perc(params.opt_vars,traj) = 0*randn(1,length(params.opt_vars));
+        
+        % init state
+        params.X_est(traj).val(:,1) = params.X(traj).val(:,1).*(1 + params.noise*params.perc(:,traj).*ones(params.StateDim,1)) + params.noise*params.noise_std*randn(params.StateDim,1);
     end
     
 end
