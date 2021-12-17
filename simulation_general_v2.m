@@ -13,15 +13,15 @@ default = 0;
 if ~default
     
     % init observer buffer
-    Nw = 30;
-    Nts = 10;
+    Nw = 5;
+    Nts = 3;
     
     % set sampling time
-    Ts = 5e-2;
+    Ts = 1e-1;
     
     % set initial and final time instant
     t0 = 0;
-    tend = 20;
+    tend = 8;
 %     tend = (Nw*Nts+1)*Ts;
     
     %%%%%%%%%%% params function %%%%%%%%%%%
@@ -34,7 +34,7 @@ if ~default
     % params.b = friction coefficient
     % params.observed_state = [2 4] array defining the state elements which
     % are actually observed. This will come useful in the measure function
-    params_init = @params_double_integrator;
+    params_init = @params_double_pendulum_input;
     %%%%%%%%%%%%%%%%%%%%%%%%%%%%%
     
     %%%%%%%%%%% model function %%%%%%%%%%%
@@ -46,7 +46,7 @@ if ~default
     % params = structure with model parameters (see params_init)
     % OUTPUT:
     % xdot = output of the state space model
-    model = @model_double_integrator;
+    model = @model_double_pendulum_input;
 %     model_reference = model;
     model_reference = @model_reference;
     %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -76,16 +76,16 @@ if ~default
     % which takes as input the function handle to the previously defined
     % @params_init. For more information see directly the file.
     params = model_init('Ts',Ts,'T0',[t0, tend],'noise',1,'noise_spec',[0, 0],...
-            'model',model,'measure',measure,'StateDim',6,'ObservedState',[1],'ode',ode,...
+            'model',model,'measure',measure,'StateDim',6,'ObservedState',[1 2],'ode',ode,...
             'input_enable',1,'dim_input',1,'input_law',input_law,'params_init',params_init);
 
     % create observer class instance. For more information on the setup
     % options check directly the class constructor
     obs = obsopt_general_adaptive_flush('DataType', 'simulated', 'optimise', 1, ... 
           'Nw', Nw, 'Nts', Nts, 'ode', ode, 'PE_maxiter', 0, 'control_design', 1 , 'model_reference', model_reference, ...    
-          'params',params, 'filters', [1,0,0,0],'Jdot_thresh',0.9,'MaxIter',100,...
-          'Jterm_store', 0, 'AlwaysOpt', 0 , 'print', 0 , 'SafetyDensity', 5, 'AdaptiveHist', [5e-3, 1e-2], ...
-          'AdaptiveSampling', 0, 'FlushBuffer', 1, 'Jterm_store', 0, 'opt', @fminsearch);
+          'params',params, 'filters', [1,5e-1,0,0],'Jdot_thresh',0.9,'MaxIter',300,...
+          'Jterm_store', 1, 'AlwaysOpt', 0 , 'print', 0 , 'SafetyDensity', 5, 'AdaptiveHist', [5e-3, 1e-2], ...
+          'AdaptiveSampling', 0, 'FlushBuffer', 1, 'Jterm_store', 0, 'opt', @fminunc);
       
 else
     % default example, no parameters needed as everything is hard coded in

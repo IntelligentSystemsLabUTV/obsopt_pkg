@@ -1174,7 +1174,7 @@ classdef obsopt_general_adaptive_flush
 
                 % check only on the first traj as the sampling is coherent
                 % on the 2.
-                cols_nonzeros = length(find(sum(obj.init.Y(1).val ~= 0,1:2)));
+                cols_nonzeros = length(find(obj.init.Y_space ~= 0));
 
                 if cols_nonzeros >= obj.setup.w
 %                 if cols_nonzeros*obj.setup.J_nterm >= 2*obj.setup.dim_state+1

@@ -135,14 +135,29 @@ function params = model_init(varargin)
     end
            
     params.perc = zeros(params.StateDim,params.Ntraj);
+    randflag = 0;
     for traj=1:params.Ntraj
         
         % define perturbation
-        params.perc(params.nonopt_vars,traj) = 1*randn(1,length(params.opt_vars))*5e-2;
-        params.perc(params.opt_vars,traj) = 0*randn(1,length(params.opt_vars));
+        % non opt vars (state init)
+        if randflag
+            params.perc(params.nonopt_vars,traj) = 0*randn(1,length(params.nonopt_vars))*5e-2;
+        else
+            params.perc(params.nonopt_vars,traj) = 0*ones(1,length(params.nonopt_vars))*(-pi/4);
+        end
+        
+        % opt vars (control/params)
+        if randflag
+            params.perc(params.opt_vars,traj) = 0*randn(1,length(params.opt_vars));
+        else
+            params.perc(params.opt_vars,traj) = 0*ones(1,length(params.opt_vars));
+        end
         
         % init state
-        params.X_est(traj).val(:,1) = params.X(traj).val(:,1).*(1 + params.noise*params.perc(:,traj).*ones(params.StateDim,1)) + params.noise*params.noise_std*randn(params.StateDim,1);
+%         params.X_est(traj).val(:,1) = params.X(traj).val(:,1).*(1 + params.noise*params.perc(:,traj).*ones(params.StateDim,1)) + params.noise*params.noise_std*randn(params.StateDim,1);
+        
+        % init state - ad hoc
+        params.X_est(traj).val(:,1) = [-pi/4; -pi/4; 0; 0; 0; 0];
     end
     
 end
