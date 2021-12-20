@@ -157,7 +157,7 @@ function params = model_init(varargin)
 %         params.X_est(traj).val(:,1) = params.X(traj).val(:,1).*(1 + params.noise*params.perc(:,traj).*ones(params.StateDim,1)) + params.noise*params.noise_std*randn(params.StateDim,1);
         
         % init state - ad hoc
-        params.X_est(traj).val(:,1) = [-pi/4; -pi/4; 0; 0; 0; 0];
+        params.X_est(traj).val(:,1) = [-pi/4; -pi/4; 0; 0; 0; 0; 0; 0; 0; 0];
     end
     
 end
