@@ -13,16 +13,16 @@ default = 0;
 if ~default
     
     % init observer buffer
-    Nw = 5;
-    Nts = 3;
+    Nw = 10;
+    Nts = 10;
     
     % set sampling time
     Ts = 1e-1;
     
     % set initial and final time instant
     t0 = 0;
-    tend = 8;
-%     tend = (Nw*Nts+1)*Ts;
+%     tend = 10;
+    tend = (Nw*Nts+1)*Ts;
     
     %%%%%%%%%%% params function %%%%%%%%%%%
     % params function: this file shall be in the following form:
@@ -46,7 +46,7 @@ if ~default
     % params = structure with model parameters (see params_init)
     % OUTPUT:
     % xdot = output of the state space model
-    model = @model_double_pendulum_input;
+    model = @model_double_pendulum_default;
 %     model_reference = model;
     model_reference = @model_reference;
     %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -77,14 +77,14 @@ if ~default
     % @params_init. For more information see directly the file.
     params = model_init('Ts',Ts,'T0',[t0, tend],'noise',1,'noise_spec',[0, 0],...
             'model',model,'measure',measure,'StateDim',10,'ObservedState',[1 2],'ode',ode,...
-            'input_enable',1,'dim_input',1,'input_law',input_law,'params_init',params_init);
+            'input_enable',1,'dim_input',2,'input_law',input_law,'params_init',params_init);
 
     % create observer class instance. For more information on the setup
     % options check directly the class constructor
     obs = obsopt_general_adaptive_flush('DataType', 'simulated', 'optimise', 1, ... 
           'Nw', Nw, 'Nts', Nts, 'ode', ode, 'PE_maxiter', 0, 'control_design', 1 , 'model_reference', model_reference, ...    
-          'params',params, 'filters', [1,5e-1,0,0],'Jdot_thresh',0.9,'MaxIter',300,...
-          'Jterm_store', 1, 'AlwaysOpt', 0 , 'print', 0 , 'SafetyDensity', 5, 'AdaptiveHist', [5e-3, 1e-2], ...
+          'params',params, 'filters', [1,1*1e-2,0,0],'Jdot_thresh',0.9,'MaxIter',500,...
+          'Jterm_store', 1, 'AlwaysOpt', 0 , 'print', 1 , 'SafetyDensity', 5, 'AdaptiveHist', [5e-3, 1e-2], ...
           'AdaptiveSampling', 0, 'FlushBuffer', 1, 'Jterm_store', 0, 'opt', @fminunc);
       
 else
@@ -115,9 +115,14 @@ for i = 1:obs.setup.Niter
     %%%%%%%%%%%%%%%%%%%%%%% PROPAGATION %%%%%%%%%%%%%%%%%%%%%%%%
     % forward propagation of the previous estimate
     for traj = 1:obs.setup.Ntraj
+        
         if(obs.init.ActualTimeIndex > 1)
             % input
-            obs.init.params.u = obs.setup.params.input(obs.init.X(traj).val(:,obs.init.ActualTimeIndex-1),params);
+            if obs.setup.control_design == 0
+                obs.init.params.u = obs.setup.params.input(obs.init.X(traj).val(:,obs.init.ActualTimeIndex-1),params);
+            else
+                obs.init.params.u = obs.setup.params.input(obs.init.X_est(traj).val(:,obs.init.ActualTimeIndex-1),params);
+            end
 
             % true system
             X = obs.setup.ode(@(t,x)obs.setup.model_reference(t, x, obs.init.params), obs.setup.tspan, obs.init.X(traj).val(:,obs.init.ActualTimeIndex-1));   
@@ -135,6 +140,10 @@ for i = 1:obs.setup.Niter
       
     %%%%%%%%%%%%%%%%%%%%%% OBSERVER %%%%%%%%%%%%%%%%%%%%%%%%%%%%
     obs = obs.observer(obs.init.X_est,y_meas);
+    
+    % params update
+    x = obs.init.X_est(1).val(:,obs.init.ActualTimeIndex);
+    params = params_update(params,x);
 
 end
 obs.init.total_time = toc;

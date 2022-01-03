@@ -607,7 +607,7 @@ classdef obsopt_general_adaptive_flush
                 temp_buf_dyhat = obj.init.Yhat_full_story(1,:,back_time-(obj.init.d1_derivative-1):back_time);
             else
                 init_pos = obj.init.d1_derivative-back_time;
-                stack = reshape(obj.init.Yhat_full_story(1,:,1:back_time),obj.setup.dim_out,1);
+                stack = reshape(obj.init.Yhat_full_story(1,:,1:back_time),obj.setup.dim_out,back_time);
                 temp_buf_dyhat = [zeros(obj.setup.dim_out,init_pos), stack];
             end
             
@@ -702,6 +702,9 @@ classdef obsopt_general_adaptive_flush
                 x(obj.setup.opt_vars) = x_opt;
                 x(obj.setup.nonopt_vars) = x_nonopt;  
                 
+                % update params
+                obj.init.params = params_update(obj.init.params,x);
+                
                 % get desired trajectory
                 y_target = varargin{3}(Nstart).val;
             
@@ -712,7 +715,7 @@ classdef obsopt_general_adaptive_flush
                     temp_buf_dyhat = obj.init.Yhat_full_story(Nstart).val(1,:,back_time-(obj.init.d1_derivative-1):back_time);
                 else
                     init_pos = obj.init.d1_derivative-back_time;
-                    stack = reshape(obj.init.Yhat_full_story(Nstart).val(1,:,1:back_time),obj.setup.dim_out,1);
+                    stack = reshape(obj.init.Yhat_full_story(Nstart).val(1,:,1:back_time),obj.setup.dim_out,back_time);
                     temp_buf_dyhat = [zeros(obj.setup.dim_out,init_pos), stack];
                 end
               
@@ -804,8 +807,6 @@ classdef obsopt_general_adaptive_flush
                 buf_intY = varargin{4};
             end
             
-            % get params
-            params = obj.init.params;
                         
             %%%% sampling %%%%
             buf_dist = diff([obj.init.BackIterIndex, transpose(nonzeros(obj.init.Y_space))]);
@@ -821,17 +822,17 @@ classdef obsopt_general_adaptive_flush
                     
                     % how do you handle the input?
                     if obj.setup.control_design
-                        params.u = params.input(x_propagate,params);
+                        obj.init.params.u = obj.init.params.input(x_propagate,obj.init.params);
                     else
-                        params.u = params.input(obj.init.X(:,back_time),params);
+                        obj.init.params.u = obj.init.params.input(obj.init.X(:,back_time),obj.init.params);
                     end
                     
                     % propagation
-                    X = obj.setup.ode(@(t,x)obj.setup.model(t, x, params), obj.setup.tspan, x_propagate);
+                    X = obj.setup.ode(@(t,x)obj.setup.model(t, x, obj.init.params), obj.setup.tspan, x_propagate);
                     x_propagate = X.y(:,end);
                     
                     % get the measure
-                    y_read = obj.setup.measure(x_propagate,params);
+                    y_read = obj.setup.measure(x_propagate,obj.init.params);
                     
                     % get filters - yhat
                     [buf_dy, dy_read, y_read_int] = obj.measure_filter(y_read,buf_dy,buf_intY,obj.init.BackIterIndex+i);
@@ -1041,7 +1042,7 @@ classdef obsopt_general_adaptive_flush
                 temp_buf_dyhat = obj.init.Yhat_full_story(1,:,back_time-(obj.init.d1_derivative-1):back_time);
             else
                 init_pos = obj.init.d1_derivative-back_time;
-                stack = reshape(obj.init.Yhat_full_story(1,:,1:back_time),obj.setup.dim_out,1);
+                stack = reshape(obj.init.Yhat_full_story(1,:,1:back_time),obj.setup.dim_out,back_time);
                 temp_buf_dyhat = [zeros(obj.setup.dim_out,init_pos), stack];
             end
 
@@ -1101,14 +1102,13 @@ classdef obsopt_general_adaptive_flush
             end
             xhat = xhat_tmp;
             
-            params = obj.init.params;
             obj.init.just_optimised = 0;
             
             for traj=1:obj.setup.Ntraj
                 % save runtime state
                 obj.init.X_est_runtime(traj).val(:,obj.init.ActualTimeIndex) = obj.init.X_est(traj).val(:,obj.init.ActualTimeIndex);
                 % get measure
-                yhat(traj).val = obj.setup.measure(xhat(traj).val,params);
+                yhat(traj).val = obj.setup.measure(xhat(traj).val,obj.init.params);
             end
             
             for traj=1:obj.setup.Ntraj
@@ -1214,7 +1214,7 @@ classdef obsopt_general_adaptive_flush
                         % set of initial conditions
                         for traj=1:obj.setup.Ntraj
                             % start from the correct one
-                            if 1 || obj.setup.control_design 
+                            if obj.setup.control_design 
                                 obj.init.temp_x0_nonopt(traj).val = obj.init.X_est(traj).val(obj.setup.nonopt_vars,obj.init.BackIterIndex);
                             else
                                 obj.init.temp_x0_nonopt(traj).val = obj.init.X(traj).val(obj.setup.nonopt_vars,obj.init.BackIterIndex);
@@ -1279,6 +1279,9 @@ classdef obsopt_general_adaptive_flush
                         J_diff = (J/J_before);
 
                         if (obj.setup.AlwaysOpt) || ( (J_diff <= obj.setup.Jdot_thresh) || (distance > obj.init.safety_interval) )
+                            
+                            % update params
+                            obj.init.params = params_update(obj.init.params,NewXopt(1).val);
 
                             % on each trajectory
                             for traj=1:obj.setup.Ntraj
@@ -1312,7 +1315,7 @@ classdef obsopt_general_adaptive_flush
                                 % NB: the output storage has to be done in
                                 % back_time+1 as the propagation has been
                                 % performed 
-                                Yhat = obj.setup.measure(x_propagate,params);
+                                Yhat = obj.setup.measure(x_propagate,obj.init.params);
                                 % get filters - yhat
                                 [temp_buf_dyhat, dyhat, yhat_int] = obj.measure_filter(Yhat,temp_buf_dyhat,obj.init.Yhat_full_story(traj).val,back_time);
                                 yhat = [Yhat, dyhat, yhat_int];
@@ -1327,19 +1330,19 @@ classdef obsopt_general_adaptive_flush
                                 for j =1:n_iter_propagate
                                     % back time
                                     back_time = obj.init.BackIterIndex+j;
-
+                                    
                                     % how do you handle the input?
                                     if obj.setup.control_design
-                                        params.u = params.input(x_propagate,params);
+                                        obj.init.params.u = obj.init.params.input(x_propagate,obj.init.params);
                                     else
                                         % recall that if control_design == 0
                                         % there is at most 1 Ntraj and
                                         % therefore obj.init.X has only 1 field
-                                        params.u = params.input(obj.init.X(1).val(:,back_time),params);
+                                        obj.init.params.u = obj.init.params.input(obj.init.X(1).val(:,back_time),obj.init.params);
                                     end
 
                                     % integrate
-                                    X = obj.setup.ode(@(t,x)obj.setup.model(back_time, x, params), obj.setup.tspan, x_propagate);
+                                    X = obj.setup.ode(@(t,x)obj.setup.model(back_time, x, obj.init.params), obj.setup.tspan, x_propagate);
                                     x_propagate = X.y(:,end);                      
                                     obj.init.X_est(traj).val(:,back_time) = x_propagate;
 
@@ -1348,7 +1351,7 @@ classdef obsopt_general_adaptive_flush
                                     % NB: the output storage has to be done in
                                     % back_time+1 as the propagation has been
                                     % performed 
-                                    Yhat = obj.setup.measure(x_propagate,params);
+                                    Yhat = obj.setup.measure(x_propagate,obj.init.params);
                                     % get filters - yhat
                                     [temp_buf_dyhat, dyhat, yhat_int] = obj.measure_filter(Yhat,temp_buf_dyhat,obj.init.Yhat_full_story(traj).val,back_time);
                                     yhat = [Yhat, dyhat, yhat_int];
@@ -1370,6 +1373,9 @@ classdef obsopt_general_adaptive_flush
                                 % keep the initial guess
                                 obj.init.X_est(traj).val(:,obj.init.BackIterIndex) = obj.init.temp_x0(traj).val;
                             end
+                            
+                            % restore params
+                            obj.init.params = params_update(obj.init.params,obj.init.temp_x0(traj).val);
                         end                        
 
                         % adaptive sampling
