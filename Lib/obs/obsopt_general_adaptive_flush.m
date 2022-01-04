@@ -703,7 +703,7 @@ classdef obsopt_general_adaptive_flush
                 x(obj.setup.nonopt_vars) = x_nonopt;  
                 
                 % update params
-                obj.init.params = params_update(obj.init.params,x);
+                obj.init.params = obj.setup.params.params_update(obj.init.params,x);
                 
                 % get desired trajectory
                 y_target = varargin{3}(Nstart).val;
@@ -822,9 +822,9 @@ classdef obsopt_general_adaptive_flush
                     
                     % how do you handle the input?
                     if obj.setup.control_design
-                        obj.init.params.u = obj.init.params.input(x_propagate,obj.init.params);
+                        obj.init.params.u = obj.setup.params.input(x_propagate,obj.init.params);
                     else
-                        obj.init.params.u = obj.init.params.input(obj.init.X(:,back_time),obj.init.params);
+                        obj.init.params.u = obj.setup.params.input(obj.init.X(1).val(:,back_time),obj.init.params);
                     end
                     
                     % propagation
@@ -889,7 +889,8 @@ classdef obsopt_general_adaptive_flush
         % dJ_cond: function for the adaptive sampling
         function obj = dJ_cond_v5_function(obj)
 
-            buffer_ready = (nnz(obj.init.Y_space) >= 1) && (size(obj.init.Yhat_full_story(1).val,3) > obj.setup.Nts);
+%             buffer_ready = (nnz(obj.init.Y_space) >= 1) && (size(obj.init.Yhat_full_story(1).val,3) > obj.setup.Nts);
+            buffer_ready = (nnz(obj.init.Y_space) > obj.setup.w);
 
             if buffer_ready
                 
@@ -1281,7 +1282,7 @@ classdef obsopt_general_adaptive_flush
                         if (obj.setup.AlwaysOpt) || ( (J_diff <= obj.setup.Jdot_thresh) || (distance > obj.init.safety_interval) )
                             
                             % update params
-                            obj.init.params = params_update(obj.init.params,NewXopt(1).val);
+                            obj.init.params = obj.setup.params.params_update(obj.init.params,NewXopt(1).val);
 
                             % on each trajectory
                             for traj=1:obj.setup.Ntraj
@@ -1375,7 +1376,7 @@ classdef obsopt_general_adaptive_flush
                             end
                             
                             % restore params
-                            obj.init.params = params_update(obj.init.params,obj.init.temp_x0(traj).val);
+                            obj.init.params = obj.setup.params.params_update(obj.init.params,obj.init.temp_x0(traj).val);
                         end                        
 
                         % adaptive sampling
@@ -1436,6 +1437,21 @@ classdef obsopt_general_adaptive_flush
                 else
                     legend('Stored','Runtime')
                 end
+            end
+            
+            %%%% plot state estimation error %%%
+            figure()
+            for i=1:obj.setup.dim_state
+                subplot(obj.setup.dim_state,1,i);
+                hold on
+                grid on
+                box on
+                
+                est_error = obj.init.X(1).val(i,:) - obj.init.X_est_runtime(1).val(i,:);
+                plot(obj.setup.time,est_error,'k','LineWidth',2);
+                
+                xlabel('time [s]')
+                ylabel(['\delta x_',num2str(i)])
             end
             
             
