@@ -8,7 +8,7 @@ function [params,obs, out] = simulation_attraction
 close all
 
 % init observer buffer
-Nw = 5;
+Nw = 3;
 Nts = 3;
     
 % set sampling time
@@ -36,11 +36,11 @@ ode = @oderk4;
 input_law = [];
 filter = 0;
 
-params = model_init('Ts',Ts,'T0',[t0, tend],'noise',1,'noise_spec',[0, 5e-2],...
+params = model_init('Ts',Ts,'T0',[t0, tend],'noise',0,'noise_spec',[0, 0],...
         'model',model,'measure',measure,'StateDim',2,'ObservedState',[1],'ode',ode,...
         'input_enable',0,'dim_input',1,'input_law',input_law,'params_init',params_init);
     
-params.X_est(:,1) = [0.9; 0.7];
+% params.X_est(:,1) = [0.9; 0.7];
 
 % create observer class instance. For more information on the setup
 % options check directly the class constructor
@@ -87,7 +87,7 @@ for i = 1:obs.setup.Niter
     
     %%%%%%%%%%%%%%%%%%% REAL MEASUREMENT %%%%%%%%%%%%%%%%%%%%%%%   
     % here the noise is added
-    y_meas = obs.setup.measure(obs.init.X(:,obs.init.ActualTimeIndex),obs.init.params) + obs.setup.noise*(obs.setup.noise_mu  + obs.setup.noise_std*randn(obs.setup.dim_out,1)*0);
+    y_meas = obs.setup.measure(obs.init.X(:,obs.init.ActualTimeIndex),obs.init.params) + obs.setup.noise*(obs.setup.noise_mu  + obs.setup.noise_std*randn(obs.setup.dim_out,1));
     
     %%%%%%%%%%%%%%%%%%%%%% OBSERVER %%%%%%%%%%%%%%%%%%%%%%%%%%%%
     % save data previous of the optimisation
@@ -116,10 +116,10 @@ for i = 1:obs.setup.Niter
         
         
         centralval = obs.init.X(:,obs.init.BackIterIndex);        
-        bound = [0.5; 3]; 
+        bound = [0.5; 0.5]; 
         oneval = ones(size(bound));
         range = [centralval.*(oneval-bound), centralval, centralval.*(oneval+bound)];
-        out{end+1} = System_analysis_fun_general_v3(x0(:,obs.init.BackIterIndex),0,0,Nw,Nts,[25,25],range,params,obs);
+        out{end+1} = System_analysis_fun_general_v3(x0(:,obs.init.BackIterIndex),0,0,Nw,Nts,[10,10],range,params,obs);
         
         % save data
         out{end}.x0 = x0(:,obs.init.BackIterIndex);

@@ -122,7 +122,7 @@ function System_attraction_plot_general_fun_v2(out,obs,frame,traj,Hmap,contourFl
                         'FaceAlpha',alphaFace,'EdgeAlpha',alphaEdge);   
                     colormap autumn
                     freezeColors
-                    plot3(out{i}.x0(1),out{i}.x0(2),0,'sg','LineWidth',2);
+%                     plot3(out{i}.x0(1),out{i}.x0(2),0,'sg','LineWidth',2);
                 end
 
                 

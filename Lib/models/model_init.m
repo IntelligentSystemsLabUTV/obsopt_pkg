@@ -100,6 +100,14 @@ function params = model_init(varargin)
         params.measure = @(x,params) x;
     end
     
+    % get measure if exists. Default measures the whole state
+    if any(strcmp(varargin,'params_update'))
+        pos = find(strcmp(varargin,'params_update'));
+        params.params_update = varargin{pos+1};
+    else
+        params.params_update = @(x,params) 1;
+    end
+    
     % get the integration algorithm. Default is ode45
     if any(strcmp(varargin,'ode'))
         pos = find(strcmp(varargin,'ode'));
@@ -125,22 +133,44 @@ function params = model_init(varargin)
     end
 
     % input law 
-    % default case 
-    params.input = params.input_enable*randn(params.dim_input,1).*sin(params.time);
-    % now check varargin
     if any(strcmp(varargin,'input_law'))
         pos = find(strcmp(varargin,'input_law'));
-        if ~isempty(params.input_enable*varargin{pos+1})
-            params.input = params.input_enable*varargin{pos+1};
-        end
+        if ~isempty(varargin{pos+1})
+            params.input = varargin{pos+1};
+        else
+            params.input = @(x,params) 0;
+        end 
     end
-    % set initial input
-    params.u = params.input(:,1);
-    
-    % set initial condition perturbed
-%     perc = [0.3, 0.3, 0.1, 0.1];
-    perc = 2;
-%     params.X_est(:,1) = params.X(:,1).*(1 + perc*params.noise*randn(params.StateDim,1));
-    params.X_est(:,1) = params.X(:,1).*(1 + perc.*params.noise*ones(params.StateDim,1)) + 0*params.noise_std*randn(params.StateDim,1);
+           
+    params.perc = zeros(params.StateDim,params.Ntraj);
+    randflag = 0;
+    for traj=1:params.Ntraj
+        
+        % define perturbation
+        % non opt vars (state init)
+        if randflag
+            params.perc(params.nonopt_vars,traj) = 1*randn(1,length(params.nonopt_vars))*5e-1;
+        else
+            params.perc(params.nonopt_vars,traj) = 1*ones(1,length(params.nonopt_vars))*6e-1;
+        end
+        
+        % opt vars (control/params)
+        if randflag
+            params.perc(params.opt_vars,traj) = 1*randn(1,length(params.opt_vars));
+        else
+            params.perc(params.opt_vars,traj) = 1*ones(1,length(params.opt_vars))*6e-1;
+        end
+        
+        % final setup on perc
+        params.perc = 0*params.perc;
+        
+        % init state
+        init = params.X(traj).val(:,1);
+        init(1:2) = [-2;1];
+        
+        % init state
+        params.X_est(traj).val(:,1) = init.*(1 + params.noise*params.perc(:,traj).*ones(params.StateDim,1)) + params.noise*params.noise_std*randn(params.StateDim,1);
+        
+    end
     
 end
