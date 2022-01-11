@@ -1,5 +1,5 @@
 %% function 
-function params = params_update(params,x)
+function params = params_update_doublependulum_control(params,x)
     params.K1 = x(5);
     params.K2 = x(6);
     params.K3 = x(7);

@@ -1,27 +1,24 @@
 %% params_pendulum
 % create params structure for pendulum 
-function params = params_grizzle
+function params = params_Astolfi
 
     % pendulum parameters
-    params.a = 5;
-    params.b = 6.667;
-    params.c = 0.4;
-    params.d = 0.05;
-    params.e = 0.01;
-    params.f = 0.05;
-    params.g = 0.02;
-    params.h = 0.5;
-    params.i = 2;
+    params.T = 0.05;
+    params.Pm = 0.8;
+    params.D = 1;
+    params.E = 1.06679;
+    params.V = 1;
+    params.Tdc = 0.05;
     
-    params.u1 = 0.3;
-    params.u2 = 0.0067;
+    params.Delta_star = 0.2298;
+    params.Lambda_star = params.Pm/(params.E*params.V*sin(params.Delta_star));
     
     
     % number of reference trajectories (>1 for control design)
     params.Ntraj = 1;
     
     % reference init
-    params.X(1).val(:,1) = [0.2;0.02;0.005];
+    params.X(1).val(:,1) = [params.Delta_star;0;params.Lambda_star];
     for traj=2:params.Ntraj
         params.X(traj).val(:,1) = params.X(traj-1).val(:,1);
     end

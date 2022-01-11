@@ -1177,8 +1177,10 @@ classdef obsopt_general_adaptive_flush
                 % on the 2.
                 cols_nonzeros = length(find(obj.init.Y_space ~= 0));
 
-                if cols_nonzeros >= obj.setup.w
-%                 if cols_nonzeros*obj.setup.J_nterm >= 2*obj.setup.dim_state+1
+                % Schiller (2021) - increase buffer
+                if cols_nonzeros >= 1
+                % Defeult 
+%                 if cols_nonzeros >= obj.setup.w
 
                     if obj.setup.forward
 
@@ -1235,7 +1237,9 @@ classdef obsopt_general_adaptive_flush
                         % set target
                         obj = obj.target();
                         for traj = 1:obj.setup.Ntraj
-                            obj.init.target_story(traj).val(:,:,obj.init.Y_space) = obj.init.target(traj).val;
+                            nonzero_space = find(obj.init.Y_space ~= 0);
+                            nonzero_pos = obj.init.Y_space(nonzero_space);
+                            obj.init.target_story(traj).val(:,:,nonzero_pos) = obj.init.target(traj).val(:,:,nonzero_space);
                         end
                         
                         % Optimisation (only if distance_safe_flag == 1)

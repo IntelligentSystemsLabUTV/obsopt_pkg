@@ -100,6 +100,14 @@ function params = model_init(varargin)
         params.measure = @(x,params) x;
     end
     
+    % get measure if exists. Default measures the whole state
+    if any(strcmp(varargin,'params_update'))
+        pos = find(strcmp(varargin,'params_update'));
+        params.params_update = varargin{pos+1};
+    else
+        params.params_update = @(x,params) 1;
+    end
+    
     % get the integration algorithm. Default is ode45
     if any(strcmp(varargin,'ode'))
         pos = find(strcmp(varargin,'ode'));
@@ -143,18 +151,22 @@ function params = model_init(varargin)
         if randflag
             params.perc(params.nonopt_vars,traj) = 1*randn(1,length(params.nonopt_vars))*5e-1;
         else
-            params.perc(params.nonopt_vars,traj) = 0*ones(1,length(params.nonopt_vars))*(-pi/4);
+            params.perc(params.nonopt_vars,traj) = 1*ones(1,length(params.nonopt_vars))*6e-1;
         end
         
         % opt vars (control/params)
         if randflag
-            params.perc(params.opt_vars,traj) = 0*randn(1,length(params.opt_vars));
+            params.perc(params.opt_vars,traj) = 1*randn(1,length(params.opt_vars));
         else
-            params.perc(params.opt_vars,traj) = 0*ones(1,length(params.opt_vars));
+            params.perc(params.opt_vars,traj) = 1*ones(1,length(params.opt_vars))*6e-1;
         end
         
+        % final setup on perc
+        params.perc = 0*params.perc;
+        
+        % init state
         init = params.X(traj).val(:,1);
-        init(1:4) = [-pi/4; -pi/4; 0; 0];
+        init(1:2) = [-2;1];
         
         % init state
         params.X_est(traj).val(:,1) = init.*(1 + params.noise*params.perc(:,traj).*ones(params.StateDim,1)) + params.noise*params.noise_std*randn(params.StateDim,1);

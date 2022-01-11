@@ -13,16 +13,16 @@ default = 0;
 if ~default
     
     % init observer buffer
-    Nw = 10;
-    Nts = 10;
+    Nw = 3;
+    Nts = 3;
     
     % set sampling time
     Ts = 1e-1;
     
     % set initial and final time instant
     t0 = 0;
-%     tend = 10;
-    tend = (Nw*Nts+1)*Ts;
+    tend = 5;
+%     tend = (Nw*Nts+1)*Ts;
     
     %%%%%%%%%%% params function %%%%%%%%%%%
     % params function: this file shall be in the following form:
@@ -34,7 +34,8 @@ if ~default
     % params.b = friction coefficient
     % params.observed_state = [2 4] array defining the state elements which
     % are actually observed. This will come useful in the measure function
-    params_init = @params_double_pendulum_input;
+    params_init = @params_Astolfi_Unit;
+    params_update = @params_update_Astolfi_Unit;
     %%%%%%%%%%%%%%%%%%%%%%%%%%%%%
     
     %%%%%%%%%%% model function %%%%%%%%%%%
@@ -46,9 +47,9 @@ if ~default
     % params = structure with model parameters (see params_init)
     % OUTPUT:
     % xdot = output of the state space model
-    model = @model_double_pendulum_default;
-%     model_reference = model;
-    model_reference = @model_reference;
+    model = @model_Astolfi_Unit;
+    model_reference = model;
+%     model_reference = @model_reference;
     %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
     
     %%%%%%%%%%% measure function %%%%%%%%%%%
@@ -75,16 +76,16 @@ if ~default
     % options (varargin). The most important is the 'params_init' option, 
     % which takes as input the function handle to the previously defined
     % @params_init. For more information see directly the file.
-    params = model_init('Ts',Ts,'T0',[t0, tend],'noise',1,'noise_spec',[0, 0],...
-            'model',model,'measure',measure,'StateDim',10,'ObservedState',[1 2],'ode',ode,...
-            'input_enable',1,'dim_input',2,'input_law',input_law,'params_init',params_init);
+    params = model_init('Ts',Ts,'T0',[t0, tend],'noise',1,'noise_spec',[0, 0], 'params_update', params_update, ...
+            'model',model,'measure',measure,'StateDim',2,'ObservedState',[1],'ode',ode,...
+            'input_enable',0,'dim_input',2,'input_law',input_law,'params_init',params_init);
 
     % create observer class instance. For more information on the setup
     % options check directly the class constructor
     obs = obsopt_general_adaptive_flush('DataType', 'simulated', 'optimise', 1, ... 
-          'Nw', Nw, 'Nts', Nts, 'ode', ode, 'PE_maxiter', 0, 'control_design', 1 , 'model_reference', model_reference, ...    
-          'params',params, 'filters', [1,1*1e-2,0,0],'Jdot_thresh',0.9,'MaxIter',500,...
-          'Jterm_store', 1, 'AlwaysOpt', 0 , 'print', 1 , 'SafetyDensity', 5, 'AdaptiveHist', [5e-3, 1e-2], ...
+          'Nw', Nw, 'Nts', Nts, 'ode', ode, 'PE_maxiter', 0, 'control_design', 0 , 'model_reference', model_reference, ...    
+          'params',params, 'filters', [1,1e-1,0,0],'Jdot_thresh',0.9,'MaxIter',1,...
+          'Jterm_store', 1, 'AlwaysOpt', 0 , 'print', 0 , 'SafetyDensity', 5, 'AdaptiveHist', [5e-3, 1e-2], ...
           'AdaptiveSampling', 0, 'FlushBuffer', 1, 'Jterm_store', 0, 'opt', @fminunc);
       
 else
@@ -151,6 +152,6 @@ obs.init.total_time = toc;
 
 %% %%%%%%%%%%%%%%%%%%%%%%%%%%%% PLOTS %%%%%%%%%%%%%%%%%%%%%
 % obs self plots
-obs.plot_section_control(); 
+obs.plot_section(); 
 end
 
