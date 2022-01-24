@@ -27,7 +27,7 @@ function params = params_double_pendulum_default
     params.Ntraj = 1;
     
     % reference init
-    params.X(1).val(:,1) = [-pi/4;-pi/4;0.2;-0.2; params.c1; params.c2];
+    params.X(1).val(:,1) = [-pi/4;-pi/4;0.2;-0.2];
 %     params.X(1).val(:,1) = [0;0;0;0; params.K1; params.K2; params.K3; params.K4; params.K5; params.K6];
 %     params.X(1).val(:,1) = [0;0;0;0; params.K1; params.K2; params.K3; params.K4; params.K5; params.K6; params.K7; params.K8; params.K9; params.K10];
     for traj=2:params.Ntraj
@@ -35,10 +35,10 @@ function params = params_double_pendulum_default
     end
     
     % position in the state vector of the parameters
-    params.estimated_params = [5:6];
+    params.estimated_params = [];
     
     % which vars am I optimising
-    params.opt_vars = [1:6];
+    params.opt_vars = [1:4];
     
     % not opt vars
     tmp = 1:length(params.X(1).val(:,1));

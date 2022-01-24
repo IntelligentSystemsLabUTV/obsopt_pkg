@@ -1,21 +1,21 @@
 %% params_pendulum
 % create params structure for pendulum 
-function params = params_mockup
+function params = params_oscillator_VDP
 
-    % pendulum parameters
-    params.theta = 0.5;
+    % params 
+    params.mu = 0.1;
     
     % number of reference trajectories (>1 for control design)
     params.Ntraj = 1;
     
     % reference init
-    params.X(1).val(:,1) = [1;params.theta];
+    params.X(1).val(:,1) = [1;1]*1e-3;
     for traj=2:params.Ntraj
         params.X(traj).val(:,1) = params.X(traj-1).val(:,1);
     end
     
     % position in the state vector of the parameters
-    params.estimated_params = [2];
+    params.estimated_params = [];
     
     % which vars am I optimising
     params.opt_vars = [1:2];

@@ -349,5 +349,8 @@ function out = System_analysis_fun_general_v3(x0,offset,filter,Nw,Nts,Nsamples,b
     H_map_bool_restricted = H_map_bool(1+out.border_hess:end-out.border_hess,1+out.border_hess:end-out.border_hess);
     out.attraction_num = length(find(H_map_bool_restricted==1))/length(find(H_map_bool_restricted));
     
+    %% compute f on a grid
+    
+    
 end
 

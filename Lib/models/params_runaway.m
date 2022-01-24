@@ -4,27 +4,44 @@ function params = params_runaway
     % plant data
 
     % electric charge
-    params.Q = 15;
+    params.Q = 1;
 
     % spontaneous emission
     params.S = 0;
 
     % parameters
-    params.gamma = 2;
-    params.gamma1 = 10;
-    params.ni = 20;
-    params.Wt = 0.3;
+    params.gamma = 0.5;
+    params.gamma1 = 2.5;
+    params.ni = 0.5;
+    params.Wt = 0.1;
 
     % eps_coef
-    params.eps_coef = 1;
+    params.eps_coef = 38;
 
     % initial condition
-    params.T0 = 5;
-    params.W0 = 1;
+    params.T0 = 0;
+    params.W0 = 0.001;
     
-    % initial condition
-    params.X = [params.T0; params.W0];
+    % number of reference trajectories (>1 for control design)
+    params.Ntraj = 1;
+    
+    % reference init
+    params.X(1).val(:,1) = [params.T0; params.W0; params.gamma];
+    for traj=2:params.Ntraj
+        params.X(traj).val(:,1) = params.X(traj-1).val(:,1);
+    end
     
     % position in the state vector of the parameters
-    params.estimated_params = [];
+    params.estimated_params = [3];
+    
+    % which vars am I optimising
+    params.opt_vars = [1:3];
+    
+    % not opt vars
+    tmp = 1:length(params.X(1).val(:,1));
+    tmp_idx = tmp;
+    for i=1:length(params.opt_vars)
+        tmp_idx = intersect(tmp_idx,find(tmp~=params.opt_vars(i)));
+    end
+    params.nonopt_vars = tmp_idx;
 end

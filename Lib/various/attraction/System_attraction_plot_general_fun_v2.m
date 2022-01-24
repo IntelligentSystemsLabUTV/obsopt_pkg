@@ -1,3 +1,4 @@
+
 %% system analysis plot
 function System_attraction_plot_general_fun_v2(out,obs,frame,traj,Hmap,contourFlag,Vfun,region)
 
@@ -6,7 +7,7 @@ function System_attraction_plot_general_fun_v2(out,obs,frame,traj,Hmap,contourFl
 
 
     % transparency
-    alphaFace = 0.2;
+    alphaFace = 0.4;
     alphaEdge = 0.2;
 
     gotin = 0;
@@ -42,7 +43,7 @@ function System_attraction_plot_general_fun_v2(out,obs,frame,traj,Hmap,contourFl
                         out{i}.Y,...
                         out{i}.Hmap_bool,...
                         'FaceAlpha',alphaFace,'EdgeAlpha',alphaEdge);   
-                    colormap autumn
+                    colormap winter
                     freezeColors
 
                     bounds_x = [out{i}.x_grid(1).val(1), out{i}.x_grid(1).val(end)];
@@ -91,7 +92,7 @@ function System_attraction_plot_general_fun_v2(out,obs,frame,traj,Hmap,contourFl
                     colorbar
                     plot3(out{i}.x0(2),out{i}.x0(1),0,'sg','LineWidth',2);
                     
-                    plot3(out{i}.x0_est_pre(2),out{i}.x0_est_pre(1),Vpost,'sk','LineWidth',2);
+%                     plot3(out{i}.x0_est_pre(2),out{i}.x0_est_pre(1),Vpost,'sk','LineWidth',2);
 %                     plot3(out{i}.x0_est_post(2),out{i}.x0_est_post(1),Vpost,'sb','LineWidth',2);
                     
                     
@@ -120,7 +121,7 @@ function System_attraction_plot_general_fun_v2(out,obs,frame,traj,Hmap,contourFl
                         out{i}.Y,...
                         out{i}.V,...
                         'FaceAlpha',alphaFace,'EdgeAlpha',alphaEdge);   
-                    colormap autumn
+                    colormap summer
                     freezeColors
 %                     plot3(out{i}.x0(1),out{i}.x0(2),0,'sg','LineWidth',2);
                 end
@@ -145,6 +146,11 @@ function System_attraction_plot_general_fun_v2(out,obs,frame,traj,Hmap,contourFl
                 
                 % mins
                 plot3(out{i}.x_grid(2).val(MinIdxCol), out{i}.x_grid(1).val(MinIdxRow),out{i}.V(MinIdxRow,MinIdxCol),'.c','LineWidth',2);
+                
+            elseif (region) && ~(gotin==frame)
+                if traj
+                    plot3(out{i}.x0_est_pre(2),out{i}.x0_est_pre(1),1,'sk','LineWidth',2);
+                end
             end
             
             
