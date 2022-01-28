@@ -4,12 +4,13 @@ function params = params_oscillator
 
     % params 
     params.speed = 2.5;
+    params.f = params.speed/(2*pi);
     
     % number of reference trajectories (>1 for control design)
     params.Ntraj = 1;
     
     % reference init
-    params.X(1).val(:,1) = [1e-3;1e-3];
+    params.X(1).val(:,1) = [1;1]*1e0;
     for traj=2:params.Ntraj
         params.X(traj).val(:,1) = params.X(traj-1).val(:,1);
     end

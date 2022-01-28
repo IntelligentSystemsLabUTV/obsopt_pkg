@@ -363,23 +363,25 @@ classdef obsopt_general_adaptive_flush_filterSS
                 pos = find(strcmp(varargin,'filters'));
                 temp_scale = varargin{pos+1};
             else
-                temp_scale = [1, 0, 0, 0];
+                temp_scale = [1];
             end
-            % get if integral is used
-            obj.setup.J_term_integral = (temp_scale(3) ~= 0);
-            % this further computation gets the actual filters present. 
-            obj.setup.J_temp_scale = transpose(nonzeros(temp_scale));
-            % compute the actual number of terms in the cost function.
-            % Maximum is 3 as only the y-filters terms are considered.
-            % Other terms as the spring-like aren't taken into account here
-            obj.setup.J_nterm = min(3,size(nonzeros(temp_scale(1:3)),1));
-            % This variable instead taske into account the whole set of
-            % terms. It's used to create the scale factor (see obs.scale_factor())
-            obj.setup.J_nterm_total = size(nonzeros(temp_scale),1);
             
-            % get spring like term in cost function
-            obj.setup.J_term_spring = (temp_scale(4) ~= 0);
-            obj.setup.J_term_spring_position = length(obj.setup.J_temp_scale);
+            
+            % filters
+            obj.setup.J_temp_scale = temp_scale;
+            obj.setup.J_nterm = length(temp_scale);
+            obj.setup.J_nterm_total = length(temp_scale); 
+            
+            % get the spring like term in the cost function
+            if any(strcmp(varargin,'spring'))
+                pos = find(strcmp(varargin,'spring'));
+                obj.setup.J_term_spring = 1;
+                obj.setup.J_temp_scale = [obj.setup.J_temp_scale, varargin{pos+1}];
+                obj.setup.J_term_spring_position = length(obj.setup.J_temp_scale);
+                obj.setup.J_nterm_total = obj.setup.J_nterm_total+1;
+            else
+                obj.setup.J_term_spring = 0;
+            end
             
             % option to define the safety interval in adaptive sampling
             if any(strcmp(varargin,'filterTF'))
@@ -455,7 +457,7 @@ classdef obsopt_general_adaptive_flush_filterSS
             % obj.derivative method documentation. 
             obj.init.c1_derivative = 1;
             % derivative filter
-            obj.init.d1_derivative(1) = 3;
+            obj.init.d1_derivative(1) = 2;
             % integral filter
             obj.init.d1_derivative(2) = 10;
             
@@ -646,7 +648,8 @@ classdef obsopt_general_adaptive_flush_filterSS
                 % set the derivative buffer as before the optimisation process (multiple f computation)
                 for filt=1:max(1,obj.setup.J_nterm-1)
                     if back_time > obj.init.d1_derivative(filt)
-                        temp_buf_dyhat{filt} = obj.init.Yhat_full_story(Nstart).val(1,:,obj.init.BackIterIndex-(obj.init.d1_derivative(filt)):back_time-1);
+                        data = obj.init.Yhat_full_story(Nstart).val(1,:,obj.init.BackIterIndex-(obj.init.d1_derivative(filt)):back_time-1);
+                        temp_buf_dyhat{filt} = reshape(data,obj.setup.dim_out,obj.init.d1_derivative(filt));
                     else
                         temp_buf_dyhat{filt} = zeros(obj.setup.dim_out,obj.init.d1_derivative(filt));
                         range = 1:back_time-1;
@@ -747,7 +750,7 @@ classdef obsopt_general_adaptive_flush_filterSS
                 y_read = obj.setup.measure(x_propagate,obj.init.params);
 
                 % get filters - yhat
-                [buf_dy, dy_read] = obj.measure_filter(y_read,buf_dy);
+                [buf_dy, dy_read] = obj.measure_filter(y_read,buf_dy,buf_intY,obj.init.BackIterIndex);
 
                 % out
                 for filt=1:obj.setup.J_nterm-1
@@ -777,7 +780,7 @@ classdef obsopt_general_adaptive_flush_filterSS
                     y_read = obj.setup.measure(x_propagate,obj.init.params);
                     
                     % get filters - yhat
-                    [buf_dy, dy_read] = obj.measure_filter(y_read,buf_dy);
+                    [buf_dy, dy_read] = obj.measure_filter(y_read,buf_dy,buf_intY,back_time+1);
                 
                     % out
                     for filt=1:obj.setup.J_nterm-1
@@ -795,23 +798,50 @@ classdef obsopt_general_adaptive_flush_filterSS
         % measure_filter: from setup.measure and setup.model this method
         % gets the propagated measures and computes the related filters,
         % defined by setup.temp_scale
-        function [buf, y_filter] = measure_filter(obj,y,buf)
+        function [buf_dy, y_filter] = measure_filter(obj,y,buf_dy,buf_y,pos)
             
             % n filters
             Nfilter = obj.setup.J_nterm-1;
             
             if Nfilter > 0
                 for nfilt=1:Nfilter
-                    % reshape buffer
-                    buf_tmp = reshape(buf{nfilt},obj.setup.dim_out,obj.init.d1_derivative(nfilt));
-
+                    
                     % numeric derivative
                     for k=1:obj.setup.dim_out
-                        tspan = 0:obj.setup.DTs:(obj.init.d1_derivative(nfilt)-1)*obj.setup.DTs;
-                        tmp = lsim(obj.setup.filterTF{nfilt}.TF,buf_tmp,tspan,buf_tmp(1));
-                        y_filter{nfilt}(k) = tmp(end);
-                        buf{nfilt}(k,1:end-1) = buf_tmp(k,2:end);
-                        buf{nfilt}(k,end) = y;
+                        % reshape buffer
+                        buf_tmp = reshape(buf_dy{nfilt},obj.setup.dim_out,obj.init.d1_derivative(nfilt));
+                        dim_filter = size(obj.setup.filterTF{nfilt}.TF.B,1);
+                        dim_input = size(obj.setup.filterTF{nfilt}.TF.B,2);
+                        
+                        if (pos > dim_filter)     
+                            % initial condition
+                            x0 = zeros(dim_filter,1);                            
+                            for i=1:dim_filter
+                                x0(i) = buf_y(nfilt+1,k,pos-dim_filter-1+i);                                
+                            end
+                            
+                            % input
+                            u = zeros(dim_input,dim_filter+1);
+                            for i=1:dim_filter+1
+                               u(:,i) = buf_y(1,k,pos-dim_filter+i-1); 
+                            end
+                            
+                            if 1
+                                tspan = 0:obj.setup.DTs:dim_filter*obj.setup.DTs;
+                                tmp = lsim(obj.setup.filterTF{nfilt}.TF,u,tspan,x0);
+                                tmp(end);
+                                yk = tmp(end); 
+                            else
+                                yk = discreteSS_mex(x0,u,obj.setup.filterTF{nfilt}.TF.A, obj.setup.filterTF{nfilt}.TF.B, ...
+                                                obj.setup.filterTF{nfilt}.TF.C, obj.setup.filterTF{nfilt}.TF.D);
+                            end                                
+                        else
+                            yk = buf_y(nfilt+1,k,pos);
+                        end
+                        y_filter{nfilt}(k,1) = yk;                     
+
+                        buf_dy{nfilt}(k,1:end-1) = buf_tmp(k,2:end);
+                        buf_dy{nfilt}(k,end) = y(k);
                     end
                 end
             else
@@ -915,13 +945,15 @@ classdef obsopt_general_adaptive_flush_filterSS
             
             for traj=1:obj.setup.Ntraj
                 % get filters - y
-                [obj.init.buf_dY(traj).val, dy] = obj.measure_filter(y(traj).val,obj.init.buf_dY(traj).val);            
+                obj.init.Y_full_story(traj).val(1,:,obj.init.ActualTimeIndex) = y(traj).val;                
+                [obj.init.buf_dY(traj).val, dy] = obj.measure_filter(y(traj).val,obj.init.buf_dY(traj).val,obj.init.Y_full_story(traj).val,obj.init.ActualTimeIndex);            
                 for filt=1:obj.setup.J_nterm-1
                     y(traj).val = [y(traj).val, dy{filt}];
                 end
                 
                 % get filters - yhat
-                [obj.init.buf_dYhat(traj).val, dyhat] = obj.measure_filter(yhat(traj).val,obj.init.buf_dYhat(traj).val);
+                obj.init.Yhat_full_story(traj).val(1,:,obj.init.ActualTimeIndex) = yhat(traj).val;
+                [obj.init.buf_dYhat(traj).val, dyhat] = obj.measure_filter(yhat(traj).val,obj.init.buf_dYhat(traj).val,obj.init.Yhat_full_story(traj).val,obj.init.ActualTimeIndex);
                 for filt=1:obj.setup.J_nterm-1
                     yhat(traj).val = [yhat(traj).val, dyhat{filt}];
                 end
@@ -1117,7 +1149,8 @@ classdef obsopt_general_adaptive_flush_filterSS
                                 % set the derivative buffer as before the optimisation process (multiple f computation)
                                 for filt=1:max(1,obj.setup.J_nterm-1)
                                     if back_time > obj.init.d1_derivative(filt)
-                                        temp_buf_dyhat{filt} = obj.init.Yhat_full_story(traj).val(1,:,obj.init.BackIterIndex-(obj.init.d1_derivative(filt)):back_time-1);
+                                        data = obj.init.Yhat_full_story(traj).val(1,:,obj.init.BackIterIndex-(obj.init.d1_derivative(filt)):back_time-1);
+                                        temp_buf_dyhat{filt} = reshape(data,obj.setup.dim_out,obj.init.d1_derivative(filt));
                                     else
                                         temp_buf_dyhat{filt} = zeros(obj.setup.dim_out,obj.init.d1_derivative(filt));
                                         range = 1:back_time-1;
@@ -1132,7 +1165,7 @@ classdef obsopt_general_adaptive_flush_filterSS
                                 % performed 
                                 Yhat = obj.setup.measure(x_propagate,obj.init.params);
                                 % get filters - yhat
-                                [temp_buf_dyhat, dyhat] = obj.measure_filter(Yhat,temp_buf_dyhat);
+                                [temp_buf_dyhat, dyhat] = obj.measure_filter(Yhat,temp_buf_dyhat,obj.init.Yhat_full_story(traj).val,obj.init.BackIterIndex);
                                 yhat(traj).val = Yhat;
                                 for filt=1:obj.setup.J_nterm-1
                                     yhat(traj).val = [yhat(traj).val, dyhat{filt}];
@@ -1171,7 +1204,7 @@ classdef obsopt_general_adaptive_flush_filterSS
                                     % performed 
                                     Yhat = obj.setup.measure(x_propagate,obj.init.params);
                                     % get filters - yhat
-                                    [temp_buf_dyhat, dyhat] = obj.measure_filter(Yhat,temp_buf_dyhat);
+                                    [temp_buf_dyhat, dyhat] = obj.measure_filter(Yhat,temp_buf_dyhat,obj.init.Yhat_full_story(traj).val,back_time);
                                     yhat(traj).val = Yhat;
                                     for filt=1:obj.setup.J_nterm-1
                                         yhat(traj).val = [yhat(traj).val, dyhat{filt}];
@@ -1333,8 +1366,8 @@ classdef obsopt_general_adaptive_flush_filterSS
                 % plot
                 hold on
                 for dim=1:obj.setup.dim_out
-                    y_plot = reshape(obj.init.Y_full_story(1).val(k,dim,:),size(obj.setup.time));
-                    yhat_plot = reshape(obj.init.Yhat_full_story(1).val(k,dim,:),size(obj.setup.time));
+                    y_plot = obj.setup.J_temp_scale(k)*reshape(obj.init.Y_full_story(1).val(k,dim,:),size(obj.setup.time));
+                    yhat_plot = obj.setup.J_temp_scale(k)*reshape(obj.init.Yhat_full_story(1).val(k,dim,:),size(obj.setup.time));
                     plot(obj.setup.time,y_plot,'b--');
                     plot(obj.setup.time,yhat_plot,'r.');
                 end
@@ -1536,8 +1569,8 @@ classdef obsopt_general_adaptive_flush_filterSS
                 hold on
                 for traj=1:obj.setup.Ntraj
                     for dim=1:obj.setup.dim_out
-                        y_plot = reshape(obj.init.Y_full_story(traj).val(k,dim,:),size(obj.setup.time));
-                        yhat_plot = reshape(obj.init.Yhat_full_story(traj).val(k,dim,:),size(obj.setup.time));
+                        y_plot = obj.setup.J_temp_scale(k)*reshape(obj.init.Y_full_story(traj).val(k,dim,:),size(obj.setup.time));
+                        yhat_plot = obj.setup.J_temp_scale(k)*reshape(obj.init.Yhat_full_story(traj).val(k,dim,:),size(obj.setup.time));
                         plot(obj.setup.time,y_plot,'b--');
                         plot(obj.setup.time,yhat_plot,'r.');
                     end

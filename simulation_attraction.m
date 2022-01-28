@@ -8,7 +8,7 @@ function [params,obs, out] = simulation_attraction
 close all
 
 % init observer buffer
-Nw = 1;
+Nw = 10;
 Nts = 10;
     
 % set sampling time
@@ -138,7 +138,7 @@ for i = 1:obs.setup.Niter
         
        
         centralval = obs.init.X(traj).val(:,obs.init.BackIterIndex);        
-        bound = [0.1; 0.1]; 
+        bound = [1; 1]; 
         oneval = ones(size(bound));
         range = [centralval.*(oneval-bound), centralval, centralval.*(oneval+bound)];
         out{end+1} = System_analysis_fun_general_v3(x0(:,obs.init.BackIterIndex),0,0,Nw,Nts,[25,25],range,params,obs);

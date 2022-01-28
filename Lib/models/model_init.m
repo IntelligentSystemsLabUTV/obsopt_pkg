@@ -167,12 +167,16 @@ function params = model_init(varargin)
         % init state
         init = params.X(traj).val(:,1);
         
+        % pendulum params
+%         init(1:6) = [0;0;0;0;0;0];
         % pendulum
         init(1:4) = [0;0;0;0];
         % oscillator
-%         init(1:2) = [5e-3;1e-2];
+%         init(1:2) = [5e-2;1e-2];
         % runaway
 %         init(1:3) = [0.5, 0.1, 1];
+        % SQR - params
+%         init(1:5) = [0.5, 0.1, 1, 0.2, 0.4];
         
         % init state
         params.X_est(traj).val(:,1) = init.*(1 + params.noise*params.perc(:,traj).*ones(params.StateDim,1)) + params.noise*params.noise_std*randn(params.StateDim,1);
