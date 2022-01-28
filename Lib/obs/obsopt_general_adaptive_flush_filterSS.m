@@ -803,15 +803,21 @@ classdef obsopt_general_adaptive_flush_filterSS
             % n filters
             Nfilter = obj.setup.J_nterm-1;
             
+            
             if Nfilter > 0
                 for nfilt=1:Nfilter
+                    
+                    A = obj.setup.filterTF(nfilt).A;
+                    B = obj.setup.filterTF(nfilt).B;
+                    C = obj.setup.filterTF(nfilt).C;
+                    D = obj.setup.filterTF(nfilt).D;
                     
                     % numeric derivative
                     for k=1:obj.setup.dim_out
                         % reshape buffer
                         buf_tmp = reshape(buf_dy{nfilt},obj.setup.dim_out,obj.init.d1_derivative(nfilt));
-                        dim_filter = size(obj.setup.filterTF{nfilt}.TF.B,1);
-                        dim_input = size(obj.setup.filterTF{nfilt}.TF.B,2);
+                        dim_filter = size(obj.setup.filterTF(nfilt).B,1);
+                        dim_input = size(obj.setup.filterTF(nfilt).B,2);
                         
                         if (pos > dim_filter)     
                             % initial condition
@@ -826,15 +832,7 @@ classdef obsopt_general_adaptive_flush_filterSS
                                u(:,i) = buf_y(1,k,pos-dim_filter+i-1); 
                             end
                             
-                            if 1
-                                tspan = 0:obj.setup.DTs:dim_filter*obj.setup.DTs;
-                                tmp = lsim(obj.setup.filterTF{nfilt}.TF,u,tspan,x0);
-                                tmp(end);
-                                yk = tmp(end); 
-                            else
-                                yk = discreteSS_mex(x0,u,obj.setup.filterTF{nfilt}.TF.A, obj.setup.filterTF{nfilt}.TF.B, ...
-                                                obj.setup.filterTF{nfilt}.TF.C, obj.setup.filterTF{nfilt}.TF.D);
-                            end                                
+                            yk = discreteSS_mex(x0,u,A,B,C,D);                                
                         else
                             yk = buf_y(nfilt+1,k,pos);
                         end

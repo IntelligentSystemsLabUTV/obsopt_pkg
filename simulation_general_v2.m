@@ -8,7 +8,7 @@ close all
 % init model
     
 % init observer buffer
-Nw = 5;
+Nw = 7;
 Nts = 3;
 
 % set sampling time
@@ -16,7 +16,7 @@ Ts = 1e-1;
 
 % set initial and final time instant
 t0 = 0;
-tend = 7;
+tend = 10;
 %     tend = 1*(Nw*Nts+1)*Ts;
 
 %%%%%%%%%%% params function %%%%%%%%%%%
@@ -60,41 +60,7 @@ measure = @measure_general;
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 %%%%%%%%%%% filters %%%%%%%%
-filter = [];
-if 1
-i = 1;
-% derivative
-eps1 = 0.0001;
-G = tf([1e-4 0],[eps1 1]);
-% G = zpk(0,-100,1);
-SS = ss(G);
-D = c2d(SS,Ts*Nts);
-filter{i}.TF = D;
-filter{i}.G = G;
-end
-
-if 0
-i = 1;
-% integral
-G = tf(1,[1/0.1 1]);
-SS = ss(G);
-D = c2d(SS,Ts*Nts);
-filter{i}.TF = D;
-filter{i}.G = G;
-end
-
-if 0
-i=1;
-% passabanda
-G = zpk([-1],[-10 -100],1);
-G0 = dcgain(G);
-G = G/G0;
-SS = ss(G);
-D = c2d(SS,Ts*Nts);
-filter{i}.TF = D;
-filter{i}.G = G;
-end
-
+filter = filter_define(Ts,Nts);
 % set the integration method
 ode = @oderk4;
 
@@ -108,14 +74,14 @@ input_law = @control;
 % which takes as input the function handle to the previously defined
 % @params_init. For more information see directly the file.
 params = model_init('Ts',Ts,'T0',[t0, tend],'noise',1,'noise_spec',[0, 0], 'params_update', params_update, ...
-        'model',model,'measure',measure,'StateDim',4,'ObservedState',[1],'ode',ode,...
+        'model',model,'measure',measure,'StateDim',6,'ObservedState',[1],'ode',ode,...
         'input_enable',0,'dim_input',2,'input_law',input_law,'params_init',params_init);
 
 % create observer class instance. For more information on the setup
 % options check directly the class constructor
 obs = obsopt_general_adaptive_flush_filterSS('DataType', 'simulated', 'optimise', 1, ... 
       'Nw', Nw, 'Nts', Nts, 'ode', ode, 'PE_maxiter', 0, 'control_design', 0 , 'model_reference', model_reference, ...    
-      'params',params, 'filters', [1 1],'filterTF', filter, 'Jdot_thresh',0.9,'MaxIter',1,...
+      'params',params, 'filters', [1 1],'filterTF', filter, 'Jdot_thresh',0.9,'MaxIter',3,...
       'Jterm_store', 0, 'AlwaysOpt', 1 , 'print', 0 , 'SafetyDensity', 100, 'AdaptiveHist', [2e-2, 4e-2, 5e-7], ...
       'AdaptiveSampling',0, 'FlushBuffer', 1, 'Jterm_store', 0, 'opt', @fminunc);
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%

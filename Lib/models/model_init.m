@@ -170,7 +170,7 @@ function params = model_init(varargin)
         % pendulum params
 %         init(1:6) = [0;0;0;0;0;0];
         % pendulum
-        init(1:4) = [0;0;0;0];
+%         init(1:4) = [0;0;0;0];
         % oscillator
 %         init(1:2) = [5e-2;1e-2];
         % runaway
