@@ -116,6 +116,14 @@ function params = model_init(varargin)
         params.ode = @ode45;
     end
     
+    % get the integration settings
+    if any(strcmp(varargin,'odeset'))
+        pos = find(strcmp(varargin,'odeset'));
+        params.odeset = odeset('RelTol',varargin{pos+1}(1),'AbsTol',varargin{pos+1}(2));
+    else
+        params.odeset = odeset('RelTol',1e-3,'AbsTol',1e-6);
+    end
+    
     % input enable
     if any(strcmp(varargin,'input_enable'))
         pos = find(strcmp(varargin,'input_enable'));

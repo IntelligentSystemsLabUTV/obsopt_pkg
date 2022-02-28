@@ -19,8 +19,8 @@ function params = params_runaway
     params.eps_coef = 38;
 
     % initial condition
-    params.T0 = 0;
-    params.W0 = 0.001;
+    params.T0 = 9.88;
+    params.W0 = 5.6e-6;
     
     % number of reference trajectories (>1 for control design)
     params.Ntraj = 1;

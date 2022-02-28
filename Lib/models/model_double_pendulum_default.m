@@ -3,6 +3,7 @@ function x_dot = model_double_pendulum_default(t, x, params)
 
     x_dot = zeros(length(x),1);
     
+    
     L1 = params.Lt1;
     L2 = params.Lt2;
     M1 = params.M1;

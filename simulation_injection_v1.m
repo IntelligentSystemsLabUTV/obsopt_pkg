@@ -1,4 +1,4 @@
-function [params,obs] = simulation_general_v2
+function [params,obs] = simulation_injection_v1
 
 %% Init Section
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -42,7 +42,7 @@ params_update = @params_update_oscillator_VDP;
 % params = structure with model parameters (see params_init)
 % OUTPUT:
 % xdot = output of the state space model
-model = @model_oscillator_VDP;
+model = @model_oscillator_VDP_inject;
 model_reference = model;
 %     model_reference = @model_reference;
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -67,7 +67,7 @@ ode = @oderk4;
 % define the input law used: here it's just for a test. You can also
 % comment out this line, a default sinusoidal input is hard coded in
 % model_init();
-input_law = @control;
+input_law = @inject;
 
 % init the parameters structure. The model_init file has lots of setup
 % options (varargin). The most important is the 'params_init' option, 
@@ -79,8 +79,8 @@ params = model_init('Ts',Ts,'T0',[t0, tend],'noise',1,'noise_spec',[0, 0], 'para
 
 % create observer class instance. For more information on the setup
 % options check directly the class constructor
-obs = obsopt_general_020222_v2('DataType', 'simulated', 'optimise', 1, ... 
-      'Nw', Nw, 'Nts', Nts, 'ode', ode, 'PE_maxiter', 0, 'control_design', 0 , 'model_reference', model_reference, ...    
+obs = obsopt_general_inject_v1('DataType', 'simulated', 'optimise', 0, ... 
+      'Nw', Nw, 'Nts', Nts, 'ode', ode, 'PE_maxiter', 0, 'control_design', 0 , 'inject_design', 1,  'model_reference', model_reference, ...    
       'params',params, 'filters', filterScale,'filterTF', filter, 'Jdot_thresh',0.9,'MaxIter',40,...
       'Jterm_store', 1, 'AlwaysOpt', 1 , 'print', 0 , 'SafetyDensity', 3, 'AdaptiveHist', [1e-4, 3e-4, 1e0], ...
       'AdaptiveSampling',0, 'FlushBuffer', 1, 'opt', @fminsearch);
@@ -107,20 +107,17 @@ for i = 1:obs.setup.Niter
         
         if(obs.init.ActualTimeIndex > 1)
             % input
-            if obs.setup.control_design == 0
-                params.u = obs.setup.params.input(obs.init.t,obs.init.X(traj).val(:,obs.init.ActualTimeIndex-1),params);
-                obs.init.params.u = params.u;
-            else
-                params.u = obs.setup.params.input(obs.init.t,obs.init.X_est(traj).val(:,obs.init.ActualTimeIndex-1),params);
-                obs.init.params.u = params.u;
-            end
+            y_now = obs.init.Y_full_story(traj).val(1,:,obs.init.ActualTimeIndex-1);
+            yhat_now = obs.init.Yhat_full_story(traj).val(1,:,obs.init.ActualTimeIndex-1);           
+            params.u = obs.setup.params.input(obs.init.t,y_now,yhat_now,params);
+            obs.init.params.u = params.u;
 
             % true system
-            X = obs.setup.ode(@(t,x)obs.setup.model_reference(t, x, params), obs.setup.tspan, obs.init.X(traj).val(:,obs.init.ActualTimeIndex-1),params.odeset);   
+            X = obs.setup.ode(@(t,x)obs.setup.model_reference(t, x, 0, 0, params), obs.setup.tspan, obs.init.X(traj).val(:,obs.init.ActualTimeIndex-1),params.odeset);   
             obs.init.X(traj).val(:,obs.init.ActualTimeIndex) = X.y(:,end);
 
-            % real system
-            X = obs.setup.ode(@(t,x)obs.setup.model(t, x, obs.init.params), obs.setup.tspan, obs.init.X_est(traj).val(:,obs.init.ActualTimeIndex-1),params.odeset);
+            % real system            
+            X = obs.setup.ode(@(t,x)obs.setup.model(t, x, y_now, yhat_now, obs.init.params), obs.setup.tspan, obs.init.X_est(traj).val(:,obs.init.ActualTimeIndex-1),params.odeset);
             obs.init.X_est(traj).val(:,obs.init.ActualTimeIndex) = X.y(:,end);      
         end
         

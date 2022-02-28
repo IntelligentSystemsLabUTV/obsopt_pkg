@@ -1,5 +1,5 @@
 %% measure function
-function u = control(x,params)
+function u = control(t,x,params)
 
     %% control law - double integrator
 %     u = [params.K1, params.K2, params.K3]*x(1:3);
@@ -23,6 +23,14 @@ function u = control(x,params)
 
     %% control law - Astolfi
 %     u = 5;
+
+    %% control law - sin
+%     u(1) = sin(t);
+%     u(2) = -sin(t);
+
+    %% cntrol law - VDP
+    u(1) = params.K1*x(1);
+    u(2) = params.K2*x(2);
     
     % input enable
     if ~params.input_enable

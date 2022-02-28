@@ -5,6 +5,10 @@ function params = params_oscillator_VDP
     % params 
     params.mu = 0.1;
     
+    % control
+    params.K1 = 0.1;
+    params.K2 = 0.1;
+    
     % number of reference trajectories (>1 for control design)
     params.Ntraj = 1;
     
