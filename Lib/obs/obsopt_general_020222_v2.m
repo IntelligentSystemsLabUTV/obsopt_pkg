@@ -860,7 +860,7 @@ classdef obsopt_general_020222_v2
                     Y_buf = reshape(Y_buf,size(Y_buf,2),size(Y_buf,3));
 
                      %%% compute signal richness %%%             
-                     obj.init.PE(traj).val(obj.init.ActualTimeIndex) = sum(abs(diff(Y_buf.^2)));
+                     obj.init.PE(traj).val(obj.init.ActualTimeIndex) = sum(abs(diff(sum(Y_buf,1).^2)));
                 else
                      obj.init.PE(traj).val(obj.init.ActualTimeIndex) = 0;
                 end

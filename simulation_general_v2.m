@@ -16,7 +16,7 @@ Ts = 5e-2;
 
 % set initial and final time instant
 t0 = 0;
-tend = 7;
+tend = 5;
 %     tend = 1*(Nw*Nts+1)*Ts;
 
 %%%%%%%%%%% params function %%%%%%%%%%%
@@ -29,8 +29,8 @@ tend = 7;
 % params.b = friction coefficient
 % params.observed_state = [2 4] array defining the state elements which
 % are actually observed. This will come useful in the measure function
-params_init = @params_oscillator_VDP;
-params_update = @params_update_oscillator_VDP;
+params_init = @params_Tesi_01;
+params_update = @params_update_Tesi_01;
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 %%%%%%%%%%% model function %%%%%%%%%%%
@@ -42,9 +42,9 @@ params_update = @params_update_oscillator_VDP;
 % params = structure with model parameters (see params_init)
 % OUTPUT:
 % xdot = output of the state space model
-model = @model_oscillator_VDP;
-model_reference = model;
-%     model_reference = @model_reference;
+model = @model_Tesi_01;
+% model_reference = model;
+model_reference = @model_reference;
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 %%%%%%%%%%% measure function %%%%%%%%%%%
@@ -74,8 +74,8 @@ input_law = @control;
 % which takes as input the function handle to the previously defined
 % @params_init. For more information see directly the file.
 params = model_init('Ts',Ts,'T0',[t0, tend],'noise',1,'noise_spec',[0, 0], 'params_update', params_update, ...
-        'model',model,'measure',measure,'StateDim',2,'ObservedState',[1],'ode',ode, 'odeset', [1e-3 1e-6], ...
-        'input_enable',1,'dim_input',2,'input_law',input_law,'params_init',params_init);
+        'model',model,'measure',measure,'StateDim',3,'ObservedState',[1 2 3],'ode',ode, 'odeset', [1e-3 1e-6], ...
+        'input_enable',0,'dim_input',3,'input_law',input_law,'params_init',params_init);
 
 % create observer class instance. For more information on the setup
 % options check directly the class constructor

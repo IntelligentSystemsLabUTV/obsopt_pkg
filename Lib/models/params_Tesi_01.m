@@ -1,6 +1,6 @@
 %% params_pendulum
 % create params structure for pendulum 
-function params = params_oscillator_VDP
+function params = params_Tesi_01
     
     % control
     params.K1 = 0.1;
@@ -10,7 +10,7 @@ function params = params_oscillator_VDP
     params.Ntraj = 1;
     
     % reference init
-    params.X(1).val(:,1) = [1;1]*1e0;
+    params.X(1).val(:,1) = [1;1;1]*1e0;
     for traj=2:params.Ntraj
         params.X(traj).val(:,1) = params.X(traj-1).val(:,1);
     end
@@ -19,7 +19,7 @@ function params = params_oscillator_VDP
     params.estimated_params = [];
     
     % which vars am I optimising
-    params.opt_vars = [1:2];
+    params.opt_vars = [1:3];
     
     % not opt vars
     tmp = 1:length(params.X(1).val(:,1));
