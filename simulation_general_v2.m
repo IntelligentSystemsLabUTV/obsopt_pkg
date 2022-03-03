@@ -8,7 +8,7 @@ function [params,obs] = simulation_general_v2
 % init model
     
 % init observer buffer
-Nw = 5;
+Nw = 43;
 Nts = 5;
 
 % set sampling time
@@ -62,7 +62,7 @@ measure = @measure_general;
 %%%%%%%%%%% filters %%%%%%%%
 [filter, filterScale] = filter_define(Ts,Nts);
 % set the integration method
-ode = @oderk4;
+ode = @odeDD;
 
 % define the input law used: here it's just for a test. You can also
 % comment out this line, a default sinusoidal input is hard coded in
@@ -74,16 +74,16 @@ input_law = @control;
 % which takes as input the function handle to the previously defined
 % @params_init. For more information see directly the file.
 params = model_init('Ts',Ts,'T0',[t0, tend],'noise',1,'noise_spec',[0, 0], 'params_update', params_update, ...
-        'model',model,'measure',measure,'StateDim',3,'ObservedState',[1 2 3],'ode',ode, 'odeset', [1e-3 1e-6], ...
-        'input_enable',0,'dim_input',3,'input_law',input_law,'params_init',params_init);
+        'model',model,'measure',measure,'StateDim',21,'ObservedState',[1 2 3],'ode',ode, 'odeset', [1e-3 1e-6], ...
+        'input_enable',1,'dim_input',3,'input_law',input_law,'params_init',params_init);
 
 % create observer class instance. For more information on the setup
 % options check directly the class constructor
 obs = obsopt_general_020222_v2('DataType', 'simulated', 'optimise', 1, ... 
-      'Nw', Nw, 'Nts', Nts, 'ode', ode, 'PE_maxiter', 0, 'control_design', 0 , 'model_reference', model_reference, ...    
-      'params',params, 'filters', filterScale,'filterTF', filter, 'Jdot_thresh',0.9,'MaxIter',40,...
-      'Jterm_store', 1, 'AlwaysOpt', 1 , 'print', 0 , 'SafetyDensity', 3, 'AdaptiveHist', [1e-4, 3e-4, 1e0], ...
-      'AdaptiveSampling',0, 'FlushBuffer', 1, 'opt', @fminsearch);
+      'Nw', Nw, 'Nts', Nts, 'ode', ode, 'PE_maxiter', 0, 'control_design', 1 , 'model_reference', model_reference, ...    
+      'params',params, 'filters', filterScale,'filterTF', filter, 'Jdot_thresh',0.9,'MaxIter',10,...
+      'Jterm_store', 1, 'AlwaysOpt', 1 , 'print', 1 , 'SafetyDensity', 3, 'AdaptiveHist', [1e-4, 3e-4, 1e0], ...
+      'AdaptiveSampling',0, 'FlushBuffer', 1, 'opt', @fminunc);
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 %% %%%%%%%%%%%%%%%%%%%%%%%%%%%% SIMULATION %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -105,7 +105,13 @@ for i = 1:obs.setup.Niter
     % forward propagation of the previous estimate
     for traj = 1:obs.setup.Ntraj
         
+        % save used input
+        obs.init.params.r_story(:,obs.init.ActualTimeIndex) = 1*unifrnd(-2,2,3,1);
+        obs.init.params.ActualTimeIndex = obs.init.ActualTimeIndex-1;
+        params.ActualTimeIndex = obs.init.params.ActualTimeIndex;
+        
         if(obs.init.ActualTimeIndex > 1)
+            
             % input
             if obs.setup.control_design == 0
                 params.u = obs.setup.params.input(obs.init.t,obs.init.X(traj).val(:,obs.init.ActualTimeIndex-1),params);
@@ -113,7 +119,7 @@ for i = 1:obs.setup.Niter
             else
                 params.u = obs.setup.params.input(obs.init.t,obs.init.X_est(traj).val(:,obs.init.ActualTimeIndex-1),params);
                 obs.init.params.u = params.u;
-            end
+            end                       
 
             % true system
             X = obs.setup.ode(@(t,x)obs.setup.model_reference(t, x, params), obs.setup.tspan, obs.init.X(traj).val(:,obs.init.ActualTimeIndex-1),params.odeset);   
@@ -132,6 +138,7 @@ for i = 1:obs.setup.Niter
     %%%%%%%%%%%%%%%%%%%%%% OBSERVER %%%%%%%%%%%%%%%%%%%%%%%%%%%%
     t1 = tic;
     obs = obs.observer(obs.init.X_est,y_meas);
+    params = obs.init.params;
     obs.init.iter_time(obs.init.ActualTimeIndex) = toc(t1);
     
 %     % params update
@@ -145,5 +152,10 @@ obs.init.total_time = toc(t0);
 %% %%%%%%%%%%%%%%%%%%%%%%%%%%%% PLOTS %%%%%%%%%%%%%%%%%%%%%
 % obs self plots
 obs.plot_section_control(); 
+
+if 0
+    load handel
+    sound(y,Fs)
+end
 end
 

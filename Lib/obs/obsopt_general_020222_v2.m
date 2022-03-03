@@ -89,6 +89,7 @@ classdef obsopt_general_020222_v2
                 obj.setup.estimated_params = params.estimated_params;
                 obj.setup.opt_vars = params.opt_vars;
                 obj.setup.nonopt_vars = params.nonopt_vars;
+                obj.setup.plot_vars = params.plot_vars;
                                 
             else
                 obj.setup.model = @(t,x,params) -2*x;
@@ -678,7 +679,7 @@ classdef obsopt_general_020222_v2
         function [y_read, x0_filter] = measure_function(obj,varargin)
             
             % get the state
-            x_propagate = varargin{1}(obj.setup.opt_vars);
+            x_propagate = varargin{1};%(obj.setup.opt_vars);
             x_filters = varargin{1}(obj.setup.dim_state+1:end);
             W_buf_pos = varargin{2};
             
@@ -726,6 +727,7 @@ classdef obsopt_general_020222_v2
                     t = obj.setup.time(back_time);
                     
                     % how do you handle the input?
+                    obj.init.params.ActualTimeIndex = back_time;
                     if obj.setup.control_design
                         obj.init.params.u = obj.setup.params.input(t,x_propagate,obj.init.params);
                     else
@@ -1169,6 +1171,7 @@ classdef obsopt_general_020222_v2
                                     t = obj.setup.time(back_time);                                    
                                     
                                     % how do you handle the input?
+                                    obj.init.params.ActualTimeIndex = back_time-1; % here you have the -1 because BackIterIndex is differently set up than in measure_function
                                     if obj.setup.control_design
                                         obj.init.params.u = obj.init.params.input(t,x_propagate,obj.init.params);
                                     else
@@ -1446,9 +1449,9 @@ classdef obsopt_general_020222_v2
         function plot_section_control(obj,varargin)
             
             %%%% plot state estimation %%%
-            figure()
-            for i=1:obj.setup.dim_state
-                subplot(obj.setup.dim_state,1,i);
+            figure(1)
+            for i=1:obj.setup.plot_vars
+                subplot(obj.setup.plot_vars,1,i);
                 hold on
                 grid on
                 box on
@@ -1471,8 +1474,8 @@ classdef obsopt_general_020222_v2
             
             %%%% plot state estimation error %%%
             figure(2)
-            for i=1:obj.setup.dim_state
-                subplot(obj.setup.dim_state,1,i);
+            for i=1:obj.setup.plot_vars
+                subplot(obj.setup.plot_vars,1,i);
                 hold on
                 grid on
                 box on
@@ -1526,7 +1529,7 @@ classdef obsopt_general_020222_v2
             for k=1:obj.setup.dim_out
                 
                 % number fo subplots depending on the output dimension
-                n_subplot = obj.setup.dim_out;
+                n_subplot = obj.setup.plot_vars;
                 
                 % indicize axes
                 ax_index = k;

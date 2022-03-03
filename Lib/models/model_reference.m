@@ -11,8 +11,7 @@ function x_dot = model_reference(t,x,params)
 %     x_dot(2) = 0;
 
     % model reference - Tesi 01
-    params.u = params.input(t,x,params);
-    A = 0.2*eye(length(x));
-    B = 0.8*eye(length(x));
-    x_dot = A*x + B*params.u;
+    A = 0.2*eye(params.dim_state);
+    B = 0.8*eye(params.dim_state);
+    x_dot(1:params.dim_state) = A*x(1:params.dim_state) + B*params.r_story(:,params.ActualTimeIndex);
 end
