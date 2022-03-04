@@ -165,7 +165,7 @@ obs.init.total_time = toc(t0);
 % obs self plots
 % obs.plot_section_control(); 
 
-if 1
+if 0
     load handel
     sound(y,Fs)
 end

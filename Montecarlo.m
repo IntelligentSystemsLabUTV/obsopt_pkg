@@ -22,7 +22,10 @@ function Montecarlo(folder,N)
                  obs.setup.params.KR31, obs.setup.params.KR32, obs.setup.params.KR33];
            
            seed = seed + 1;
-           save([folder,'/N',num2str(noise(n)),'_R',num2str(r)],'.mat');
+           save([folder,'/N',num2str(noise(n)),'_R',num2str(r),'.mat']);
         end
     end
+    
+    load handel
+    sound(y,Fs)
 end
