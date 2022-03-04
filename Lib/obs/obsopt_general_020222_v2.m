@@ -550,7 +550,9 @@ classdef obsopt_general_020222_v2
         % scale factor: this method defines the cost function weights
         % accordingly to the selected filters (see setup.temp_scale).
         function obj = scale_factor(obj)
-            obj.init.scale_factor = obj.setup.J_temp_scale.*ones(obj.setup.dim_out,obj.setup.J_nterm_total);
+            for dim=1:obj.setup.dim_out
+                obj.init.scale_factor(dim,:) = transpose(obj.setup.J_temp_scale).*ones(1,obj.setup.J_nterm_total);
+            end
         end
         
         % outfun: this method check wether or not the optimisation process
@@ -976,7 +978,7 @@ classdef obsopt_general_020222_v2
                 % temporary
 %                 if cols_nonzeros >= 1
                 % real
-                if cols_nonzeros >= 2*obj.setup.dim_state+1
+                if cols_nonzeros >= 2*length(obj.setup.opt_vars)+1
 
                     if obj.setup.forward
 
@@ -1505,7 +1507,7 @@ classdef obsopt_general_020222_v2
 
             % plot
             for iter=1:obj.setup.Niter
-                est_error_norm(iter) = norm(obj.init.X(1).val(:,iter) - obj.init.X_est_runtime(1).val(:,iter));
+                est_error_norm(iter) = norm(obj.init.X(1).val(1:obj.init.params.dim_state,iter) - obj.init.X_est_runtime(1).val(1:obj.init.params.dim_state,iter));
             end
 
             log_flag = 1;

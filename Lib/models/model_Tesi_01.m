@@ -13,4 +13,5 @@ function x_dot = model_Tesi_01(t,x,params)
          0.9412, 0.6006, 0.8315];
     
     x_dot(1:params.dim_state) = A*x(1:params.dim_state) + B*params.u;
+    x_dot(params.dim_state+1:end) = x(params.dim_state+1:end);
 end
