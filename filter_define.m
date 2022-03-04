@@ -6,7 +6,7 @@ function [filter, filterScale] = filter_define(Ts,Nts)
     filter = [];
     
     %% derivative
-    if 0
+    if 1
     i = 1;   
     eps1 = 1e-2;
     G = tf([1 0],[eps1 1]);
@@ -19,11 +19,11 @@ function [filter, filterScale] = filter_define(Ts,Nts)
     filter(i).D = D.D;
     filter(i).G = G;
     filter(i).dim = size(D.B,1);
-    filterScale(i+1)= 1;
+    filterScale(i+1)= 0;
     end
 
     %% integral
-    if 0
+    if 1
     i = 2;    
     eps2 = 1e2;
     G = tf(1,[eps2 1]);

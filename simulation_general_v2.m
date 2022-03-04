@@ -8,7 +8,7 @@ function [params,obs] = simulation_general_v2
 % init model
     
 % init observer buffer
-Nw = 43;
+Nw = 7;
 Nts = 5;
 
 % set sampling time
@@ -42,7 +42,7 @@ params_update = @params_update_Tesi_01;
 % params = structure with model parameters (see params_init)
 % OUTPUT:
 % xdot = output of the state space model
-model = @model_reference;
+model = @model_Tesi_01;
 % model_reference = model;
 model_reference = @model_reference;
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -81,7 +81,7 @@ params = model_init('Ts',Ts,'T0',[t0, tend],'noise',1,'noise_spec',[0,0], 'param
 % options check directly the class constructor
 obs = obsopt_general_020222_v2('DataType', 'simulated', 'optimise', 1, ... 
       'Nw', Nw, 'Nts', Nts, 'ode', ode, 'PE_maxiter', 0, 'control_design', 1 , 'model_reference', model_reference, ...    
-      'params',params, 'filters', filterScale,'filterTF', filter, 'Jdot_thresh',0.9,'MaxIter',10,...
+      'params',params, 'filters', filterScale,'filterTF', filter, 'Jdot_thresh',0.9,'MaxIter',20,...
       'Jterm_store', 1, 'AlwaysOpt', 1 , 'print', 0 , 'SafetyDensity', 3, 'AdaptiveHist', [1e-4, 3e-4, 1e0], ...
       'AdaptiveSampling',0, 'FlushBuffer', 1, 'opt', @fminunc);
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -106,7 +106,7 @@ for i = 1:obs.setup.Niter
     for traj = 1:obs.setup.Ntraj
         
         % save used input
-        obs.init.params.r_story(:,obs.init.ActualTimeIndex) = 1*unifrnd(-2,2,3,1);
+        obs.init.params.r_story(:,obs.init.ActualTimeIndex) =  1*unifrnd(-2,2,3,1); % [sin(obs.init.t);2*sin(2*obs.init.t);3*sin(3*obs.init.t)];
         params.r_story(:,obs.init.ActualTimeIndex) = obs.init.params.r_story(:,obs.init.ActualTimeIndex);
         obs.init.params.ActualTimeIndex = obs.init.ActualTimeIndex;
         params.ActualTimeIndex = obs.init.params.ActualTimeIndex;
