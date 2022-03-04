@@ -727,7 +727,7 @@ classdef obsopt_general_020222_v2
                     t = obj.setup.time(back_time);
                     
                     % how do you handle the input?
-                    obj.init.params.ActualTimeIndex = back_time;
+                    obj.init.params.ActualTimeIndex = back_time+1;
                     if obj.setup.control_design
                         obj.init.params.u = obj.setup.params.input(t,x_propagate,obj.init.params);
                     else
@@ -1171,7 +1171,7 @@ classdef obsopt_general_020222_v2
                                     t = obj.setup.time(back_time);                                    
                                     
                                     % how do you handle the input?
-                                    obj.init.params.ActualTimeIndex = back_time-1; % here you have the -1 because BackIterIndex is differently set up than in measure_function
+                                    obj.init.params.ActualTimeIndex = back_time; % here you have the -1 because BackIterIndex is differently set up than in measure_function
                                     if obj.setup.control_design
                                         obj.init.params.u = obj.init.params.input(t,x_propagate,obj.init.params);
                                     else
@@ -1214,7 +1214,7 @@ classdef obsopt_general_020222_v2
                             % on each trajectory
                             for traj=1:obj.setup.Ntraj
                                 % keep the initial guess
-                                obj.init.X_est(traj).val(:,obj.init.BackIterIndex) = obj.init.temp_x0_opt;
+                                obj.init.X_est(traj).val(obj.setup.opt_vars,obj.init.BackIterIndex) = obj.init.temp_x0_opt;
                             end
                             
                             % restore params

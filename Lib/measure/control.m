@@ -29,13 +29,7 @@ function u = control(t,x,params)
 %     u(2) = -sin(t);
 
     %% cntrol law - VDP
-    KX = [params.KX11, params.KX12, params.KX13; ...
-          params.KX21, params.KX22, params.KX23; ...
-          params.KX31, params.KX32, params.KX33];
-    KR = [params.KX11, params.KX12, params.KX13; ...
-          params.KX21, params.KX22, params.KX23; ...
-          params.KX31, params.KX32, params.KX33];
-    u = KX*x(1:params.dim_state) + KR*params.r_story(:,params.ActualTimeIndex);
+    u = params.KX*x(1:params.dim_state) + params.KR*params.r_story(:,params.ActualTimeIndex);
 %     u = params.r_story(:,params.ActualTimeIndex);
     
     % input enable

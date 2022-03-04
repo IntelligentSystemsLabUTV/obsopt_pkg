@@ -5,7 +5,7 @@ function params = params_update_Tesi_01(params,x)
     for i=1:3
        for j=1:3
           eval(['params.KX',num2str(i),num2str(j),' = x(params.dim_state+3*(i-1)+j);']); 
-          eval(['params.KR',num2str(i),num2str(j),' = x(params.dim_state+6*(i-1)+2*j);']);
+          eval(['params.KR',num2str(i),num2str(j),' = x(params.dim_state+9+3*(i-1)+j);']);
        end
     end
     

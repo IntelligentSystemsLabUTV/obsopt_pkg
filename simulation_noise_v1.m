@@ -1,4 +1,4 @@
-function [params,obs] = simulation_general_v2
+function [params,obs] = simulation_noise_v1(noise_spec,seed)
 
 %% Init Section
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -42,7 +42,7 @@ params_update = @params_update_Tesi_01;
 % params = structure with model parameters (see params_init)
 % OUTPUT:
 % xdot = output of the state space model
-model = @model_reference;
+model = @model_Tesi_01;
 % model_reference = model;
 model_reference = @model_reference;
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -73,7 +73,7 @@ input_law = @control;
 % options (varargin). The most important is the 'params_init' option, 
 % which takes as input the function handle to the previously defined
 % @params_init. For more information see directly the file.
-params = model_init('Ts',Ts,'T0',[t0, tend],'noise',1,'noise_spec',[0,0], 'params_update', params_update, ...
+params = model_init('Ts',Ts,'T0',[t0, tend],'noise',1,'noise_spec',noise_spec, 'params_update', params_update, ...
         'model',model,'measure',measure,'StateDim',21,'ObservedState',[1 2 3],'ode',ode, 'odeset', [1e-3 1e-6], ...
         'input_enable',1,'dim_input',3,'input_law',input_law,'params_init',params_init);
 
@@ -86,15 +86,17 @@ obs = obsopt_general_020222_v2('DataType', 'simulated', 'optimise', 1, ...
       'AdaptiveSampling',0, 'FlushBuffer', 1, 'opt', @fminunc);
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
+% random 
+rng(seed);
+
 %% %%%%%%%%%%%%%%%%%%%%%%%%%%%% SIMULATION %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % integration loop
 t0 = tic;
 for i = 1:obs.setup.Niter
     
     % Display iteration step
-    if ((mod(i,10) == 0) || (i == 1))
-        clc
-        disp(['Iteration Number: ', num2str(obs.setup.time(i)),'/',num2str(obs.setup.time(obs.setup.Niter))])
+    if ((mod(i,10) == 0) || (i == 1))   
+        msg=fprintf("Simulation time: %g/%g \n",obs.setup.time(i),obs.setup.time(obs.setup.Niter));
     end
     
     % set current interation in the class
@@ -143,10 +145,10 @@ for i = 1:obs.setup.Niter
     obs = obs.observer(obs.init.X_est,y_meas);
     params = obs.init.params;
     obs.init.iter_time(obs.init.ActualTimeIndex) = toc(t1);
-    
-%     % params update
-%     x = obs.init.X_est(1).val(:,obs.init.ActualTimeIndex);
-%     params = params_update(params,x);
+
+%     if ((mod(i,10) == 0) || (i == 1))        
+%         fprintf(repmat('\b', 1, (msg+39)));
+%     end
 
 end
 % SNR
@@ -161,7 +163,7 @@ obs.init.total_time = toc(t0);
 
 %% %%%%%%%%%%%%%%%%%%%%%%%%%%%% PLOTS %%%%%%%%%%%%%%%%%%%%%
 % obs self plots
-obs.plot_section_control(); 
+% obs.plot_section_control(); 
 
 if 1
     load handel

@@ -4,7 +4,6 @@ function x_dot = model_Tesi_01(t,x,params)
     x_dot = zeros(length(x),1);
     
     params.u = params.input(t,x,params);
-%     params.u = params.input(t,y,yhat,params);
 
     A = [0.1344, 0.2155, -0.1084; ...
          0.4585, 0.0797, 0.0857; ...

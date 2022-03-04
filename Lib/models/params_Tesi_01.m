@@ -10,6 +10,34 @@ function params = params_Tesi_01
        end
     end
     
+    % TEMPORARY
+%     params.KX11 = 0.6308;
+%     params.KX12 = -0.2920;
+%     params.KX13 = 0.3080;
+%     params.KX21 = -0.3814;
+%     params.KX22 = 0.4011;
+%     params.KX23 = -0.7166;
+%     params.KX31 = 0.2405;
+%     params.KX32 = 0.4340;
+%     params.KX33 = -0.6664;
+%     
+%     params.KR11 = 0.0768;
+%     params.KR12 = -1.3126;
+%     params.KR13 = -0.1809;
+%     params.KR21 = 0.4654;
+%     params.KR22 = 1.5957;
+%     params.KR23 = 0.7012;
+%     params.KR31 = -0.4231;
+%     params.KR32 = 0.3332;
+%     params.KR33 = 0.6604;
+    
+    params.KX = [params.KX11, params.KX12, params.KX13; ...
+                 params.KX21, params.KX22, params.KX23; ...
+                 params.KX31, params.KX32, params.KX33];
+    params.KR = [params.KR11, params.KR12, params.KR13; ...
+                 params.KR21, params.KR22, params.KR23; ...
+                 params.KR31, params.KR32, params.KR33];
+    
     % number of reference trajectories (>1 for control design)
     params.Ntraj = 1;
     
