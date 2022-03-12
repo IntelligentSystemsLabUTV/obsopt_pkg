@@ -26,6 +26,6 @@ function Montecarlo(folder,N)
         end
     end
     
-    load handel
-    sound(y,Fs)
+    %load handel
+    %sound(y,Fs)
 end
