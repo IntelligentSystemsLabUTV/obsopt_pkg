@@ -187,7 +187,15 @@ function params = model_init(varargin)
 %         init(1:5) = [0.5, 0.1, 1, 0.2, 0.4];
         
         % init state
-        params.X_est(traj).val(:,1) = init.*(1 + params.noise*params.perc(:,traj).*ones(params.StateDim,1)) + params.noise*params.noise_std*randn(params.StateDim,1);
+        bound_delta_x = params.noise*1e-1*[-1,1]*1;
+        bound_delta_x_dot = params.noise*1e-2*[-1,1]*1;
+        
+        noise = [unifrnd(bound_delta_x(1),bound_delta_x(2),2,1); unifrnd(bound_delta_x_dot(1),bound_delta_x_dot(2),2,1)];
+%         noise = [0.5; 0.5; 5e-3; 5e-3];
+        
+        params.X_est(traj).val(:,1) = init;
+        params.X_est(traj).val(1:params.dim_state,1) = params.X(traj).val(1:params.dim_state,1) + params.noise*noise;
+%         params.X_est(traj).val(:,1) = init.*(1 + params.noise*params.perc(:,traj).*ones(params.StateDim,1)) + params.noise*params.noise_std*randn(params.StateDim,1);
         
     end
     

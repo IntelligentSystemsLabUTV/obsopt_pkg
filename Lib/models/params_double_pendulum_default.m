@@ -25,6 +25,7 @@ function params = params_double_pendulum_default
    
     % number of reference trajectories (>1 for control design)
     params.Ntraj = 1;
+    params.dim_state = 4;
     
     % reference init
     params.X(1).val(:,1) = [-pi/4;-pi/4;0.2;-0.2];
@@ -48,4 +49,7 @@ function params = params_double_pendulum_default
         tmp_idx = intersect(tmp_idx,find(tmp~=params.opt_vars(i)));
     end
     params.nonopt_vars = tmp_idx;
+    
+    % plot vars
+    params.plot_vars = 4;
 end
