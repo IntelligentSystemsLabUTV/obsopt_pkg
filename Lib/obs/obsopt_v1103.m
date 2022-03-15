@@ -453,7 +453,11 @@ classdef obsopt_v1103 < handle
                           ').B,obj.setup.filterTF(',num2str(filt),').C,obj.setup.filterTF(',num2str(filt),').D,'];
             end
             tmp_str = tmp_str(1:end-1);
-            obj.init.matrix_str = tmp_str;
+            if isempty(tmp_str)
+                obj.init.matrix_str = '0';
+            else
+                obj.init.matrix_str = tmp_str;
+            end
             
             % create scale factor, namely the weight over time for all the
             % cost function terms. In V1.1 no forgetting factor is
@@ -620,63 +624,64 @@ classdef obsopt_v1103 < handle
                 
                 % get desired trajectory
                 y_target = varargin{4}(traj).val;
-                
-                %optimization vector  
-                X = x;                
-
-                n_item = length(find((obj.init.Y_space)));
-                n_iter = n_item;
-
-                % offset 
-                shift = obj.setup.w-n_item;
 
                 % init Jterm store
                 obj.init.Jterm_store = zeros(obj.setup.J_nterm_total,1);
                 
                 %%% integrate %%%
                 % define time array
-                tspan_pos = nonzeros(obj.init.Y_space)';
-                tspan = obj.setup.time(tspan_pos(1):tspan_pos(end));                                             
-                
+                tspan_pos = [obj.init.BackIterIndex, nonzeros(obj.init.Y_space)'];
+                tspan = obj.setup.time(tspan_pos(1):tspan_pos(end));  
+                buf_dist = diff(tspan_pos);
+                n_iter = sum(buf_dist);
+                % initial condition
+                x_start = x(1:obj.setup.dim_state);                
                 % get evolution with input
-                drive = obj.drive(obj.init.X(traj).val(:,tspan_pos(1):tspan_pos(end)),obj.init.X_est(traj).val(:,tspan_pos(1):tspan_pos(end)));
-                obj.init.params.u = obj.setup.params.input(0,drive,obj.init.params);
-                X = obj.setup.ode(@(t,x)obj.setup.model(t, x, obj.init.params), tspan , obj.init.X_est(traj).val(:,obj.init.BackIterIndex), obj.setup.odeset);
+                X = obj.setup.ode(@(t,x)obj.setup.model(t, x, obj.init.params, obj), tspan , x_start, obj.setup.odeset);
                 
-                % get measure  
+                %%% get measure  %%
                 Yhat = zeros(obj.setup.Nfilt+1,obj.setup.dim_out,size(X.y,2));
                 Yhat(1,:,:) = obj.setup.measure(X.y,obj.init.params);
                 
-                % get filters - yhat
-                % filter state
-                x0_filter = cell(obj.setup.Nfilt,1);
-                filterstartpos = max(1,obj.init.BackIterIndex-1);
-                startpos = 0;
-                for i=1:obj.setup.Nfilt            
-                   x0_filter{i}(:,filterstartpos) = x_filters(startpos+1:startpos+obj.setup.filterTF(i).dim);
-                   startpos = startpos + obj.setup.filterTF(i).dim;
-                end
-                
-                for j=1:size(X.y,2)
-                       
-                    tmp_str = ['[dy_read, x_filter] = obj.measure_filter(Yhat(1,:,:),x0_filter,obj.init.BackIterIndex+1,',obj.init.matrix_str,');'];
-                    eval(tmp_str);
-                    
-                    % out
-                    for filt=1:obj.setup.J_nterm-1
-                        Yhat(filt+1,:,j) = dy_read{filt};
-                        x0_filter{filt}(:,obj.init.BackIterIndex+1) = x_filter(filt).val;
+                %%% compute filters %%%
+                if obj.setup.J_nterm > 1
+                    % init filters
+                    x0_filter = cell(obj.setup.Nfilt,1);
+                    filterstartpos = max(1,obj.init.BackIterIndex-1);
+                    startpos = 0;
+                    for i=1:obj.setup.Nfilt            
+                       x0_filter{i}(:,filterstartpos) = x_filters(startpos+1:startpos+obj.setup.filterTF(i).dim);
+                       startpos = startpos + obj.setup.filterTF(i).dim;
+                    end
+                    % filtering
+                    for i=1:n_iter+1
+
+                        % time 
+                        back_time = obj.init.BackIterIndex -1 + i;
+                        t = obj.setup.time(back_time);                    
+
+                        % get filters - yhat                                            
+                        tmp_str = ['[dy_read, x_filter] = obj.measure_filter(Yhat,x0_filter,back_time,',obj.init.matrix_str,');'];
+                        eval(tmp_str);
+
+                        % out
+                        for filt=1:obj.setup.J_nterm-1
+                            Yhat(filt+1,:,back_time) = dy_read{filt};
+                            x0_filter{filt}(:,back_time+1) = x_filter(filt).val;
+                        end
                     end
                 end
-                             
+                                      
                 % cost function
                 J = zeros(obj.setup.J_nterm,size(Yhat,1));
+                target_pos = find(obj.init.Y_space ~= 0);
 
                 for term=1:obj.setup.J_nterm
                     % get the J
                     for i=1:obj.setup.dim_out
-                        diff = reshape((y_target(term,i,:)-Yhat(term,i,tspan_pos-(obj.init.Y_space(1)-1))),length(tspan_pos),1);
-                        J(term,i) = transpose(diff)*diff;
+                        tspan_vals = tspan_pos(2:end) - tspan_pos(1) +1;
+                        diff_var = reshape((y_target(term,i,target_pos)-Yhat(term,i,tspan_vals)),length(tspan_pos)-1,1);
+                        J(term,i) = transpose(diff_var)*diff_var;
                     end
 
                 end                           
@@ -708,8 +713,8 @@ classdef obsopt_v1103 < handle
                              
                 
                 % non opt vars barrier term
-                diff = x(obj.setup.nonopt_vars) - x_nonopt(obj.setup.nonopt_vars);
-                J_barr = 1e8*any(diff)*0;
+                diff_var = x(obj.setup.nonopt_vars) - x_nonopt(obj.setup.nonopt_vars);
+                J_barr = 1e8*any(diff_var)*0;
                 
                 J_final = J_final + Jtot + Jspring + J_barr;
 
@@ -859,14 +864,7 @@ classdef obsopt_v1103 < handle
         % target function (observer or control design)
         function drive = drive(varargin) 
             
-            obj = varargin{1};
-            
-            % y - varargin
-%             y_star = varargin{2};
-%             y_star = [y_star(1,:),y_star(2,:)]';
-%             y = varargin{3};
-%             y = [y(1,:),y(2,:)]';
-%             drive = y_star-y;
+            obj = varargin{1};            
             
             % x - varargin
             x_star = varargin{2}(1:obj.init.params.dim_state,:);            
@@ -1184,16 +1182,15 @@ classdef obsopt_v1103 < handle
                                     
                                     % back time
                                     back_time = obj.init.BackIterIndex+j;
-                                    t = obj.setup.time(back_time);                                    
+                                    tspan = obj.setup.time(back_time-1:back_time);
+                                    t = tspan(2);
                                     
                                     % how do you handle the input?
                                     obj.init.params.ActualTimeIndex = back_time; % here you have the -1 because BackIterIndex is differently set up than in measure_function                                                                         
-                                    drive = obj.drive(obj.init.X(traj).val(:,back_time),x_propagate); % state tracking
-                                    obj.init.params.u = obj.init.params.input(t,drive,obj.init.params);
 
                                     % integrate
                                     obj.init.t_ode_start = tic;                     
-                                    X = obj.setup.ode(@(t,x)obj.setup.model(0, x, obj.init.params), obj.setup.tspan, x_propagate,obj.setup.odeset);
+                                    X = obj.setup.ode(@(t,x)obj.setup.model(t, x, obj.init.params, obj), tspan, x_propagate,obj.setup.odeset);                                    
                                     x_propagate = X.y(:,end);                      
                                     obj.init.X_est(traj).val(:,back_time) = x_propagate;
                                     obj.init.t_ode(end+1) = toc(obj.init.t_ode_start);

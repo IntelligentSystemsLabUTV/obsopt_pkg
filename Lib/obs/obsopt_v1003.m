@@ -758,13 +758,10 @@ classdef obsopt_v1003 < handle
 
                     % how do you handle the input?
                     obj.init.params.ActualTimeIndex = back_time+1;
-    %                     drive = obj.drive(obj.init.Y_full_story(obj.init.traj).val(:,:,back_time),y_read); % output tracking 
-                    drive = obj.drive(obj.init.X(obj.init.traj).val(:,back_time),x_propagate); % state tracking
-                    obj.init.params.u = obj.setup.params.input(t,drive,obj.init.params);
 
                     % propagation
                     obj.init.t_ode_start = tic;
-                    X = obj.setup.ode(@(t,x)obj.setup.model(t, x, obj.init.params), obj.setup.tspan, x_propagate, obj.setup.odeset);
+                    X = obj.setup.ode(@(t,x)obj.setup.model(t, x, obj.init.params, obj), obj.setup.tspan, x_propagate, obj.setup.odeset);
                     x_propagate = X.y(:,end);
                     obj.init.t_ode(end+1) = toc(obj.init.t_ode_start);
                     
@@ -1256,13 +1253,10 @@ classdef obsopt_v1003 < handle
                                     
                                     % how do you handle the input?
                                     obj.init.params.ActualTimeIndex = back_time; % here you have the -1 because BackIterIndex is differently set up than in measure_function
-%                                     drive = obj.drive(obj.init.Y_full_story(traj).val(:,:,back_time),obj.init.Yhat_full_story(traj).val(:,:,back_time)); % output tracking                                                                           
-                                    drive = obj.drive(obj.init.X(traj).val(:,back_time),x_propagate); % state tracking
-                                    obj.init.params.u = obj.init.params.input(t,drive,obj.init.params);
 
                                     % integrate
                                     obj.init.t_ode_start = tic;                     
-                                    X = obj.setup.ode(@(t,x)obj.setup.model(back_time, x, obj.init.params), obj.setup.tspan, x_propagate,obj.setup.odeset);
+                                    X = obj.setup.ode(@(t,x)obj.setup.model(t, x, obj.init.params, obj), obj.setup.tspan, x_propagate,obj.setup.odeset);
                                     x_propagate = X.y(:,end);                      
                                     obj.init.X_est(traj).val(:,back_time) = x_propagate;
                                     obj.init.t_ode(end+1) = toc(obj.init.t_ode_start);
