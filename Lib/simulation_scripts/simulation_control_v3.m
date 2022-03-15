@@ -1,4 +1,4 @@
-function [params,obs] = simulation_control_v2
+function [params,obs] = simulation_control_v3
 
 %% Init Section
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -74,7 +74,7 @@ input_law = @control;
 % options (varargin). The most important is the 'params_init' option, 
 % which takes as input the function handle to the previously defined
 % @params_init. For more information see directly the file.
-params = model_init('Ts',Ts,'T0',[t0, tend],'noise',0,'noise_spec',[0,0], 'params_update', params_update, ...
+params = model_init('Ts',Ts,'T0',[t0, tend],'noise',1,'noise_spec',[0,0], 'params_update', params_update, ...
         'model',model,'measure',measure,'StateDim',12,'ObservedState',[1 2],'ode',ode, 'odeset', [1e-3 1e-6], ...
         'input_enable',1,'dim_input',2,'input_law',input_law,'params_init',params_init);    
 
@@ -110,24 +110,25 @@ for i = 1:obs.setup.Niter
     
     %%%%%%%%%%%%%%%%%%%%%%% PROPAGATION %%%%%%%%%%%%%%%%%%%%%%%%
     % forward propagation of the previous estimate
-    for traj = 1:obs.setup.Ntraj        
+    for traj = 1:obs.setup.Ntraj   
         
-        if(obs.init.ActualTimeIndex > 1)
+        obs.init.params.traj = traj;
+        
+        if(obs.init.ActualTimeIndex > 1)    
             
-            % input
-            drive = obs.drive(obs.init.X(traj).val(:,obs.init.ActualTimeIndex-1),obs.init.X_est(traj).val(:,obs.init.ActualTimeIndex-1)); % state tracking
-            params.u = obs.setup.params.input(obs.init.t,drive,obs.init.params);
-            obs.init.params.u = params.u;
+            startpos = obs.init.ActualTimeIndex-1;
+            stoppos = obs.init.ActualTimeIndex;
+            tspan = obs.setup.time(startpos:stoppos);  
             
             % true system
             obs.init.t_ode_start = tic;
-            X = obs.setup.ode(@(t,x)obs.setup.model_reference(t, x, params), obs.setup.tspan, obs.init.X(traj).val(:,obs.init.ActualTimeIndex-1),params.odeset);  
+            X = obs.setup.ode(@(t,x)obs.setup.model_reference(t, x, params), tspan, obs.init.X(traj).val(:,obs.init.ActualTimeIndex-1),params.odeset);  
             obs.init.X(traj).val(:,obs.init.ActualTimeIndex) = X.y(:,end);     
             obs.init.t_ode(end+1) = toc(obs.init.t_ode_start);
 
             % real system
             obs.init.t_ode_start = tic;
-            X = obs.setup.ode(@(t,x)obs.setup.model(t, x, obs.init.params), obs.setup.tspan, obs.init.X_est(traj).val(:,obs.init.ActualTimeIndex-1),params.odeset);
+            X = obs.setup.ode(@(t,x)obs.setup.model(t, x, obs.init.params, obs), tspan, obs.init.X_est(traj).val(:,obs.init.ActualTimeIndex-1),params.odeset);
             obs.init.X_est(traj).val(:,obs.init.ActualTimeIndex) = X.y(:,end); 
             obs.init.t_ode(end+1) = toc(obs.init.t_ode_start);
         end
@@ -139,13 +140,13 @@ for i = 1:obs.setup.Niter
         
         % filter output
         if 1
-        x = obs.init.x_filter_reference(:,max(1,obs.init.ActualTimeIndex-1));
-        u = repmat(y,1,2);        
-        x_dot = zeros(obs.init.params.dim_state,1);
-        for IterFilter=1:params.dim_state
-            [y(IterFilter,1),x_dot(IterFilter,1)] = discreteSS(x(IterFilter),u(IterFilter,:),params.reference.A,params.reference.B,params.reference.C,params.reference.D); 
-        end            
-        obs.init.x_filter_reference(:,obs.init.ActualTimeIndex) = x_dot;
+            x = obs.init.x_filter_reference(:,max(1,obs.init.ActualTimeIndex-1));
+            u = repmat(y,1,2);        
+            x_dot = zeros(obs.init.params.dim_state,1);
+            for IterFilter=1:params.dim_state
+                [y(IterFilter,1),x_dot(IterFilter,1)] = discreteSS(x(IterFilter),u(IterFilter,:),params.reference.A,params.reference.B,params.reference.C,params.reference.D); 
+            end            
+            obs.init.x_filter_reference(:,obs.init.ActualTimeIndex) = x_dot;
         end
         
         % here the noise is added

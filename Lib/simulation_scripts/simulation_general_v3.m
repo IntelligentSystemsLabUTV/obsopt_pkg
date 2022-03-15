@@ -1,4 +1,4 @@
-function [params,obs] = simulation_general_v2
+function [params,obs] = simulation_general_v3
 
 %% Init Section
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -8,8 +8,8 @@ function [params,obs] = simulation_general_v2
 % init model
     
 % init observer buffer
-Nw = 7;
-Nts = 5;
+Nw = 14;
+Nts = 10;
 
 % set sampling time
 Ts = 5e-2;
@@ -29,8 +29,8 @@ tend = 7;
 % params.b = friction coefficient
 % params.observed_state = [2 4] array defining the state elements which
 % are actually observed. This will come useful in the measure function
-params_init = @params_Tesi_01;
-params_update = @params_update_Tesi_01;
+params_init = @params_double_pendulum_default;
+params_update = @params_update_doublependulum_est;
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 %%%%%%%%%%% model function %%%%%%%%%%%
@@ -42,9 +42,9 @@ params_update = @params_update_Tesi_01;
 % params = structure with model parameters (see params_init)
 % OUTPUT:
 % xdot = output of the state space model
-model = @model_Tesi_01;
-% model_reference = model;
-model_reference = @model_reference;
+model = @model_double_pendulum_default_array;
+model_reference = model;
+% model_reference = @model_reference;
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 %%%%%%%%%%% measure function %%%%%%%%%%%
@@ -56,13 +56,13 @@ model_reference = @model_reference;
 % OUTPUT:
 % y = measure (no noise added). In the following examples it holds
 % y = x(params.observed_state) (see params_init)
-measure = @measure_general;
+measure = @measure_double_pendulum;
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 %%%%%%%%%%% filters %%%%%%%%
 [filter, filterScale] = filter_define(Ts,Nts);
 % set the integration method
-ode = @odeDD;
+ode = @oderk4_fast;
 
 % define the input law used: here it's just for a test. You can also
 % comment out this line, a default sinusoidal input is hard coded in
@@ -73,16 +73,16 @@ input_law = @control;
 % options (varargin). The most important is the 'params_init' option, 
 % which takes as input the function handle to the previously defined
 % @params_init. For more information see directly the file.
-params = model_init('Ts',Ts,'T0',[t0, tend],'noise',1,'noise_spec',[0,0], 'params_update', params_update, ...
-        'model',model,'measure',measure,'StateDim',21,'ObservedState',[1 2 3],'ode',ode, 'odeset', [1e-3 1e-6], ...
-        'input_enable',1,'dim_input',3,'input_law',input_law,'params_init',params_init);
+params = model_init('Ts',Ts,'T0',[t0, tend],'noise',0,'noise_spec',[0,0], 'params_update', params_update, ...
+        'model',model,'measure',measure,'StateDim',4,'ObservedState',[1 2],'ode',ode, 'odeset', [1e-3 1e-6], ...
+        'input_enable',0,'dim_input',2,'input_law',input_law,'params_init',params_init);
 
 % create observer class instance. For more information on the setup
 % options check directly the class constructor
-obs = obsopt_general_020222_v2('DataType', 'simulated', 'optimise', 1, ... 
-      'Nw', Nw, 'Nts', Nts, 'ode', ode, 'PE_maxiter', 0, 'control_design', 1 , 'model_reference', model_reference, ...    
+obs = obsopt_v1103('DataType', 'simulated', 'optimise', 1, ... 
+      'Nw', Nw, 'Nts', Nts, 'ode', ode, 'PE_maxiter', 0, 'control_design', 0 , 'model_reference', model_reference, ...    
       'params',params, 'filters', filterScale,'filterTF', filter, 'Jdot_thresh',0.9,'MaxIter',20,...
-      'Jterm_store', 1, 'AlwaysOpt', 1 , 'print', 0 , 'SafetyDensity', 3, 'AdaptiveHist', [1e-4, 3e-4, 1e0], ...
+      'Jterm_store', 1, 'AlwaysOpt', 1 , 'print', 1 , 'SafetyDensity', 3, 'AdaptiveHist', [1e-4, 3e-4, 1e0], ...
       'AdaptiveSampling',0, 'FlushBuffer', 1, 'opt', @fminunc);
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
@@ -104,31 +104,20 @@ for i = 1:obs.setup.Niter
     %%%%%%%%%%%%%%%%%%%%%%% PROPAGATION %%%%%%%%%%%%%%%%%%%%%%%%
     % forward propagation of the previous estimate
     for traj = 1:obs.setup.Ntraj
-        
-        % save used input
-        obs.init.params.r_story(:,obs.init.ActualTimeIndex) =  1*unifrnd(-2,2,3,1); % [sin(obs.init.t);2*sin(2*obs.init.t);3*sin(3*obs.init.t)];
-        params.r_story(:,obs.init.ActualTimeIndex) = obs.init.params.r_story(:,obs.init.ActualTimeIndex);
-        obs.init.params.ActualTimeIndex = obs.init.ActualTimeIndex;
-        params.ActualTimeIndex = obs.init.params.ActualTimeIndex;
-        
+                 
         if(obs.init.ActualTimeIndex > 1)
             
-            % input
-            if obs.setup.control_design == 0
-                params.u = obs.setup.params.input(obs.init.t,obs.init.X(traj).val(:,obs.init.ActualTimeIndex-1),params);
-                obs.init.params.u = params.u;
-            else
-                params.u = obs.setup.params.input(obs.init.t,obs.init.X_est(traj).val(:,obs.init.ActualTimeIndex-1),obs.init.params);
-                obs.init.params.u = params.u;
-            end                       
+            startpos = obs.init.ActualTimeIndex-1;
+            stoppos = obs.init.ActualTimeIndex;
+            tspan = obs.setup.time(startpos:stoppos);            
 
             % true system
-            X = obs.setup.ode(@(t,x)obs.setup.model_reference(t, x, params), obs.setup.tspan, obs.init.X(traj).val(:,obs.init.ActualTimeIndex-1),params.odeset);   
-            obs.init.X(traj).val(:,obs.init.ActualTimeIndex) = X.y(:,end);
+            X = obs.setup.ode(@(t,x)obs.setup.model_reference(t, x, params, obs), tspan, obs.init.X(traj).val(:,startpos),params.odeset); 
+            obs.init.X(traj).val(:,startpos:stoppos) = X.y;
 
             % real system
-            X = obs.setup.ode(@(t,x)obs.setup.model(t, x, obs.init.params), obs.setup.tspan, obs.init.X_est(traj).val(:,obs.init.ActualTimeIndex-1),params.odeset);
-            obs.init.X_est(traj).val(:,obs.init.ActualTimeIndex) = X.y(:,end);      
+            X = obs.setup.ode(@(t,x)obs.setup.model(t, x, obs.init.params, obs), tspan, obs.init.X_est(traj).val(:,startpos),params.odeset);
+            obs.init.X_est(traj).val(:,startpos:stoppos) = X.y;      
         end
         
         %%%%%%%%%%%%%%%%%%% REAL MEASUREMENT %%%%%%%%%%%%%%%%%%%%%%%   
@@ -161,7 +150,7 @@ obs.init.total_time = toc(t0);
 
 %% %%%%%%%%%%%%%%%%%%%%%%%%%%%% PLOTS %%%%%%%%%%%%%%%%%%%%%
 % obs self plots
-obs.plot_section_control(); 
+% obs.plot_section_control(); 
 
 if 0
     load handel
