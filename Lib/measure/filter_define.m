@@ -6,7 +6,7 @@ function [filter, filterScale, reference] = filter_define(Ts,Nts)
     filter = [];
     
     %% derivative
-    if 1
+    if 0
     i = 1;   
     eps1 = 1e-3;
     G = tf([1 0],[eps1 1]);
@@ -40,7 +40,7 @@ function [filter, filterScale, reference] = filter_define(Ts,Nts)
     end
     
     %% reference filter
-    eps = 5e0;
+    eps = 3e0;
     G = tf(eps,[1 eps]);
     SS = ss(G);
     D = c2d(SS,Ts);
