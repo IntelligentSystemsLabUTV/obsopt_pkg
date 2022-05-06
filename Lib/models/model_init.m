@@ -187,8 +187,8 @@ function params = model_init(varargin)
 %         init(1:5) = [0.5, 0.1, 1, 0.2, 0.4];
         
         % init state
-        bound_delta_x = params.noise*1e-1*[-1,1]*1;
-        bound_delta_x_dot = params.noise*1e-2*[-1,1]*1;
+        bound_delta_x = params.noise*5e-1*[-1,1]*1;
+        bound_delta_x_dot = params.noise*1e-1*[-1,1]*1;
         
         noise = [unifrnd(bound_delta_x(1),bound_delta_x(2),2,1); unifrnd(bound_delta_x_dot(1),bound_delta_x_dot(2),2,1)];
 %         noise = [0.5; 0.5; 5e-3; 5e-3];

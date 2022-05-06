@@ -4,11 +4,11 @@ function test = test_manipulator(obs,Ntraj)
     % define time
     test.t0 = 0;
     test.tend = 5;
-    test.tstep = 5e-2;
+    test.tstep = obs.setup.Ts;
     test.time = test.t0:test.tstep:test.tend;
     test.Niter = length(test.time);
     test.Ntraj = Ntraj;
-    test.bound_delta_x = 1e-1*[-1,1]*1;
+    test.bound_delta_x = 5e-1*[-1,1]*1;
     test.bound_delta_x_dot = 1e-2*[-1,1]*0;
     
     for traj=1:test.Ntraj

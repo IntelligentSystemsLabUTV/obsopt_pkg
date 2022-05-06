@@ -8,16 +8,16 @@ function [params,obs] = simulation_control_v3
 % init model
     
 % init observer buffer
-Nw = 100;
-Nts = 1;
+Nw = 5;
+Nts = 100;
 
 % set sampling time
-Ts = 5e-2;
+Ts = 1e-2;
 
 % set initial and final time instant
 t0 = 0;
 % tend = 5;
-tend = (Nw-1)*Ts;
+tend = Ts*(Nw*Nts-1);
 % tend = 1*(Nw*Nts)*Ts;
 
 %%%%%%%%%%% params function %%%%%%%%%%%
@@ -122,7 +122,7 @@ for i = 1:obs.setup.Niter
             
             % true system
             obs.init.t_ode_start = tic;
-            X = obs.setup.ode(@(t,x)obs.setup.model_reference(t, x, params), tspan, obs.init.X(traj).val(:,obs.init.ActualTimeIndex-1),params.odeset);  
+            X = obs.setup.ode(@(t,x)obs.setup.model_reference(t, x, params, obs), tspan, obs.init.X(traj).val(:,obs.init.ActualTimeIndex-1),params.odeset);  
             obs.init.X(traj).val(:,obs.init.ActualTimeIndex) = X.y(:,end);     
             obs.init.t_ode(end+1) = toc(obs.init.t_ode_start);
 

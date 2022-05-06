@@ -8,8 +8,8 @@ function [params,obs] = simulation_general_v3
 % init model
     
 % init observer buffer
-Nw = 14;
-Nts = 10;
+Nw = 5;
+Nts = 5;
 
 % set sampling time
 Ts = 5e-2;
@@ -150,7 +150,7 @@ obs.init.total_time = toc(t0);
 
 %% %%%%%%%%%%%%%%%%%%%%%%%%%%%% PLOTS %%%%%%%%%%%%%%%%%%%%%
 % obs self plots
-% obs.plot_section_control(); 
+obs.plot_section_control(); 
 
 if 0
     load handel

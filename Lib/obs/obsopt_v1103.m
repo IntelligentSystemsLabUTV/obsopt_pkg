@@ -440,8 +440,10 @@ classdef obsopt_v1103 < handle
                 obj.init.X_filter(traj).val = cell(obj.setup.Nfilt,1);
                 obj.init.X_filter_est(traj).val = cell(obj.setup.Nfilt,1);
                 for i=1:obj.setup.Nfilt
-                    obj.init.X_filter(traj).val{i} = zeros(obj.setup.filterTF(i).dim,obj.setup.Niter);
-                    obj.init.X_filter_est(traj).val{i} = zeros(obj.setup.filterTF(i).dim,obj.setup.Niter);
+                    for dim=1:obj.setup.dim_out
+                        obj.init.X_filter(traj).val{i,dim} = zeros(obj.setup.filterTF(i).dim,obj.setup.Niter);
+                        obj.init.X_filter_est(traj).val{i,dim} = zeros(obj.setup.filterTF(i).dim,obj.setup.Niter);
+                    end
                 end
             end
             
@@ -639,49 +641,60 @@ classdef obsopt_v1103 < handle
                 % get evolution with input
                 X = obj.setup.ode(@(t,x)obj.setup.model(t, x, obj.init.params, obj), tspan , x_start, obj.setup.odeset);
                 
+                % check for NaN or Inf
+                NaN_Flag = find(isnan(X.y));
+                if NaN_Flag
+                    J_final = NaN;
+                    break
+                end
+                
                 %%% get measure  %%
                 Yhat = zeros(obj.setup.Nfilt+1,obj.setup.dim_out,size(X.y,2));
-                Yhat(1,:,:) = obj.setup.measure(X.y,obj.init.params);
+                Yhat(1,:,:) = obj.setup.measure(X.y,obj.init.params);                                
                 
                 %%% compute filters %%%
-                if obj.setup.J_nterm > 1
-                    % init filters
-                    x0_filter = cell(obj.setup.Nfilt,1);
-                    filterstartpos = max(1,obj.init.BackIterIndex-1);
+                if obj.setup.Nfilt > 0                     
+                    
+                    % how long iterate
+                    % odeDD
+%                     tspan_filt = 1+(0:tspan_pos(end)-tspan_pos(1));
+                    % Lsim
+                    tspan_filt = 1+(0:tspan_pos(end)-tspan_pos(1)-1);
+                    
+                    % filter state
+                    x0_filter.val = cell(obj.setup.Nfilt,obj.setup.dim_out);
                     startpos = 0;
-                    for i=1:obj.setup.Nfilt            
-                       x0_filter{i}(:,filterstartpos) = x_filters(startpos+1:startpos+obj.setup.filterTF(i).dim);
-                       startpos = startpos + obj.setup.filterTF(i).dim;
+                    for filt=1:obj.setup.Nfilt 
+                       for dim=1:obj.setup.dim_out
+                           x0_filter.val{filt,dim}(:,max(1,tspan_filt(1)-1)) = x_filters(startpos+1:startpos+obj.setup.filterTF(filt).dim);
+                           startpos = startpos + obj.setup.filterTF(filt).dim;
+                       end
                     end
-                    % filtering
-                    for i=1:n_iter+1
-
-                        % time 
-                        back_time = obj.init.BackIterIndex -1 + i;
-                        t = obj.setup.time(back_time);                    
-
-                        % get filters - yhat                                            
-                        tmp_str = ['[dy_read, x_filter] = obj.measure_filter(Yhat,x0_filter,back_time,',obj.init.matrix_str,');'];
-                        eval(tmp_str);
-
-                        % out
-                        for filt=1:obj.setup.J_nterm-1
-                            Yhat(filt+1,:,back_time) = dy_read{filt};
-                            x0_filter{filt}(:,back_time+1) = x_filter(filt).val;
+                    
+                    try
+                    [Y, ~] = obj.measure_filter(Yhat(:,:,tspan_filt),tspan_filt,x0_filter); 
+                    catch
+                       a=1; 
+                    end
+                    for filt=1:obj.setup.Nfilt
+                        for dim=1:obj.setup.dim_out
+                            % odeDD
+%                             Yhat(filt+1,dim,tspan_filt(2:end)) = Y{filt,dim}.val;
+                            % Lsim
+                            Yhat(filt+1,dim,tspan_filt+1) = Y{filt,dim}.val(tspan_filt);
                         end
                     end
-                end
-                                      
+                end                                                                              
                 % cost function
                 J = zeros(obj.setup.J_nterm,size(Yhat,1));
                 target_pos = find(obj.init.Y_space ~= 0);
 
                 for term=1:obj.setup.J_nterm
                     % get the J
-                    for i=1:obj.setup.dim_out
-                        tspan_vals = tspan_pos(2:end) - tspan_pos(1) +1;
-                        diff_var = reshape((y_target(term,i,target_pos)-Yhat(term,i,tspan_vals)),length(tspan_pos)-1,1);
-                        J(term,i) = transpose(diff_var)*diff_var;
+                    for dim=1:obj.setup.dim_out
+                        tspan_vals = tspan_pos(2:end) - tspan_pos(1) + 1;
+                        diff_var = reshape((y_target(term,dim,target_pos)-Yhat(term,dim,tspan_vals)),length(tspan_pos)-1,1);
+                        J(term,dim) = transpose(diff_var)*diff_var;
                     end
 
                 end                           
@@ -728,60 +741,52 @@ classdef obsopt_v1103 < handle
             
             obj.init.t_J(end+1) = toc(obj.init.t_J_start);  
         end
+          
         
-        % measure_filter: from setup.measure and setup.model this method
-        % gets the propagated measures and computes the related filters,
-        % defined by setup.temp_scale
-        function [y_filter, x_filter] = measure_filter(varargin)
+        %%% LSIM filtering %%%
+        function [Y, X] = measure_filter(varargin)
                                                   
             % get varargin
             obj = varargin{1};
-            buf_y = varargin{2};
-            x0_filter = varargin{3};
-            pos = varargin{4};
+            U = varargin{2};
+            tspan_pos = varargin{3};
+            X_filter = varargin{4};
+            tspan = obj.setup.time(tspan_pos)-obj.setup.time(tspan_pos(1));
             
             obj.init.t_filt_start = tic;
             
             % n filters
-            Nfilter = obj.setup.J_nterm-1;
-            filterstartpos = max(1,pos-1);            
+            Nfilter = obj.setup.Nfilt;                      
             
-            
-            if Nfilter > 0
+            if (Nfilter > 0)
+                
+                % iter filters
                 for nfilt=1:Nfilter
                                         
-                    A = varargin{4*nfilt+1};
-                    B = varargin{4*nfilt+2};
-                    C = varargin{4*nfilt+3};
-                    D = varargin{4*nfilt+4};
-                    
-                    % numeric derivative
-                    for k=1:obj.setup.dim_out                                             
+                    % iter dim
+                    for dim=1:obj.setup.dim_out 
                         
-                        if (pos > 1)                              
-                            % input 
-                            u = zeros(1,2);
-                            u(1) = buf_y(1,k,pos-1);
-                            u(2) = buf_y(1,k,pos);
-                                                        
-                            % initial condition                                 
-                            x0 = x0_filter{nfilt}(:,filterstartpos);
-                            
-                            % step model
-                            [yk,xk] = discreteSS(x0,u,A,B,C,D);                                
-                        else                               
-                            dim_filter = size(obj.setup.filterTF(nfilt).B,1); 
-                            yk = buf_y(nfilt+1,k,pos);
-                            xk = x0_filter{nfilt}(:,filterstartpos);
+                        % init condition
+                        x0_filter = X_filter.val{nfilt,dim}(tspan_pos(1));                        
+
+                        % inputs
+                        u = reshape(U(1,dim,tspan_pos),1,length(tspan_pos));
+                        
+                        if (min(diff(tspan_pos)) ~= 0)                               
+                            [Y{nfilt,dim}.val, ~, X{nfilt,dim}.val] = lsim(obj.setup.filterTF(nfilt).TF,u',tspan,x0_filter);  
+%                             tspan_shift = tspan_pos-tspan_pos(1)+1;
+%                             out = odeDD(@discreteSS_general, tspan_shift, x0_filter, u, obj.setup.filterTF(nfilt).TF);
+%                             Y{nfilt,dim}.val = out.y';
+%                             X{nfilt,dim}.val = out.x';
+                        else
+                            Y{nfilt,dim}.val = 0;
+                            X{nfilt,dim}.val = x0_filter;
                         end
-                        
-                        y_filter{nfilt}(k,1) = yk;
-                        x_filter(nfilt).val = xk;
                     end
                 end
             else
-                y_filter = -1;
-                x_filter = -1;
+                Y = 0;
+                X = 0;
             end
             
             obj.init.t_filt(end+1) = toc(obj.init.t_filt_start);
@@ -898,22 +903,29 @@ classdef obsopt_v1103 < handle
             for traj=1:obj.setup.Ntraj
                 obj.init.traj = traj;
                 % get filters - y
-                obj.init.Y_full_story(traj).val(1,:,obj.init.ActualTimeIndex) = y(traj).val;                       
-                tmp_str = ['[dy, x_filter] = obj.measure_filter(obj.init.Y_full_story(traj).val,obj.init.X_filter(traj).val,obj.init.ActualTimeIndex,',obj.init.matrix_str,');'];
-                eval(tmp_str);
-                
+                obj.init.Y_full_story(traj).val(1,:,obj.init.ActualTimeIndex) = y(traj).val; 
+                tspan_pos = [max(1,obj.init.ActualTimeIndex-1), obj.init.ActualTimeIndex];
+                [dy, x_filter] = obj.measure_filter(obj.init.Y_full_story(traj).val,tspan_pos,obj.init.X_filter(obj.init.traj));                
+                y_tmp = [];
                 for filt=1:obj.setup.J_nterm-1
-                    y(traj).val = [y(traj).val, dy{filt}];
-                    obj.init.X_filter(traj).val{filt}(:,obj.init.ActualTimeIndex) = x_filter(filt).val;
+                    for dim=1:obj.setup.dim_out
+                        y_tmp(dim,:) = dy{filt,dim}.val;
+                        obj.init.X_filter(traj).val{filt,dim}(:,tspan_pos) = x_filter{filt,dim}.val;
+                    end
+                    y(traj).val = [y(traj).val, y_tmp];
                 end
                 
                 % get filters - yhat
                 obj.init.Yhat_full_story(traj).val(1,:,obj.init.ActualTimeIndex) = yhat(traj).val;
-                tmp_str = ['[dyhat, x_filter] = obj.measure_filter(obj.init.Yhat_full_story(traj).val,obj.init.X_filter_est(traj).val,obj.init.ActualTimeIndex,',obj.init.matrix_str,');'];
-                eval(tmp_str);
+                tspan_pos = [max(1,obj.init.ActualTimeIndex-1), obj.init.ActualTimeIndex];
+                [dyhat, x_filter] = obj.measure_filter(obj.init.Yhat_full_story(traj).val,tspan_pos,obj.init.X_filter_est(obj.init.traj));
+                y_tmp = [];
                 for filt=1:obj.setup.J_nterm-1
-                    yhat(traj).val = [yhat(traj).val, dyhat{filt}];
-                    obj.init.X_filter_est(traj).val{filt}(:,obj.init.ActualTimeIndex) = x_filter(filt).val;
+                    for dim=1:obj.setup.dim_out
+                        y_tmp(dim,:) = dyhat{filt,dim}.val;                        
+                        obj.init.X_filter_est(traj).val{filt,dim}(:,tspan_pos) = x_filter{filt,dim}.val;
+                    end
+                    yhat(traj).val = [yhat(traj).val, y_tmp];                    
                 end
             end            
             
@@ -1047,10 +1059,12 @@ classdef obsopt_v1103 < handle
                             % if filters are used, their state shall be
                             % treated as non optimised vars as well
                             x0_filters = [];
-                            filterstartpos = max(1,obj.init.BackIterIndex-1);
+                            filterstartpos = max(1,obj.init.BackIterIndex);
                             for nfilt=1:obj.setup.Nfilt
-                                tmp = reshape(obj.init.X_filter(traj).val{nfilt}(:,filterstartpos),1,obj.setup.filterTF(nfilt).dim);
-                                x0_filters = [x0_filters, tmp];
+                                for dim=1:obj.setup.dim_out
+                                    tmp = reshape(obj.init.X_filter(traj).val{nfilt,dim}(:,filterstartpos),1,obj.setup.filterTF(nfilt).dim);
+                                    x0_filters = [x0_filters, tmp];
+                                end
                             end
                             obj.init.temp_x0_filters(traj).val = x0_filters;
                             Lfilt = length(x0_filters);
@@ -1073,7 +1087,7 @@ classdef obsopt_v1103 < handle
                         end
                         
                         %%% normalisation %%%
-                        if (~obj.init.normalised) 
+                        if 1 && (~obj.init.normalised) 
                             range = 1:obj.init.ActualTimeIndex;
                             for filt=1:obj.setup.J_nterm
                                 for dim=1:obj.setup.dim_out
@@ -1162,14 +1176,19 @@ classdef obsopt_v1103 < handle
                                 % performed 
                                 Yhat = obj.setup.measure(x_propagate,obj.init.params);
                                 % get filters - yhat
-                                obj.init.Yhat_full_story(traj).val(1,:,back_time) = Yhat;     
-                                tmp_str = ['[dyhat, x_filter] = obj.measure_filter(obj.init.Yhat_full_story(traj).val,obj.init.X_filter(traj).val,back_time,',obj.init.matrix_str,');'];
-                                eval(tmp_str);
+                                obj.init.Yhat_full_story(traj).val(1,:,back_time) = Yhat;  
+                                tspan_pos = [max(1,back_time-1), back_time];
+                                [dyhat, x_filter] = obj.measure_filter(obj.init.Yhat_full_story(traj).val,tspan_pos,obj.init.X_filter_est(obj.init.traj));                                
                                 yhat(traj).val = Yhat;
-                                for filt=1:obj.setup.J_nterm-1
-                                    yhat(traj).val = [yhat(traj).val, dyhat{filt}];
-                                    obj.init.X_filter_est(traj).val{filt}(:,back_time) = x_filter(filt).val;
+                                y_tmp = [];
+                                for filt=1:obj.setup.Nfilt
+                                    for dim=1:obj.setup.dim_out
+                                        y_tmp(dim,:) = dyhat{filt,dim}.val;                        
+                                        obj.init.X_filter_est(traj).val{filt,dim}(:,tspan_pos) = x_filter{filt,dim}.val;
+                                    end
                                 end
+                                yhat(traj).val = [yhat(traj).val, y_tmp];   
+                                
                                 for term=1:obj.setup.J_nterm
                                     obj.init.Yhat_full_story(traj).val(term,:,back_time) = yhat(traj).val(:,term);
                                 end
@@ -1203,13 +1222,17 @@ classdef obsopt_v1103 < handle
                                     Yhat = obj.setup.measure(x_propagate,obj.init.params);
                                     % get filters - yhat
                                     obj.init.Yhat_full_story(traj).val(1,:,back_time) = Yhat;            
-                                    tmp_str = ['[dyhat, x_filter] = obj.measure_filter(obj.init.Yhat_full_story(traj).val,obj.init.X_filter_est(traj).val,back_time,',obj.init.matrix_str,');'];
-                                    eval(tmp_str);
+                                    tspan_pos = [max(1,back_time-1), back_time];
+                                    [dyhat, x_filter] = obj.measure_filter(obj.init.Yhat_full_story(traj).val,tspan_pos,obj.init.X_filter_est(obj.init.traj));                                
                                     yhat(traj).val = Yhat;
-                                    for filt=1:obj.setup.J_nterm-1
-                                        yhat(traj).val = [yhat(traj).val, dyhat{filt}];
-                                        obj.init.X_filter_est(traj).val{filt}(:,back_time) = x_filter(filt).val;
+                                    y_tmp = [];
+                                    for filt=1:obj.setup.Nfilt
+                                        for dim=1:obj.setup.dim_out
+                                            y_tmp(dim,:) = dyhat{filt,dim}.val;                        
+                                            obj.init.X_filter_est(traj).val{filt,dim}(:,tspan_pos) = x_filter{filt,dim}.val;
+                                        end
                                     end
+                                    yhat(traj).val = [yhat(traj).val, y_tmp]; 
                                     for term=1:obj.setup.J_nterm
                                         obj.init.Yhat_full_story(traj).val(term,:,back_time) = yhat(traj).val(:,term);                                        
                                     end

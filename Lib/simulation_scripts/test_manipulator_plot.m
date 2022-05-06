@@ -4,7 +4,7 @@ function test_manipulator_plot(test,obs)
     % PLOT section
     
     % state
-    figure(1)
+    figure
     title('Manipulator jointspace')
     for traj=1:test.Ntraj
         for i=1:obs.setup.plot_vars
@@ -20,7 +20,7 @@ function test_manipulator_plot(test,obs)
     end
     
     % plot workspace
-    figure(2)
+    figure
     hold on
     grid on
     box on

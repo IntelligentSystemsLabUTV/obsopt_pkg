@@ -1,6 +1,8 @@
 %% measure function
 function u = control(t,drive,params)
 
+    if params.input_enable
+
     %% control law - double integrator
 %     u = [params.K1, params.K2, params.K3]*x(1:3);
     
@@ -34,7 +36,7 @@ function u = control(t,drive,params)
 %     u = params.r_story(:,params.ActualTimeIndex);
     
     % input enable
-    if ~params.input_enable
+    else
         u = zeros(params.dim_input,1);
     end
 end
