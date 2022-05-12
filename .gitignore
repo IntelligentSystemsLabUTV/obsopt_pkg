@@ -6,6 +6,7 @@ workspace/*
 Papers/*
 codegen/*
 fig/*
+Latex/*
 
 # files
 *.asv
