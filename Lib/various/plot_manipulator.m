@@ -64,7 +64,7 @@
             plot(obj.setup.time,est_error_norm,'k','LineWidth',2);
         else
             % log 
-%                     set(gca, 'XScale', 'log')
+%             set(gca, 'XScale', 'log')
             set(gca, 'YScale', 'log')
             plot(obj.setup.time,abs(est_error_norm),'k-.','LineWidth',2);
         end
