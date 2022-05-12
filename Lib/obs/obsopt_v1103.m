@@ -896,7 +896,7 @@ classdef obsopt_v1103 < handle
                 obj.init.traj = traj;
                 % save runtime state
                 obj.init.X_est_runtime(traj).val(:,obj.init.ActualTimeIndex) = obj.init.X_est(traj).val(:,obj.init.ActualTimeIndex);
-                % get measure
+                % get ESTIMATED measure from ESTIMATED state (xhat)
                 yhat(traj).val = obj.setup.measure(xhat(traj).val,obj.init.params);
             end
             
