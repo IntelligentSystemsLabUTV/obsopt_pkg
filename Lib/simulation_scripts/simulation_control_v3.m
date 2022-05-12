@@ -167,7 +167,8 @@ for i = 1:obs.setup.Niter
 %     params = params_update(params,x);
 
 end
-% SNR
+
+%% SNR
 for traj = 1:obs.setup.Ntraj
     for i=1:obs.setup.dim_out
         obs.init.SNR(traj).val(i) = 10*log(sum(obs.init.Ytrue_full_story(traj).val(1,i,:).^2)/sum(obs.init.noise_story(traj).val(i,:).^2));
@@ -179,8 +180,8 @@ obs.init.total_time = toc(t0);
 
 %% %%%%%%%%%%%%%%%%%%%%%%%%%%%% PLOTS %%%%%%%%%%%%%%%%%%%%%
 % obs self plots
-obs.plot_section_control(); 
-% plot_manipulator(obs);
+% obs.plot_section_control(); 
+out = plot_manipulator(obs);
 
 if 0
     load handel
