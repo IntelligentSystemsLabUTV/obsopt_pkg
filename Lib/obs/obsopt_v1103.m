@@ -772,7 +772,7 @@ classdef obsopt_v1103 < handle
                         % inputs
                         u = reshape(U(1,dim,tspan_pos),1,length(tspan_pos));
                         
-                        if (min(diff(tspan_pos)) ~= 0)                               
+                        if (min(diff(tspan_pos)) ~= 0)                                 
                             [Y{nfilt,dim}.val, ~, X{nfilt,dim}.val] = lsim(obj.setup.filterTF(nfilt).TF,u',tspan,x0_filter);  
 %                             tspan_shift = tspan_pos-tspan_pos(1)+1;
 %                             out = odeDD(@discreteSS_general, tspan_shift, x0_filter, u, obj.setup.filterTF(nfilt).TF);
