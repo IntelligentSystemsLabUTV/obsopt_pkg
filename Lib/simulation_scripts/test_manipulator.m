@@ -3,15 +3,15 @@ function test = test_manipulator(obs,Ntraj)
 
     % define time
     test.t0 = 0;
-    test.tend = 5;
+    test.tend = 7;
     test.tstep = obs.setup.Ts;
     test.time = test.t0:test.tstep:test.tend;
     test.Niter = length(test.time);
     test.Ntraj = Ntraj;
 %     test.bound_delta_x = 1e-1*[-1,1]*1;
 %     test.bound_delta_x_dot = 1e-2*[-1,1]*0;
-    test.bound_delta_x = 5e-1*obs.init.params.bound_delta_x;
-    test.bound_delta_x_dot = 0*obs.init.params.bound_delta_x_dot;
+    test.bound_delta_x = 1*obs.init.params.bound_delta_x;
+    test.bound_delta_x_dot = 1*obs.init.params.bound_delta_x_dot;
      
     for traj=1:test.Ntraj
         % init 
