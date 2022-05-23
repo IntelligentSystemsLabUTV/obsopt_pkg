@@ -6,9 +6,9 @@ function [filter, filterScale, reference] = filter_define(Ts,Nts)
     filter = [];
     
     %% derivative
-    if 1
+    if 0
     i = 1;   
-    eps1 = 5e-1;
+    eps1 = 1e-1;
     G = tf([1 0],[eps1 1]);
     SS = ss(G);
     D = c2d(SS,Ts);
