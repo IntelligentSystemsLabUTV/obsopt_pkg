@@ -25,11 +25,11 @@ function params = params_double_pendulum_default
    
     % number of reference trajectories (>1 for control design)
     params.Ntraj = 1;
-    params.dim_state = 4;
+    params.dim_state = 6;
     
     % reference init
-    params.X(1).val(:,1) = [-pi/4;-pi/4;0.2;-0.2];
-%     params.X(1).val(:,1) = [-pi/4;-pi/4;0.2;-0.2;params.c1;params.c2];
+%     params.X(1).val(:,1) = [-pi/4;-pi/4;0.2;-0.2];
+    params.X(1).val(:,1) = [-pi/4;-pi/4;0.2;-0.2;params.c1;params.c2];
 %     params.X(1).val(:,1) = [0;0;0;0; params.K1; params.K2; params.K3; params.K4; params.K5; params.K6];
 %     params.X(1).val(:,1) = [0;0;0;0; params.K1; params.K2; params.K3; params.K4; params.K5; params.K6; params.K7; params.K8; params.K9; params.K10];
     for traj=2:params.Ntraj
@@ -37,10 +37,10 @@ function params = params_double_pendulum_default
     end
     
     % position in the state vector of the parameters
-    params.estimated_params = [];
+    params.estimated_params = [5:6];
     
     % which vars am I optimising
-    params.opt_vars = [1:4];
+    params.opt_vars = [1:6];
     
     % not opt vars
     tmp = 1:length(params.X(1).val(:,1));
@@ -51,5 +51,5 @@ function params = params_double_pendulum_default
     params.nonopt_vars = tmp_idx;
     
     % plot vars
-    params.plot_vars = 4;
+    params.plot_vars = params.dim_state;
 end

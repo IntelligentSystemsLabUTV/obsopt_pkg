@@ -12,8 +12,10 @@ function params = params_SQR
     
     % number of reference trajectories (>1 for control design)
     params.Ntraj = 1;
+    params.dim_state = 5;
     
     % reference init
+%     params.X(1).val(:,1) = [2; 0.5; 1];
     params.X(1).val(:,1) = [2; 0.5; 1; params.a; params.b];
     for traj=2:params.Ntraj
         params.X(traj).val(:,1) = params.X(traj-1).val(:,1);
@@ -32,4 +34,6 @@ function params = params_SQR
         tmp_idx = intersect(tmp_idx,find(tmp~=params.opt_vars(i)));
     end
     params.nonopt_vars = tmp_idx;
+    
+    params.plot_vars = params.dim_state;
 end

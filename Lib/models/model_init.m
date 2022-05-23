@@ -58,8 +58,8 @@ function params = model_init(varargin)
     if any(strcmp(varargin,'noise_spec'))
         pos = find(strcmp(varargin,'noise_spec'));
         noise_spec = varargin{pos+1};
-        params.noise_mu = noise_spec(1);
-        params.noise_std = noise_spec(2);
+        params.noise_mu = noise_spec(:,1);
+        params.noise_std = noise_spec(:,2);
     else
         params.noise_mu = 0;
         params.noise_std = 5e-2;
@@ -70,7 +70,7 @@ function params = model_init(varargin)
         pos = find(strcmp(varargin,'StateDim'));
         params.StateDim = varargin{pos+1};
     else
-        params.StateDim = 1;
+        params.StateDim = params.dim_state;
     end
     
     % get set of observed states. Default is 1
@@ -165,7 +165,7 @@ function params = model_init(varargin)
         % SQR - params
 %         init(1:5) = [0.5, 0.1, 1, 0.2, 0.4];
         
-        if 0
+        if 1
             %%%%%%%%%%% PERTURBATION ON X0 WITH PERCENTAGE %%%%%%%%%%%%
             % define perturbation
             % non opt vars (state init)            
@@ -186,8 +186,8 @@ function params = model_init(varargin)
             end
 
             % final setup on perc
-            params.perc = 0*params.perc;
-            params.X_est(traj).val(:,1) = init.*(1 + params.noise*params.perc(:,traj).*ones(params.StateDim,1)) + params.noise*params.noise_std*randn(params.StateDim,1);
+            params.perc = 1*params.perc;
+            params.X_est(traj).val(:,1) = init.*(1 + params.noise*params.perc(:,traj).*ones(params.StateDim,1)) + params.noise*params.noise_std.*randn(params.StateDim,1);
         else
         
             % init state

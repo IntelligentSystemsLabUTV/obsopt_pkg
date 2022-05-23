@@ -719,7 +719,7 @@ classdef obsopt_v1103 < handle
                     Jspring = paramsDiff*obj.init.scale_factor(1,obj.setup.J_term_spring_position)*transpose(paramsDiff);
                     
                     % store terms
-                    obj.init.Jterm_store(end+1) = Jspring; 
+                    obj.init.Jterm_store(end) = Jspring; 
                 else
                     Jspring = 0;
                 end
@@ -1183,11 +1183,12 @@ classdef obsopt_v1103 < handle
                                 y_tmp = [];
                                 for filt=1:obj.setup.Nfilt
                                     for dim=1:obj.setup.dim_out
-                                        y_tmp(dim,:) = dyhat{filt,dim}.val;                        
+                                        y_tmp(dim,:) = dyhat{filt,dim}.val;                                               
                                         obj.init.X_filter_est(traj).val{filt,dim}(:,tspan_pos) = x_filter{filt,dim}.val;
                                     end
+                                    yhat(traj).val = [yhat(traj).val, y_tmp];
                                 end
-                                yhat(traj).val = [yhat(traj).val, y_tmp];   
+                                   
                                 
                                 for term=1:obj.setup.J_nterm
                                     obj.init.Yhat_full_story(traj).val(term,:,back_time) = yhat(traj).val(:,term);
@@ -1293,7 +1294,7 @@ classdef obsopt_v1103 < handle
                         plot(obj.setup.time,obj.init.X(traj).val(i,:),'b--');
                     end
                     plot(obj.setup.time,obj.init.X_est(traj).val(i,:),'r--');
-%                     plot(obj.setup.time,obj.init.X_est_runtime(traj).val(i,:),'g');
+                    plot(obj.setup.time,obj.init.X_est_runtime(traj).val(i,:),'k:','LineWidth',0.5);
 
                     if strcat(obj.setup.DataType,'simulated')
                         legend('True','Est')
@@ -1356,6 +1357,7 @@ classdef obsopt_v1103 < handle
             
             %%%% plot windowed data %%%%
             figure(4)
+            grid on
             title('Sampled measured')
             ax = zeros(1,3);
             for k=1:obj.setup.dim_out
@@ -1397,6 +1399,7 @@ classdef obsopt_v1103 < handle
             %%%% plot filters %%%%%
             figure(5)
             title('Filters on measures')
+            grid on
             ax = zeros(1,3);
             for k=1:obj.setup.J_nterm
                 
