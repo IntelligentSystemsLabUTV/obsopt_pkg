@@ -12,7 +12,7 @@ Nw = 7;
 Nts = 5;
 
 % set sampling time
-Ts = 1e-1;
+Ts = 5e-2;
 
 % set initial and final time instant
 t0 = 0;
@@ -29,8 +29,8 @@ tend = 5;
 % params.b = friction coefficient
 % params.observed_state = [2 4] array defining the state elements which
 % are actually observed. This will come useful in the measure function
-params_init = @params_battery;
-params_update = @params_update_battery;
+params_init = @params_oscillator_VDP;
+params_update = @params_update_oscillator_VDP;
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 %%%%%%%%%%% model function %%%%%%%%%%%
@@ -42,7 +42,7 @@ params_update = @params_update_battery;
 % params = structure with model parameters (see params_init)
 % OUTPUT:
 % xdot = output of the state space model
-model = @model_battery;
+model = @model_oscillator_VDP;
 model_reference = model;
 % model_reference = @model_reference;
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -56,7 +56,7 @@ model_reference = model;
 % OUTPUT:
 % y = measure (no noise added). In the following examples it holds
 % y = x(params.observed_state) (see params_init)
-measure = @measure_battery;
+measure = @measure_general;
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 %%%%%%%%%%% filters %%%%%%%%
@@ -70,24 +70,25 @@ ode = @oderk4_fast;
 input_law = @control;
 
 % define noise on all states
-noise_mat = 0*[0,5e-2; ...
-             0, 5e-2];
+noise_mat = 1*[0,5e-2; ...
+             0, 5e-2; ...
+             0, 0];
 
 % init the parameters structure. The model_init file has lots of setup
 % options (varargin). The most important is the 'params_init' option, 
 % which takes as input the function handle to the previously defined
 % @params_init. For more information see directly the file.
-params = model_init('Ts',Ts,'T0',[t0, tend],'noise',0,'noise_spec',noise_mat, 'params_update', params_update, ...
-        'model',model,'measure',measure,'ObservedState',[],'ode',ode, 'odeset', [1e-3 1e-6], ...
-        'input_enable',1,'dim_input',1,'input_law',input_law,'params_init',params_init);
+params = model_init('Ts',Ts,'T0',[t0, tend],'noise',1,'noise_spec',noise_mat, 'params_update', params_update, ...
+        'model',model,'measure',measure,'ObservedState',[2],'ode',ode, 'odeset', [1e-3 1e-6], ...
+        'input_enable',0,'input_law',input_law,'params_init',params_init);
 
 % create observer class instance. For more information on the setup
 % options check directly the class constructor
-obs = obsopt_v1103('DataType', 'simulated', 'optimise', 0, ... 
+obs = obsopt('DataType', 'simulated', 'optimise', 1, ... 
       'Nw', Nw, 'Nts', Nts, 'ode', ode, 'PE_maxiter', 0, 'control_design', 0 , 'model_reference', model_reference, ...    
-      'params',params, 'filters', filterScale,'filterTF', filter, 'Jdot_thresh',0.9,'MaxIter',80,...
+      'params',params, 'filters', filterScale,'filterTF', filter, 'Jdot_thresh',0.9,'MaxIter',60,...
       'Jterm_store', 1, 'AlwaysOpt', 1 , 'print', 1 , 'SafetyDensity', 3, 'AdaptiveHist', [1e-2, 3e-2, 1e0], ...
-      'AdaptiveSampling',0, 'FlushBuffer', 1, 'opt', @fminunc, 'spring', 0, 'LBcon', [-Inf -Inf -Inf -Inf 0 0]);
+      'AdaptiveSampling',0, 'FlushBuffer', 1, 'opt', @fmincon, 'spring', 0, 'LBcon', [-Inf -Inf 0]);
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 %% %%%%%%%%%%%%%%%%%%%%%%%%%%%% SIMULATION %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -126,7 +127,7 @@ for i = 1:obs.setup.Niter
         
         %%%%%%%%%%%%%%%%%%% REAL MEASUREMENT %%%%%%%%%%%%%%%%%%%%%%%   
         % here the noise is added
-        obs.init.Ytrue_full_story(traj).val(1,:,obs.init.ActualTimeIndex) = obs.setup.measure(obs.init.X(traj).val(:,obs.init.ActualTimeIndex),obs.init.params);
+        obs.init.Ytrue_full_story(traj).val(1,:,obs.init.ActualTimeIndex) = obs.setup.measure(obs.init.X(traj).val(:,obs.init.ActualTimeIndex),obs.init.params,obs.init.ActualTimeIndex);
         obs.init.noise_story(traj).val(:,obs.init.ActualTimeIndex) = obs.setup.noise*(obs.setup.noise_mu(obs.setup.observed_state)  + obs.setup.noise_std(obs.setup.observed_state).*randn(obs.setup.dim_out,1));
         y_meas(traj).val =  reshape(obs.init.Ytrue_full_story(traj).val(1,:,obs.init.ActualTimeIndex),obs.setup.dim_out,1) + obs.init.noise_story(traj).val(:,obs.init.ActualTimeIndex);
     end

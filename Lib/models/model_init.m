@@ -58,8 +58,8 @@ function params = model_init(varargin)
     if any(strcmp(varargin,'noise_spec'))
         pos = find(strcmp(varargin,'noise_spec'));
         noise_spec = varargin{pos+1};
-        params.noise_mu = noise_spec(1);
-        params.noise_std = noise_spec(2);
+        params.noise_mu = noise_spec(:,1);
+        params.noise_std = noise_spec(:,2);
     else
         params.noise_mu = 0;
         params.noise_std = 5e-2;
@@ -70,7 +70,7 @@ function params = model_init(varargin)
         pos = find(strcmp(varargin,'StateDim'));
         params.StateDim = varargin{pos+1};
     else
-        params.StateDim = 1;
+        params.StateDim = params.dim_state;
     end
     
     % get set of observed states. Default is 1
@@ -133,12 +133,7 @@ function params = model_init(varargin)
     end
     
     % input 
-    if any(strcmp(varargin,'dim_input'))
-        pos = find(strcmp(varargin,'dim_input'));
-        params.dim_input = varargin{pos+1};
-    else
-        params.dim_input = 1;
-    end
+    params.dim_input = params.StateDim;
 
     % input law 
     if any(strcmp(varargin,'input_law'))
@@ -149,32 +144,11 @@ function params = model_init(varargin)
             params.input = @(x,params) 0;
         end 
     end
-           
-    params.perc = zeros(params.StateDim,params.Ntraj);
-    randflag = 0;
+               
     for traj=1:params.Ntraj
         
-        % define perturbation
-        % non opt vars (state init)
-        if randflag
-            params.perc(params.nonopt_vars,traj) = 1*randn(1,length(params.nonopt_vars))*5e-1;
-        else
-            params.perc(params.nonopt_vars,traj) = 1*ones(1,length(params.nonopt_vars))*6e-1;
-        end
-        
-        % opt vars (control/params)
-        if randflag
-            params.perc(params.opt_vars,traj) = 1*randn(1,length(params.opt_vars));
-        else
-            params.perc(params.opt_vars,traj) = 1*ones(1,length(params.opt_vars))*6e-1;
-        end
-        
-        % final setup on perc
-        params.perc = 0*params.perc;
-        
-        % init state
+        %%%%%%%% INIT STATE - CHOOSE DEPENDING ON THE MODEL %%%%%%%
         init = params.X(traj).val(:,1);
-        
         % pendulum params
 %         init(1:6) = [0;0;0;0;0;0];
         % pendulum
@@ -186,16 +160,41 @@ function params = model_init(varargin)
         % SQR - params
 %         init(1:5) = [0.5, 0.1, 1, 0.2, 0.4];
         
-        % init state
-        bound_delta_x = params.noise*1e-1*[-1,1]*1;
-        bound_delta_x_dot = params.noise*1e-2*[-1,1]*1;
+        if 1
+            %%%%%%%%%%% PERTURBATION ON X0 WITH PERCENTAGE %%%%%%%%%%%%
+            % define perturbation
+            % non opt vars (state init)            
+            params.perc = zeros(params.StateDim,params.Ntraj);
+            randflag = 0;
+            
+            if randflag
+                params.perc(params.nonopt_vars,traj) = 1*randn(1,length(params.nonopt_vars))*5e-1;
+            else
+                params.perc(params.nonopt_vars,traj) = 1*ones(1,length(params.nonopt_vars))*6e-1;
+            end
+
+            % opt vars (control/params)
+            if randflag
+                params.perc(params.opt_vars,traj) = 1*randn(1,length(params.opt_vars));
+            else
+                params.perc(params.opt_vars,traj) = 1*ones(1,length(params.opt_vars))*6e-1;
+            end
+
+            % final setup on perc
+            params.perc = 1*params.perc;
+            params.X_est(traj).val(:,1) = init.*(1 + params.noise*params.perc(:,traj).*ones(params.StateDim,1)) + params.noise*params.noise_std.*randn(params.StateDim,1);
+        else
         
-        noise = [unifrnd(bound_delta_x(1),bound_delta_x(2),2,1); unifrnd(bound_delta_x_dot(1),bound_delta_x_dot(2),2,1)];
-%         noise = [0.5; 0.5; 5e-3; 5e-3];
-        
-        params.X_est(traj).val(:,1) = init;
-        params.X_est(traj).val(1:params.dim_state,1) = params.X(traj).val(1:params.dim_state,1) + params.noise*noise;
-%         params.X_est(traj).val(:,1) = init.*(1 + params.noise*params.perc(:,traj).*ones(params.StateDim,1)) + params.noise*params.noise_std*randn(params.StateDim,1);
+            % init state
+            params.bound_delta_x = params.noise*1e-1*[-1,1]*1;
+            params.bound_delta_x_dot = params.noise*1e-1*[-1,1]*1;
+
+            noise = [unifrnd(params.bound_delta_x(1),params.bound_delta_x(2),2,1); unifrnd(params.bound_delta_x_dot(1),params.bound_delta_x_dot(2),2,1)];
+
+            params.X_est(traj).val(:,1) = init;
+            params.X_est(traj).val(1:params.dim_state,1) = params.X(traj).val(1:params.dim_state,1) + params.noise*noise;
+        end
+
         
     end
     

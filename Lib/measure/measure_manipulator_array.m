@@ -15,9 +15,9 @@ function [y, yall] = measure_manipulator_array(x,params)
     yall(2,3,:) = params.Lt1*sin(theta(1,:))+params.Lt2*sin(theta(2,:));
     
     % measured - end effector
-%     y(1,1) = yall(1,3);
-%     y(2,1) = yall(2,3);
+    y(1,1,:) = yall(1,3,:);
+    y(2,1,:) = yall(2,3,:);
     
     % measured - joint space
-    y = theta;
+%     y(:,1,:) = theta;
 end

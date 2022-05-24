@@ -34,7 +34,7 @@
             box on
 
             % plot
-            est_error = obj.init.X(1).val(i,:) - obj.init.X_est_runtime(1).val(i,:);
+            est_error = obj.init.X(1).val(i,:) - obj.init.X_est(1).val(i,:);
 
             log_flag = 1;
             if ~log_flag
@@ -57,14 +57,14 @@
         box on
         % plot
         for iter=1:obj.setup.Niter
-            est_error_norm(iter) = norm(obj.init.X(1).val(1:obj.init.params.dim_state,iter) - obj.init.X_est_runtime(1).val(1:obj.init.params.dim_state,iter));
+            est_error_norm(iter) = norm(obj.init.X(1).val(1:obj.init.params.dim_state,iter) - obj.init.X_est(1).val(1:obj.init.params.dim_state,iter));
         end
         log_flag = 1;
         if ~log_flag
             plot(obj.setup.time,est_error_norm,'k','LineWidth',2);
         else
             % log 
-%                     set(gca, 'XScale', 'log')
+%             set(gca, 'XScale', 'log')
             set(gca, 'YScale', 'log')
             plot(obj.setup.time,abs(est_error_norm),'k-.','LineWidth',2);
         end

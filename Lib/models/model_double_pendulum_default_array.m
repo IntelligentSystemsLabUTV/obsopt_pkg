@@ -1,5 +1,5 @@
 %% double pendlum model
-function x_dot = model_double_pendulum_default_array(t, x, params)
+function x_dot = model_double_pendulum_default_array(t, x, params, obj)
 
     x_dot = zeros(length(x),1);
     
@@ -17,12 +17,17 @@ function x_dot = model_double_pendulum_default_array(t, x, params)
     
     delta = M2/(M1+M2);
     
-    pos = find(params.time == t);
-    tau = params.u(:,pos);
+    % input
+    tdiff = params.time-t;
+    pos = find(tdiff == min(tdiff));
+    drive = obj.drive(obj.init.X(obj.init.traj).val(:,pos),x);
+    tau = obj.setup.params.input(t,drive,obj.init.params);
      
     x_dot(3) = (-C1*x(3) + delta*tau(1)/(M2*L1) - delta*L2*x(4)^2*sin(x(1)-x(2)) - g*cos(x(1)) - delta*cos(x(1)-x(2))*(tau(2)/(M2*L2) + L1*x(3)^2*sin(x(1)-x(2) - g*cos(x(2)))))/(L1*(1-delta*cos(x(1)-x(2))^2));
     
     x_dot(4) = (-C2*x(4) + tau(2)/(M2*L2) + L1*x(3)^2*sin(x(1)-x(2)) - g*cos(x(2)) - cos(x(1)-x(2))*(delta*tau(1)/(M2*L1) + delta*L2*x(4)^2*sin(x(1)-x(2) - g*cos(x(1)))))/(L2*(1-delta*cos(x(1)-x(2))^2));
     
-
+    % params dynamics
+    x_dot(5) = 0.05 + 0.05*randn(1);    % random walk
+    x_dot(6) = 0.05 + 0.05*randn(1);    % random walk
 end

@@ -28,7 +28,7 @@ function params = params_double_pendulum_input
 %                 params.K3,params.K4];
 
     % number of reference trajectories (>1 for control design)
-    params.Ntraj = 8;
+    params.Ntraj = 4;
     params.dim_state = 4;
     
     % reference init    

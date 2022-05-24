@@ -8,7 +8,7 @@ function [filter, filterScale, reference] = filter_define(Ts,Nts)
     %% derivative
     if 1
     i = 1;   
-    eps1 = 1e-3;
+    eps1 = 1e-1;
     G = tf([1 0],[eps1 1]);
     SS = ss(G);
     D = c2d(SS,Ts);
@@ -23,7 +23,7 @@ function [filter, filterScale, reference] = filter_define(Ts,Nts)
     end
 
     %% integral
-    if 0
+    if 1
     i = 2;    
     eps2 = 1e2;
     G = tf(1,[eps2 1]);
@@ -40,7 +40,7 @@ function [filter, filterScale, reference] = filter_define(Ts,Nts)
     end
     
     %% reference filter
-    eps = 5e0;
+    eps = 2e0;
     G = tf(eps,[1 eps]);
     SS = ss(G);
     D = c2d(SS,Ts);

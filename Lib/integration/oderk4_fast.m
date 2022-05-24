@@ -17,7 +17,7 @@ for i = 1:M-1
     x = X(:,i);
     
     % Runge Kutta 4
-    K1(:,i) = feval(ode,t0,y0);
+    K1(:,i) = feval(ode,t0,x);
     K2 = feval(ode,t0,x + K1(:,i)*dt/2);
     K3 = feval(ode,t0,x + K2*dt/2);
     K4 = feval(ode,t0,x + K3*dt);

@@ -1,5 +1,5 @@
 %% double pendlum model
-function x_dot = model_double_pendulum_default(t, x, params)
+function x_dot = model_double_pendulum_default(t, x, params, obj)
 
     x_dot = zeros(length(x),1);
     
@@ -16,7 +16,11 @@ function x_dot = model_double_pendulum_default(t, x, params)
     x_dot(2) = x(4);
     
     delta = M2/(M1+M2);
-    tau = params.u;
+    
+    % input
+    pos = find(params.time == t);
+    drive = obj.drive(obj.init.X(obj.init.traj).val(:,pos),x);
+    tau = obj.setup.params.input(t,drive,obj.init.params);
      
     x_dot(3) = (-C1*x(3) + delta*tau(1)/(M2*L1) - delta*L2*x(4)^2*sin(x(1)-x(2)) - g*cos(x(1)) - delta*cos(x(1)-x(2))*(tau(2)/(M2*L2) + L1*x(3)^2*sin(x(1)-x(2) - g*cos(x(2)))))/(L1*(1-delta*cos(x(1)-x(2))^2));
     

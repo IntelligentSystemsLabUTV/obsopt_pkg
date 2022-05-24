@@ -1,5 +1,5 @@
 %% mock up model
-function [x_dot, y] = model_reference(t,x,params)
+function [x_dot, y] = model_reference(t,x,params, obs)
 
     x_dot = zeros(length(x),1);
    
