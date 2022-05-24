@@ -1,15 +1,14 @@
 # gitignore file
 
 # dir
-simulations/*
 workspace/*
-Papers/*
-codegen/*
 fig/*
 Latex/*
 data/*
+Paper/*
+results/*
 
 # files
 *.asv
 *.mat
-codegeneration.m
+*.save

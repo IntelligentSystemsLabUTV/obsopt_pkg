@@ -774,15 +774,6 @@ classdef obsopt < handle
                         
                         if (min(diff(tspan_pos)) ~= 0)                                 
                             [Y{nfilt,dim}.val, ~, X{nfilt,dim}.val] = lsim(obj.setup.filterTF(nfilt).TF,u',tspan,x0_filter);  
-%                             tspan_shift = tspan_pos-tspan_pos(1)+1;
-%                             out = odeDD(@discreteSS_general, tspan_shift, x0_filter, u, obj.setup.filterTF(nfilt).TF);
-%                             Y{nfilt,dim}.val = out.y';
-%                             X{nfilt,dim}.val = out.x';
-
-                            %%% HANDLE THE FIRST TIME INSTANT %%%
-%                             if tspan_pos(1) == 1
-%                                 Y{nfilt,dim}.val(1) = 0;
-%                             end
                         else
                             Y{nfilt,dim}.val = 0;
                             X{nfilt,dim}.val = x0_filter;
