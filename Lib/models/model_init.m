@@ -133,12 +133,7 @@ function params = model_init(varargin)
     end
     
     % input 
-    if any(strcmp(varargin,'dim_input'))
-        pos = find(strcmp(varargin,'dim_input'));
-        params.dim_input = varargin{pos+1};
-    else
-        params.dim_input = 1;
-    end
+    params.dim_input = params.StateDim;
 
     % input law 
     if any(strcmp(varargin,'input_law'))

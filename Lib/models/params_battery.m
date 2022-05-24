@@ -20,7 +20,7 @@ function params = params_battery
     params.dim_state = 2;
     
     % reference init
-    params.X(1).val(:,1) = [0;0;0];
+    params.X(1).val(:,1) = [1;2];
     
     for traj=2:params.Ntraj
         params.X(traj).val(:,1) = params.X(traj-1).val(:,1);
