@@ -592,6 +592,7 @@ classdef obsopt < handle
             end
         end
         
+        % cost function: objective to be minimised by the MHE observer
         function [J_final,obj] = cost_function(obj,varargin) 
             
             obj.init.t_J_start = tic;  
@@ -741,8 +742,7 @@ classdef obsopt < handle
             
             obj.init.t_J(end+1) = toc(obj.init.t_J_start);  
         end
-          
-        
+                 
         %%% LSIM filtering %%%
         function [Y, X] = measure_filter(varargin)
                                                   
@@ -871,7 +871,7 @@ classdef obsopt < handle
             end
         end
         
-        % target function (observer or control design)
+        % control drive function (observer or control design)
         function drive = drive(varargin) 
             
             obj = varargin{1};            
@@ -994,7 +994,7 @@ classdef obsopt < handle
 
                 % flag
                 if obj.setup.control_design == 0
-                    flag = 2*length(obj.setup.opt_vars)+1;
+                    flag = 2*length(obj.setup.opt_vars)+1; % Aeyels condition (see https://doi.org/10.48550/arXiv.2204.09359)
                 else
                     flag = obj.setup.w;
                 end
@@ -1134,9 +1134,7 @@ classdef obsopt < handle
                             NewXopt_end = zeros(obj.setup.dim_state,1);
                             NewXopt_end(obj.setup.opt_vars) = NewXopt;
                             NewXopt_end(obj.setup.nonopt_vars) = obj.init.temp_x0_nonopt(traj).val;                          
-                            NewXopt_tmp(traj).val = NewXopt_end;
-                             % wrap for pendulum
-                            NewXopt_tmp(traj).val(1:2) = wrapToPi(NewXopt_tmp(traj).val(1:2));
+                            NewXopt_tmp(traj).val = NewXopt_end;                           
                         end
                         NewXopt = NewXopt_tmp;
 

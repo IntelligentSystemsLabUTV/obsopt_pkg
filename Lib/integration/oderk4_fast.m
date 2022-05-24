@@ -1,9 +1,31 @@
-%% runge kutta 4 integration
+%% ODERK4_FAST
+% file: oderk4_fast.m
+% author: Federico Oliva
+% date: 10/01/2022
+% description: this function implements a 4th order Runge-Kutta integration
+% algorithm
+% INPUT:
+% ode: handle function to the dynamics
+% tspan: time interval for the integration
+% y0: initial condition
+% options: integration options (see ode45 help)
+% varargin: additional parameters (see options)
+% OUTPUT:
+% out: structure with integration results
 function out = oderk4_fast(ode,tspan,y0,options,varargin)
 
-N = length(y0);             % number of state's components
-M = length(tspan);         % numer of time steps
-dt = tspan(2) - tspan(1);   % time step
+%%%% init section %%%%
+
+% number of state's components
+N = length(y0);            
+
+% numer of time steps
+M = length(tspan);         
+
+% time step
+dt = tspan(2) - tspan(1);   
+
+% initial time instant
 t0 = tspan(1);
 
 % Matrices allocation
@@ -11,6 +33,7 @@ X = zeros(N,M);
 X(:,1) = y0;
 K1 = zeros(N,M);
 
+% integration
 for i = 1:M-1
     
     % State and time at ti
@@ -29,6 +52,4 @@ end
 
 % store
 out.y = X;
-
-
 end
