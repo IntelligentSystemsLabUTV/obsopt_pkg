@@ -13,14 +13,14 @@ function [params,obs] = simulation_general_v3
     
 % init observer buffer (see https://doi.org/10.48550/arXiv.2204.09359)
 Nw = 7;
-Nts = 5;
+Nts = 15;
 
 % set sampling time
 Ts = 5e-2;
 
 % set initial and final time instant
 t0 = 0;
-tend = 5;
+tend = 10;
 % uncomment to test the MHE with a single optimisation step
 % tend = 1*(Nw*Nts+1)*Ts;
 
@@ -122,8 +122,8 @@ input_law = @control;
 % this should be a vector with 2 columns and as many rows as the state
 % dimension. All the noise are considered as Gaussian distributed. The 
 % first column defines the mean while the second column the variance.
-noise_mat = 1*[0,1e-1; ...
-             0, 1e-2; ...
+noise_mat = 1*[0,5e-1; ...
+             0, 5e-2; ...
              0, 0];
 
 %%%% params init %%%%
@@ -143,7 +143,7 @@ obs = obsopt('DataType', 'simulated', 'optimise', 1, ...
       'Nw', Nw, 'Nts', Nts, 'ode', ode, 'PE_maxiter', 0, 'control_design', 0 , 'model_reference', model_reference, ...    
       'params',params, 'filters', filterScale,'filterTF', filter, 'Jdot_thresh',0.9,'MaxIter',60,...
       'Jterm_store', 1, 'AlwaysOpt', 1 , 'print', 1 , 'SafetyDensity', 3, 'AdaptiveHist', [1e-2, 3e-2, 1e0], ...
-      'AdaptiveSampling',0, 'FlushBuffer', 1, 'opt', @fmincon, 'spring', 0, 'LBcon', [-Inf -Inf 0]);
+      'AdaptiveSampling',0, 'FlushBuffer', 1, 'opt', @fminunc, 'spring', 0, 'LBcon', [-Inf -Inf 0]);
 
 %% %%%% SIMULATION %%%%
 % remark: the obs.setup.Ntraj variable describes on how many different
