@@ -3,7 +3,6 @@ This is a MATLAB tool implementing a Moving Horizon Estimator (MHE). The reposit
  
 - *Lib*: this folder contains all the code. For more information see comments on the code.
 - *doc*: this folder contains documentation. 
-- *data*: this folder shall contain experimental data (estimation from real data is still under development).
 
 More specifically, the following info can be useful:
 
