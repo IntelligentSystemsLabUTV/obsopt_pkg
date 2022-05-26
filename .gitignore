@@ -1,6 +1,6 @@
 # gitignore file
 *
-.save
+*.save
 .gitignore
 
 # exceptions (dir)
