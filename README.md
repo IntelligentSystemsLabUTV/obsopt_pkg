@@ -23,10 +23,10 @@ The MHE is designed to work as in the following flow (for more detailed informat
 
 # Install and test
 
-First add the library to your MATLAB path and then run the test scripts. On a MATLAB prompt:
-` >> addpath(genpath('Lib'))`
-` >> test_VDP;`
+First add the library to your MATLAB path and then run the test scripts. On a MATLAB prompt: \
+` >> addpath(genpath('Lib'))` \
+` >> test_VDP;` \
 
-Now, use *simulation_general.m* as a templte for your code. The file can be run as follows:
-` >> [params,obs] = simulation_general();`
+Now, use *simulation_general.m* as a templte for your code. The file can be run as follows: \
+` >> [params,obs] = simulation_general();` \
 
