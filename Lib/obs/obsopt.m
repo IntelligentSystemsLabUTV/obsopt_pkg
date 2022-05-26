@@ -1419,6 +1419,7 @@ classdef obsopt < handle
                         plot(obj.setup.time,yhat_plot,'r--');
                     end
                     
+                    legend('measured','estimated')
                     ylabel(strcat('y_{filter}^',num2str(k)));
                     xlabel('simulation time [s]');
                 end            
