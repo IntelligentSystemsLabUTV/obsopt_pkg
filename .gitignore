@@ -1,5 +1,7 @@
 # gitignore file
 *
+.save
+.gitignore
 
 # exceptions (dir)
 !data/
