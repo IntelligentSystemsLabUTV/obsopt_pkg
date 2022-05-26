@@ -4,7 +4,7 @@
 % date: 10/01/2022
 % description: this function defines the filters applied to the output 
 % measurements. Their usage is strictly related to filtered_MHE (see 
-% https://doi.org/10.48550/arXiv.2204.09359). Simply use the if cases to
+% https://doi.org/10.48550/arXiv.2204.09359). Simply use the if 1
 % enable or disable the filtering actions.
 % INPUT: 
 % Ts: sampling time
@@ -20,7 +20,7 @@ function [filter, filterScale, reference] = filter_define(Ts,Nts)
     filter = [];
     
     %%% derivative filter %%%
-    if 0
+    if 1
     i = 1;   
     eps1 = 1e-1;
     G = tf([1 0],[eps1 1]);
@@ -37,7 +37,7 @@ function [filter, filterScale, reference] = filter_define(Ts,Nts)
     end
 
     %%%% integral filter %%%%
-    if 0
+    if 1
     i = 2;    
     eps2 = 1e2;
     G = tf(1,[eps2 1]);

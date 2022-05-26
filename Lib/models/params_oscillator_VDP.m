@@ -47,5 +47,5 @@ function params = params_oscillator_VDP
     
     % plot vars (used to plot the state estimation. When the parameters are
     % too many, consider to use only the true state components)
-    params.plot_vars = 3;
+    params.plot_vars = params.dim_state;
 end
