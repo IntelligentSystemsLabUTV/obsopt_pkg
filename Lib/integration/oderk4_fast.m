@@ -48,6 +48,9 @@ for i = 1:M-1
     % Solution at ti+1
     X(:,i+1) = x + (dt/6)*(K1(:,i) + 2*K2 + 2*K3 + K4);
     
+    % shift time instant
+    t0 = tspan(i+1);
+    
 end
 
 % store

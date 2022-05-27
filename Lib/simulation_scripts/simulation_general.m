@@ -13,7 +13,7 @@ function [params,obs] = simulation_general
     
 % init observer buffer (see https://doi.org/10.48550/arXiv.2204.09359)
 Nw = 7;
-Nts = 15;
+Nts = 5;
 
 % set sampling time
 Ts = 5e-2;
@@ -33,7 +33,7 @@ tend = 10;
 % model equations. e.g. for a mechanical system
 % params.M = mass
 % params.b = friction coefficient
-params_init = @params_oscillator_VDP;
+params_init = @params_battery;
 
 %%%% params update function %%%%
 % remark: this file is used if the MHE is set to estimate mode parameters
@@ -45,7 +45,7 @@ params_init = @params_oscillator_VDP;
 % x: state vector
 % OUTPUT: 
 % params_out: updated structure with the new model parameters 
-params_update = @params_update_oscillator_VDP;
+params_update = @params_update_battery;
 
 
 %%%% model function %%%%
@@ -58,7 +58,7 @@ params_update = @params_update_oscillator_VDP;
 % obs: instance of the obsopt observer class
 % OUTPUT:
 % xdot:output of the state space model
-model = @model_oscillator_VDP;
+model = @model_battery;
 
 %%%% model reference function %%%%
 % remark: !DEVEL! this function is used to generate the reference
@@ -86,7 +86,7 @@ model_reference = model;
 % OUTPUT:
 % y = measure (no noise added). In the following examples it holds
 % y = x(params.observed_state) (see params_init options)
-measure = @measure_general;
+measure = @measure_battery;
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 %%%% filters %%%%
@@ -122,7 +122,7 @@ input_law = @control;
 % this should be a vector with 2 columns and as many rows as the state
 % dimension. All the noise are considered as Gaussian distributed. The 
 % first column defines the mean while the second column the variance.
-noise_mat = 1*[0,5e-1;0,5e-2;0, 0];
+noise_mat = 1*[0,5e-1;0,5e-2];
 
 %%%% params init %%%%
 % init the parameters structure through funtion @model_init. 
@@ -130,9 +130,9 @@ noise_mat = 1*[0,5e-1;0,5e-2;0, 0];
 % important is the 'params_init' option, which takes as input the function 
 % handle to the previously defined @params_init. For more information see 
 % directly the model_init.m file.
-params = model_init('Ts',Ts,'T0',[t0, tend],'noise',1,'noise_spec',noise_mat, 'params_update', params_update, ...
-        'model',model,'measure',measure,'ObservedState',[2],'ode',ode, 'odeset', [1e-3 1e-6], ...
-        'input_enable',0,'input_law',input_law,'params_init',params_init);
+params = model_init('Ts',Ts,'T0',[t0, tend],'noise',0,'noise_spec',noise_mat, 'params_update', params_update, ...
+        'model',model,'measure',measure,'ObservedState',[1],'ode',ode, 'odeset', [1e-3 1e-6], ...
+        'input_enable',1,'input_law',input_law,'params_init',params_init);
 
 %%%% observer init %%%%
 % create observer class instance. For more information on the setup
@@ -189,7 +189,7 @@ for i = 1:obs.setup.Niter
         
         %%%% REAL MEASUREMENT %%%%
         % here the noise is noise added aggording to noise_spec
-        obs.init.Ytrue_full_story(traj).val(1,:,obs.init.ActualTimeIndex) = obs.setup.measure(obs.init.X(traj).val(:,obs.init.ActualTimeIndex),obs.init.params,obs.init.ActualTimeIndex);
+        obs.init.Ytrue_full_story(traj).val(1,:,obs.init.ActualTimeIndex) = obs.setup.measure(obs.init.X(traj).val(:,obs.init.ActualTimeIndex),obs.init.params,obs.setup.time(obs.init.ActualTimeIndex));
         obs.init.noise_story(traj).val(:,obs.init.ActualTimeIndex) = obs.setup.noise*(obs.setup.noise_mu(obs.setup.observed_state)  + obs.setup.noise_std(obs.setup.observed_state).*randn(obs.setup.dim_out,1));
         y_meas(traj).val =  reshape(obs.init.Ytrue_full_story(traj).val(1,:,obs.init.ActualTimeIndex),obs.setup.dim_out,1) + obs.init.noise_story(traj).val(:,obs.init.ActualTimeIndex);
     end
