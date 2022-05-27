@@ -47,7 +47,8 @@ try
     [~,obs] = simulation_general_test;
     test.T1.obs = obs;
     test.T1.result = 'passed';
-catch
+catch err
+    test.T1.err = err;
     test.T1.obs = [];
     test.T1.result = 'failed';
 end
@@ -82,7 +83,8 @@ try
     [~,obs] = simulation_general_test;
     test.T2.obs = obs;
     test.T2.result = 'passed';
-catch
+catch err
+    test.T2.err = err;
     test.T2.obs = [];
     test.T2.result = 'failed';
 end
@@ -117,7 +119,8 @@ try
     [~,obs] = simulation_general_test;
     test.T3.obs = obs;
     test.T3.result = 'passed';
-catch
+catch err
+    test.T3.err = err;
     test.T3.obs = [];
     test.T3.result = 'failed';
 end
@@ -152,7 +155,8 @@ try
     [~,obs] = simulation_general_test;
     test.T4.obs = obs;
     test.T4.result = 'passed';
-catch
+catch err
+    test.T4.err = err;
     test.T4.obs = [];
     test.T4.result = 'failed';
 end
@@ -168,7 +172,8 @@ try
     [~,obs] = simulation_general_test_dryrun;
     test.T5.obs = obs;
     test.T5.result = 'passed';
-catch
+catch err
+    test.T5.err = err;
     test.T5.obs = [];
     test.T5.result = 'failed';
 end
