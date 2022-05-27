@@ -31,13 +31,13 @@ system("sed -i 's/measure = @.*/measure = @measure_general;/' Lib/simulation_scr
 system("sed -i 's/noise_mat =.*/noise_mat = 1*[0,5e-1;0,5e-2];/' Lib/simulation_scripts/test/simulation_general_test.m");
 
 % set params_init
-system("sed -i 's/params.dim_state =.*/params.dim_state = 2;/' Lib/models/params_oscillator_VDP.m");
-system("sed -i 's/params.X(1).val(:,1) =.*/params.X(1).val(:,1) = [1;1];/' Lib/models/params_oscillator_VDP.m");
-system("sed -i 's/params.estimated_params =.*/params.estimated_params = [];/' Lib/models/params_oscillator_VDP.m");
-system("sed -i 's/params.opt_vars =.*/params.opt_vars = [1:2];/' Lib/models/params_oscillator_VDP.m");
+system("sed -i 's/params.dim_state =.*/params.dim_state = 2;/' Lib/models/VDP/params_oscillator_VDP.m");
+system("sed -i 's/params.X(1).val(:,1) =.*/params.X(1).val(:,1) = [1;1];/' Lib/models/VDP/params_oscillator_VDP.m");
+system("sed -i 's/params.estimated_params =.*/params.estimated_params = [];/' Lib/models/VDP/params_oscillator_VDP.m");
+system("sed -i 's/params.opt_vars =.*/params.opt_vars = [1:2];/' Lib/models/VDP/params_oscillator_VDP.m");
 
 % set params_update
-system("sed -i '/params_out.mu = /s/^/%/' Lib/models/update/params_update_oscillator_VDP.m");
+system("sed -i '/params_out.mu = /s/^/%/' Lib/models/VDP/params_update_oscillator_VDP.m");
 
 % set filter_define
 system("sed -i 's/if.*/if 0/' Lib/measure/filter_define.m");
@@ -67,13 +67,13 @@ system("sed -i 's/measure = @.*/measure = @measure_general;/' Lib/simulation_scr
 system("sed -i 's/noise_mat =.*/noise_mat = 1*[0,5e-1;0,5e-2];/' Lib/simulation_scripts/test/simulation_general_test.m");
 
 % set params_init
-system("sed -i 's/params.dim_state =.*/params.dim_state = 2;/' Lib/models/params_oscillator_VDP.m");
-system("sed -i 's/params.X(1).val(:,1) =.*/params.X(1).val(:,1) = [1;1];/' Lib/models/params_oscillator_VDP.m");
-system("sed -i 's/params.estimated_params =.*/params.estimated_params = [];/' Lib/models/params_oscillator_VDP.m");
-system("sed -i 's/params.opt_vars =.*/params.opt_vars = [1:2];/' Lib/models/params_oscillator_VDP.m");
+system("sed -i 's/params.dim_state =.*/params.dim_state = 2;/' Lib/models/VDP/params_oscillator_VDP.m");
+system("sed -i 's/params.X(1).val(:,1) =.*/params.X(1).val(:,1) = [1;1];/' Lib/models/VDP/params_oscillator_VDP.m");
+system("sed -i 's/params.estimated_params =.*/params.estimated_params = [];/' Lib/models/VDP/params_oscillator_VDP.m");
+system("sed -i 's/params.opt_vars =.*/params.opt_vars = [1:2];/' Lib/models/VDP/params_oscillator_VDP.m");
 
 % set params_update
-system("sed -i '/params_out.mu = /s/^/%/' Lib/models/update/params_update_oscillator_VDP.m");
+system("sed -i '/params_out.mu = /s/^/%/' Lib/models/VDP/params_update_oscillator_VDP.m");
 
 % set filter_define
 system("sed -i 's/if.*/if 1/' Lib/measure/filter_define.m");
@@ -103,13 +103,13 @@ system("sed -i 's/measure = @.*/measure = @measure_general;/' Lib/simulation_scr
 system("sed -i 's/noise_mat =.*/noise_mat = 1*[0,5e-1;0,5e-2;0,0];/' Lib/simulation_scripts/test/simulation_general_test.m");
 
 % set params_init
-system("sed -i 's/params.dim_state =.*/params.dim_state = 3;/' Lib/models/params_oscillator_VDP.m");
-system("sed -i 's/params.X(1).val(:,1) =.*/params.X(1).val(:,1) = [1;1;params.mu];/' Lib/models/params_oscillator_VDP.m");
-system("sed -i 's/params.estimated_params =.*/params.estimated_params = [3];/' Lib/models/params_oscillator_VDP.m");
-system("sed -i 's/params.opt_vars =.*/params.opt_vars = [1:3];/' Lib/models/params_oscillator_VDP.m");
+system("sed -i 's/params.dim_state =.*/params.dim_state = 3;/' Lib/models/VDP/params_oscillator_VDP.m");
+system("sed -i 's/params.X(1).val(:,1) =.*/params.X(1).val(:,1) = [1;1;params.mu];/' Lib/models/VDP/params_oscillator_VDP.m");
+system("sed -i 's/params.estimated_params =.*/params.estimated_params = [3];/' Lib/models/VDP/params_oscillator_VDP.m");
+system("sed -i 's/params.opt_vars =.*/params.opt_vars = [1:3];/' Lib/models/VDP/params_oscillator_VDP.m");
 
 % set params_update
-system("sed -i '18s/\%//g' Lib/models/update/params_update_oscillator_VDP.m");
+system("sed -i '18s/\%//g' Lib/models/VDP/params_update_oscillator_VDP.m");
 
 % set filter_define
 system("sed -i 's/if.*/if 0/' Lib/measure/filter_define.m");
@@ -139,13 +139,13 @@ system("sed -i 's/measure = @.*/measure = @measure_general;/' Lib/simulation_scr
 system("sed -i 's/noise_mat =.*/noise_mat = 1*[0,5e-1;0,5e-2;0,0];/' Lib/simulation_scripts/test/simulation_general_test.m");
 
 % set params_init
-system("sed -i 's/params.dim_state =.*/params.dim_state = 3;/' Lib/models/params_oscillator_VDP.m");
-system("sed -i 's/params.X(1).val(:,1) =.*/params.X(1).val(:,1) = [1;1;params.mu];/' Lib/models/params_oscillator_VDP.m");
-system("sed -i 's/params.estimated_params =.*/params.estimated_params = [3];/' Lib/models/params_oscillator_VDP.m");
-system("sed -i 's/params.opt_vars =.*/params.opt_vars = [1:3];/' Lib/models/params_oscillator_VDP.m");
+system("sed -i 's/params.dim_state =.*/params.dim_state = 3;/' Lib/models/VDP/params_oscillator_VDP.m");
+system("sed -i 's/params.X(1).val(:,1) =.*/params.X(1).val(:,1) = [1;1;params.mu];/' Lib/models/VDP/params_oscillator_VDP.m");
+system("sed -i 's/params.estimated_params =.*/params.estimated_params = [3];/' Lib/models/VDP/params_oscillator_VDP.m");
+system("sed -i 's/params.opt_vars =.*/params.opt_vars = [1:3];/' Lib/models/VDP/params_oscillator_VDP.m");
 
 % set params_update
-system("sed -i '18s/\%//g' Lib/models/update/params_update_oscillator_VDP.m");
+system("sed -i '18s/\%//g' Lib/models/VDP/params_update_oscillator_VDP.m");
 
 % set filter_define
 system("sed -i 's/if.*/if 1/' Lib/measure/filter_define.m");
@@ -165,7 +165,7 @@ pause(2);
 
 %% %%%% DRY RUN ON FILTERED MHE - PARAMS %%%%
 % define test
-test.T5.description = 'Filtered MHE without noise on Van der Pol oscillator - with params estimation';
+test.T5.description = 'Filtered MHE dry run on Van der Pol oscillator - with params estimation';
 
 % run observer
 try
