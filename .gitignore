@@ -1,11 +1,9 @@
 # gitignore file
-*
+fig/
+Latex/
+results/
+workspace/
 
-# exceptions (dir)
-!data/
-!doc/
-!Lib/
-
-#exceptions (files)
-!COPYING
-!README.md
+# files
+*.asv
+*.save
