@@ -12,15 +12,15 @@ function [params,obs] = simulation_general
 % close all
     
 % init observer buffer (see https://doi.org/10.48550/arXiv.2204.09359)
-Nw = 7;
+Nw = 13;
 Nts = 10;
 
 % set sampling time
-Ts = 5e-2;
+Ts = 1e-1;
 
 % set initial and final time instant
 t0 = 0;
-tend = 10;
+tend = 20;
 % uncomment to test the MHE with a single optimisation step
 % tend = 1*(Nw*Nts+1)*Ts;
 
@@ -122,7 +122,7 @@ input_law = @control;
 % this should be a vector with 2 columns and as many rows as the state
 % dimension. All the noise are considered as Gaussian distributed. The 
 % first column defines the mean while the second column the variance.
-noise_mat = 1*[0,1e-1;];
+noise_mat = 0*[0,1e-1;0,1e-1;0,0;0,0;0,0;0,0];
 
 %%%% params init %%%%
 % init the parameters structure through funtion @model_init. 
