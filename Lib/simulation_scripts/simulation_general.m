@@ -13,7 +13,7 @@ function [params,obs] = simulation_general
     
 % init observer buffer (see https://doi.org/10.48550/arXiv.2204.09359)
 Nw = 7;
-Nts = 5;
+Nts = 10;
 
 % set sampling time
 Ts = 5e-2;
@@ -122,7 +122,7 @@ input_law = @control;
 % this should be a vector with 2 columns and as many rows as the state
 % dimension. All the noise are considered as Gaussian distributed. The 
 % first column defines the mean while the second column the variance.
-noise_mat = 1*[0,5e-1;0,5e-2];
+noise_mat = 1*[0,1e-1;];
 
 %%%% params init %%%%
 % init the parameters structure through funtion @model_init. 
@@ -130,7 +130,7 @@ noise_mat = 1*[0,5e-1;0,5e-2];
 % important is the 'params_init' option, which takes as input the function 
 % handle to the previously defined @params_init. For more information see 
 % directly the model_init.m file.
-params = model_init('Ts',Ts,'T0',[t0, tend],'noise',0,'noise_spec',noise_mat, 'params_update', params_update, ...
+params = model_init('Ts',Ts,'T0',[t0, tend],'noise',1,'noise_spec',noise_mat, 'params_update', params_update, ...
         'model',model,'measure',measure,'ObservedState',[1],'ode',ode, 'odeset', [1e-3 1e-6], ...
         'input_enable',1,'input_law',input_law,'params_init',params_init);
 
@@ -141,7 +141,7 @@ obs = obsopt('DataType', 'simulated', 'optimise', 1, ...
       'Nw', Nw, 'Nts', Nts, 'ode', ode, 'PE_maxiter', 0, 'control_design', 0 , 'model_reference', model_reference, ...    
       'params',params, 'filters', filterScale,'filterTF', filter, 'Jdot_thresh',0.9,'MaxIter',60,...
       'Jterm_store', 1, 'AlwaysOpt', 1 , 'print', 1 , 'SafetyDensity', 3, 'AdaptiveHist', [1e-2, 3e-2, 1e0], ...
-      'AdaptiveSampling',0, 'FlushBuffer', 1, 'opt', @fminunc, 'spring', 0, 'LBcon', [-Inf -Inf 0]);
+      'AdaptiveSampling',0, 'FlushBuffer', 1, 'opt', @fminunc, 'spring', 0, 'LBcon', [0 -Inf], 'UBcon', [1 Inf]);
 
 %% %%%% SIMULATION %%%%
 % remark: the obs.setup.Ntraj variable describes on how many different

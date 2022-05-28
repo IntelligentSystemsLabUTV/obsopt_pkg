@@ -11,6 +11,7 @@
 function out = odeDD(varargin)
 
 % init params
+nargin = length(varargin);
 
 % handle function to the dynamics
 ode = varargin{1};
