@@ -592,6 +592,7 @@ classdef obsopt < handle
             end
         end
         
+        % cost function: objective to be minimised by the MHE observer
         function [J_final,obj] = cost_function(obj,varargin) 
             
             obj.init.t_J_start = tic;  
@@ -650,7 +651,7 @@ classdef obsopt < handle
                 
                 %%% get measure  %%
                 Yhat = zeros(obj.setup.Nfilt+1,obj.setup.dim_out,size(X.y,2));
-                Yhat(1,:,:) = obj.setup.measure(X.y,obj.init.params,tspan(1));                                
+                Yhat(1,:,:) = obj.setup.measure(X.y,obj.init.params,tspan);                                
                 
                 %%% compute filters %%%
                 if obj.setup.Nfilt > 0                     
@@ -741,8 +742,7 @@ classdef obsopt < handle
             
             obj.init.t_J(end+1) = toc(obj.init.t_J_start);  
         end
-          
-        
+                 
         %%% LSIM filtering %%%
         function [Y, X] = measure_filter(varargin)
                                                   
@@ -774,15 +774,6 @@ classdef obsopt < handle
                         
                         if (min(diff(tspan_pos)) ~= 0)                                 
                             [Y{nfilt,dim}.val, ~, X{nfilt,dim}.val] = lsim(obj.setup.filterTF(nfilt).TF,u',tspan,x0_filter);  
-%                             tspan_shift = tspan_pos-tspan_pos(1)+1;
-%                             out = odeDD(@discreteSS_general, tspan_shift, x0_filter, u, obj.setup.filterTF(nfilt).TF);
-%                             Y{nfilt,dim}.val = out.y';
-%                             X{nfilt,dim}.val = out.x';
-
-                            %%% HANDLE THE FIRST TIME INSTANT %%%
-%                             if tspan_pos(1) == 1
-%                                 Y{nfilt,dim}.val(1) = 0;
-%                             end
                         else
                             Y{nfilt,dim}.val = 0;
                             X{nfilt,dim}.val = x0_filter;
@@ -871,7 +862,7 @@ classdef obsopt < handle
             end
         end
         
-        % target function (observer or control design)
+        % control drive function (observer or control design)
         function drive = drive(varargin) 
             
             obj = varargin{1};            
@@ -902,7 +893,7 @@ classdef obsopt < handle
                 % save runtime state
                 obj.init.X_est_runtime(traj).val(:,obj.init.ActualTimeIndex) = obj.init.X_est(traj).val(:,obj.init.ActualTimeIndex);
                 % get ESTIMATED measure from ESTIMATED state (xhat)
-                yhat(traj).val = obj.setup.measure(xhat(traj).val,obj.init.params,obj.init.ActualTimeIndex);
+                yhat(traj).val = obj.setup.measure(xhat(traj).val,obj.init.params,obj.setup.time(obj.init.ActualTimeIndex));
             end
             
             for traj=1:obj.setup.Ntraj
@@ -994,7 +985,7 @@ classdef obsopt < handle
 
                 % flag
                 if obj.setup.control_design == 0
-                    flag = 2*length(obj.setup.opt_vars)+1;
+                    flag = 2*length(obj.setup.opt_vars)+1; % Aeyels condition (see https://doi.org/10.48550/arXiv.2204.09359)
                 else
                     flag = obj.setup.w;
                 end
@@ -1134,9 +1125,7 @@ classdef obsopt < handle
                             NewXopt_end = zeros(obj.setup.dim_state,1);
                             NewXopt_end(obj.setup.opt_vars) = NewXopt;
                             NewXopt_end(obj.setup.nonopt_vars) = obj.init.temp_x0_nonopt(traj).val;                          
-                            NewXopt_tmp(traj).val = NewXopt_end;
-                             % wrap for pendulum
-                            NewXopt_tmp(traj).val(1:2) = wrapToPi(NewXopt_tmp(traj).val(1:2));
+                            NewXopt_tmp(traj).val = NewXopt_end;                           
                         end
                         NewXopt = NewXopt_tmp;
 
@@ -1177,7 +1166,7 @@ classdef obsopt < handle
                                 % NB: the output storage has to be done in
                                 % back_time+1 as the propagation has been
                                 % performed 
-                                Yhat = obj.setup.measure(x_propagate,obj.init.params,back_time);
+                                Yhat = obj.setup.measure(x_propagate,obj.init.params,obj.setup.time(back_time));
                                 % get filters - yhat
                                 obj.init.Yhat_full_story(traj).val(1,:,back_time) = Yhat;  
                                 tspan_pos = [max(1,back_time-1), back_time];
@@ -1222,7 +1211,7 @@ classdef obsopt < handle
                                     % NB: the output storage has to be done in
                                     % back_time+1 as the propagation has been
                                     % performed 
-                                    Yhat = obj.setup.measure(x_propagate,obj.init.params,back_time);
+                                    Yhat = obj.setup.measure(x_propagate,obj.init.params,obj.setup.time(back_time));
                                     % get filters - yhat
                                     obj.init.Yhat_full_story(traj).val(1,:,back_time) = Yhat;            
                                     tspan_pos = [max(1,back_time-1), back_time];
@@ -1430,6 +1419,7 @@ classdef obsopt < handle
                         plot(obj.setup.time,yhat_plot,'r--');
                     end
                     
+                    legend('measured','estimated')
                     ylabel(strcat('y_{filter}^',num2str(k)));
                     xlabel('simulation time [s]');
                 end            

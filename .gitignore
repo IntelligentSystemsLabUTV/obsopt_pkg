@@ -1,14 +1,11 @@
 # gitignore file
+*
 
-# dir
-simulations/*
-workspace/*
-Papers/*
-codegen/*
-fig/*
-Latex/*
+# exceptions (dir)
+!data/
+!doc/
+!Lib/
 
-# files
-*.asv
-*.mat
-codegeneration.m
+#exceptions (files)
+!COPYING
+!README.md
