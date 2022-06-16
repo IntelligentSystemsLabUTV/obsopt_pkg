@@ -1090,7 +1090,7 @@ classdef obsopt < handle
                         
                         % back time index
                         buf_dist = diff(buf_Y_space_full_story);
-                        obj.init.BackTimeIndex = obj.setup.time(max(obj.init.ActualTimeIndex-sum(buf_dist(2:end))-obj.setup.Nts,1)); 
+                        obj.init.BackTimeIndex = obj.setup.time(max(obj.init.ActualTimeIndex-sum(buf_dist(2:end)),1)); 
                         obj.init.BackIterIndex = find(obj.setup.time==obj.init.BackTimeIndex);
 
                         % set of initial conditions
@@ -1117,7 +1117,7 @@ classdef obsopt < handle
                                     if obj.setup.opt_filters
                                         tmp = reshape(obj.init.X_filter_est(traj).val{nfilt,dim}(:,filterstartpos),1,obj.setup.filterTF(nfilt).dim);
                                     else
-                                        tmp = reshape(obj.init.X_filter_est(traj).val{nfilt,dim}(:,filterstartpos),1,obj.setup.filterTF(nfilt).dim);
+                                        tmp = reshape(obj.init.X_filter(traj).val{nfilt,dim}(:,filterstartpos),1,obj.setup.filterTF(nfilt).dim);
                                     end
                                     x0_filters = [x0_filters, tmp];
                                 end
