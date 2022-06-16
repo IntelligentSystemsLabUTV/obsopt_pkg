@@ -15,5 +15,5 @@ function params_out = params_update_oscillator_VDP(params,x)
     params_out = params;
     
     % update the nonlinearity
-    params_out.mu = x(3);
+%     params_out.mu = x(3);
 end
