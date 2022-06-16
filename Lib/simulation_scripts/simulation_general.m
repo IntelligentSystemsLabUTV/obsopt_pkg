@@ -12,7 +12,7 @@ function [params,obs] = simulation_general
 % close all
     
 % init observer buffer (see https://doi.org/10.48550/arXiv.2204.09359)
-Nw = 1;
+Nw = 5;
 Nts = 5;
 
 % set sampling time
@@ -130,7 +130,7 @@ noise_mat = 0*[0,1e-1;0,1e-1;0,1e-2;0,1e-2];
 % important is the 'params_init' option, which takes as input the function 
 % handle to the previously defined @params_init. For more information see 
 % directly the model_init.m file.
-params = model_init('Ts',Ts,'T0',[t0, tend],'noise',1,'noise_spec',noise_mat, 'params_update', params_update, ...
+params = model_init('Ts',Ts,'T0',[t0, tend],'noise',0,'noise_spec',noise_mat, 'params_update', params_update, ...
         'model',model,'measure',measure,'ObservedState',[1 2],'ode',ode, 'odeset', [1e-3 1e-6], ...
         'input_enable',0,'input_law',input_law,'params_init',params_init);
 
