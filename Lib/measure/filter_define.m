@@ -20,9 +20,9 @@ function [filter, filterScale, reference] = filter_define(Ts,Nts)
     filter = [];
     
     %%% derivative filter %%%
-    if 0
-    i = 1;   
-    eps1 = 1e-1;
+    if 1
+    i = i+1;   
+    eps1 = 1e-2;
     G = tf([1 0],[eps1 1]);
     SS = ss(G);
     D = c2d(SS,Ts);
@@ -37,10 +37,46 @@ function [filter, filterScale, reference] = filter_define(Ts,Nts)
     end
 
     %%%% integral filter %%%%
-    if 0
-    i = 2;    
+    if 1
+    i = i+1;    
     eps2 = 1e2;
     G = tf(1,[eps2 1]);
+    SS = ss(G);
+    D = c2d(SS,Ts);
+    filter(i).TF = D;
+    filter(i).A = D.A;
+    filter(i).B = D.B;
+    filter(i).C = D.C;
+    filter(i).D = D.D;
+    filter(i).G = G;
+    filter(i).dim = size(D.B,1);
+    filterScale(i+1)= 1;
+    end
+    
+    %%%% second order filter %%%%
+    if 1
+    i = i+1;    
+    tau = 1;
+    wn = 1;
+    G = tf(1,[wn 2*tau*wn 1]);
+    SS = ss(G);
+    D = c2d(SS,Ts);
+    filter(i).TF = D;
+    filter(i).A = D.A;
+    filter(i).B = D.B;
+    filter(i).C = D.C;
+    filter(i).D = D.D;
+    filter(i).G = G;
+    filter(i).dim = size(D.B,1);
+    filterScale(i+1)= 1;
+    end
+    
+    %%%% second order filter %%%%
+    if 1
+    i = i+1;    
+    tau = 1e-1;
+    wn = 1e-1;
+    G = tf(1,[wn 2*tau*wn 1]);
     SS = ss(G);
     D = c2d(SS,Ts);
     filter(i).TF = D;
