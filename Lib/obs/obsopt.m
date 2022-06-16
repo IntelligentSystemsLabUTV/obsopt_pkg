@@ -418,6 +418,16 @@ classdef obsopt < handle
                 obj.setup.Ntraj = 1;
             end
             
+            % set the actual cost function (J, convex_envelope..)
+            obj.setup.cost_run = @obj.cost_function;
+            
+            %%% TEST CONVEX ENVELOPE %%%
+            obj.init.convex_conjugate = [];
+            obj.init.convex_envelope = [];
+            
+            %%% TEST OPT ON FILTERS %%%
+            obj.setup.opt_filters = 0;
+            
             % initialise the class
             obj = obj.obs_init();
         end
@@ -442,7 +452,7 @@ classdef obsopt < handle
                 for i=1:obj.setup.Nfilt
                     for dim=1:obj.setup.dim_out
                         obj.init.X_filter(traj).val{i,dim} = zeros(obj.setup.filterTF(i).dim,obj.setup.Niter);
-                        obj.init.X_filter_est(traj).val{i,dim} = zeros(obj.setup.filterTF(i).dim,obj.setup.Niter);
+                        obj.init.X_filter_est(traj).val{i,dim} = 0*randn(obj.setup.filterTF(i).dim,obj.setup.Niter);
                     end
                 end
             end
@@ -592,6 +602,46 @@ classdef obsopt < handle
             end
         end
         
+        % convex conjugate: this function computes the convex conjugate of
+        % the cost function
+        function [J_final,x_final,obj] = convex_conjugate(obj,varargin)
+            
+            % get opt state
+            x_opt = varargin{1};           
+            
+            % define the function handle for the conjugate
+            y = ones(size(x_opt));
+            f_cc = @(x)-(transpose(y)*x - obj.cost_function(x,varargin{2},varargin{3},varargin{4}));
+            
+            % initial condition
+            x_0 = x_opt;
+            
+            % solve the sup problem to find the conjugate fcn
+            [x_final,J_final] = fminunc(f_cc,x_0,obj.init.myoptioptions);
+            
+            obj.init.convex_conjugate(end+1) = J_final;
+            
+        end
+        
+        % convex envelope: this function computes the tightest convex
+        % approximation of the cost function
+        function [J_final,obj] = convex_envelope(obj,varargin)                      
+            
+            % compute the convex conjugate
+            [J_1,x_1,obj] = convex_conjugate(obj,varargin{1},varargin{2},varargin{3},varargin{4});
+            
+            % set the new initial condition
+            varargin{1} = x_1;
+            
+            % compute the second convex conjugate
+            [J_2,x_2,obj] = convex_conjugate(obj,varargin{1},varargin{2},varargin{3},varargin{4});
+            
+            % set output
+            J_final = J_2;
+            x_final = x_2;
+            
+        end
+        
         % cost function: objective to be minimised by the MHE observer
         function [J_final,obj] = cost_function(obj,varargin) 
             
@@ -612,13 +662,18 @@ classdef obsopt < handle
                 % non optimised vals
                 x_nonopt = varargin{2}(traj).val;
                 
-                % x filter vals
-                x_filters = varargin{3}(traj).val;
+                % x filter vals                                                
+                if obj.setup.opt_filters
+                    
+                    x_filters = transpose(x_opt(obj.setup.opt_vars(end)+1:end));
+                else
+                    x_filters = varargin{3}(traj).val;
+                end                
                 Lfilt = length(x_filters);
 
                 % create state
                 x = zeros(obj.setup.dim_state+Lfilt,1);
-                x(obj.setup.opt_vars) = x_opt;
+                x(obj.setup.opt_vars) = x_opt(obj.setup.opt_vars);
                 x(obj.setup.nonopt_vars) = x_nonopt;
                 x(obj.setup.dim_state+1:end) = x_filters;
                 
@@ -639,8 +694,13 @@ classdef obsopt < handle
                 n_iter = sum(buf_dist);
                 % initial condition
                 x_start = x(1:obj.setup.dim_state);                
-                % get evolution with input
-                X = obj.setup.ode(@(t,x)obj.setup.model(t, x, obj.init.params, obj), tspan , x_start, obj.setup.odeset);
+                % get evolution with input only if at least 2 iinstans are
+                % considered
+                if length(tspan)>1
+                    X = obj.setup.ode(@(t,x)obj.setup.model(t, x, obj.init.params, obj), tspan , x_start, obj.setup.odeset);
+                else
+                    X.y = x_start;
+                end
                 
                 % check for NaN or Inf
                 NaN_Flag = find(isnan(X.y));
@@ -732,12 +792,9 @@ classdef obsopt < handle
                 
                 J_final = J_final + Jtot + Jspring + J_barr;
 
-                %%% final stuff %%%
-                if n_iter > 0
-                    obj.init.Yhat_temp = Yhat;
-                else
-                    J_final = 1; 
-                end
+                %%% final stuff %%%                
+                obj.init.Yhat_temp = Yhat;
+
             end
             
             obj.init.t_J(end+1) = toc(obj.init.t_J_start);  
@@ -767,13 +824,14 @@ classdef obsopt < handle
                     for dim=1:obj.setup.dim_out 
                         
                         % init condition
-                        x0_filter = X_filter.val{nfilt,dim}(tspan_pos(1));                        
+                        x0_filter = X_filter.val{nfilt,dim}(:,tspan_pos(1));                        
 
                         % inputs
                         u = reshape(U(1,dim,tspan_pos),1,length(tspan_pos));
                         
                         if (min(diff(tspan_pos)) ~= 0)                                 
-                            [Y{nfilt,dim}.val, ~, X{nfilt,dim}.val] = lsim(obj.setup.filterTF(nfilt).TF,u',tspan,x0_filter);  
+                            [Y{nfilt,dim}.val, ~, tmp_xtraj] = lsim(obj.setup.filterTF(nfilt).TF,u',tspan,x0_filter);  
+                            X{nfilt,dim}.val = transpose(tmp_xtraj);
                         else
                             Y{nfilt,dim}.val = 0;
                             X{nfilt,dim}.val = x0_filter;
@@ -904,8 +962,8 @@ classdef obsopt < handle
                 [dy, x_filter] = obj.measure_filter(obj.init.Y_full_story(traj).val,tspan_pos,obj.init.X_filter(obj.init.traj));                
                 for filt=1:obj.setup.Nfilt
                     for dim=1:obj.setup.dim_out
-                        y_tmp = dy{filt,dim}.val(end);
-                        obj.init.X_filter(traj).val{filt,dim}(:,tspan_pos) = x_filter{filt,dim}.val;
+                        y_tmp(dim,1) = dy{filt,dim}.val(end);
+                        obj.init.X_filter(traj).val{filt,dim}(:,unique(tspan_pos)) = x_filter{filt,dim}.val;
                     end   
                     y(traj).val = [y(traj).val, y_tmp];
                 end                
@@ -916,8 +974,8 @@ classdef obsopt < handle
                 [dyhat, x_filter] = obj.measure_filter(obj.init.Yhat_full_story(traj).val,tspan_pos,obj.init.X_filter_est(obj.init.traj));
                 for filt=1:obj.setup.J_nterm-1
                     for dim=1:obj.setup.dim_out
-                        y_tmp = dyhat{filt,dim}.val(end);                        
-                        obj.init.X_filter_est(traj).val{filt,dim}(:,tspan_pos) = x_filter{filt,dim}.val;
+                        y_tmp(dim,1) = dyhat{filt,dim}.val(end);                        
+                        obj.init.X_filter_est(traj).val{filt,dim}(:,unique(tspan_pos)) = x_filter{filt,dim}.val;
                     end
                     yhat(traj).val = [yhat(traj).val, y_tmp];                    
                 end
@@ -1032,7 +1090,7 @@ classdef obsopt < handle
                         
                         % back time index
                         buf_dist = diff(buf_Y_space_full_story);
-                        obj.init.BackTimeIndex = obj.setup.time(max(obj.init.ActualTimeIndex-sum(buf_dist),1)); 
+                        obj.init.BackTimeIndex = obj.setup.time(max(obj.init.ActualTimeIndex-sum(buf_dist(2:end))-obj.setup.Nts,1)); 
                         obj.init.BackIterIndex = find(obj.setup.time==obj.init.BackTimeIndex);
 
                         % set of initial conditions
@@ -1056,14 +1114,17 @@ classdef obsopt < handle
                             filterstartpos = max(1,obj.init.BackIterIndex);
                             for nfilt=1:obj.setup.Nfilt
                                 for dim=1:obj.setup.dim_out
-                                    tmp = reshape(obj.init.X_filter(traj).val{nfilt,dim}(:,filterstartpos),1,obj.setup.filterTF(nfilt).dim);
+                                    if obj.setup.opt_filters
+                                        tmp = reshape(obj.init.X_filter_est(traj).val{nfilt,dim}(:,filterstartpos),1,obj.setup.filterTF(nfilt).dim);
+                                    else
+                                        tmp = reshape(obj.init.X_filter_est(traj).val{nfilt,dim}(:,filterstartpos),1,obj.setup.filterTF(nfilt).dim);
+                                    end
                                     x0_filters = [x0_filters, tmp];
                                 end
                             end
                             obj.init.temp_x0_filters(traj).val = x0_filters;
                             Lfilt = length(x0_filters);
                              
-
                             % reconstruct temp_x0 from opt/nonopt vars
                             obj.init.temp_x0(traj).val = zeros(obj.setup.dim_state,1);
                             obj.init.temp_x0(traj).val(obj.setup.opt_vars) = obj.init.temp_x0_opt;
@@ -1095,10 +1156,15 @@ classdef obsopt < handle
                                 end
                             end                            
                             obj.init.normalised = 1;
-                        end                       
+                        end      
+                        
+                        %%% TEST WITH X_FILTERS IN OPT %%%
+                        if obj.setup.opt_filters
+                            obj.init.temp_x0_opt = [obj.init.temp_x0_opt; reshape(obj.init.temp_x0_filters.val,length(obj.init.temp_x0_filters.val),1)];
+                        end
                         
                         % save J before the optimisation to confront it later 
-                        [J_before, obj_tmp] = obj.cost_function(obj.init.temp_x0_opt,obj.init.temp_x0_nonopt,obj.init.temp_x0_filters,obj.init.target);  
+                        [J_before, obj_tmp] = obj.setup.cost_run(obj.init.temp_x0_opt,obj.init.temp_x0_nonopt,obj.init.temp_x0_filters,obj.init.target);                        
 
                         
                         % Optimisation (only if distance_safe_flag == 1)
@@ -1106,11 +1172,11 @@ classdef obsopt < handle
                         
                         %%%%% OPTIMISATION - NORMAL MODE %%%%%%
                         if strcmp(func2str(obj.setup.fmin),'fmincon')                                                       
-                            [NewXopt, J, obj.init.exitflag,output] = obj.setup.fmin(@(x)obj.cost_function(x,obj.init.temp_x0_nonopt,obj.init.temp_x0_filters,obj.init.target,1),...
+                            [NewXopt, J, obj.init.exitflag,output] = obj.setup.fmin(@(x)obj.setup.cost_run(x,obj.init.temp_x0_nonopt,obj.init.temp_x0_filters,obj.init.target,1),...
                                                                      obj.init.temp_x0_opt, obj.setup.Acon, obj.setup.Bcon,obj.setup.Acon_eq, obj.setup.Bcon_eq, obj.setup.LBcon,...
                                                                      obj.setup.UBcon, obj.setup.NONCOLcon, obj.init.myoptioptions);
                         else
-                            [NewXopt, J, obj.init.exitflag,output] = obj.setup.fmin(@(x)obj.cost_function(x,obj.init.temp_x0_nonopt,obj.init.temp_x0_filters,obj.init.target,1),...
+                            [NewXopt, J, obj.init.exitflag,output] = obj.setup.fmin(@(x)obj.setup.cost_run(x,obj.init.temp_x0_nonopt,obj.init.temp_x0_filters,obj.init.target,1),...
                                                                      obj.init.temp_x0_opt, obj.init.myoptioptions);
                         end
                         
@@ -1123,11 +1189,18 @@ classdef obsopt < handle
                         for traj = 1:obj.setup.Ntraj
                             obj.init.traj = traj;
                             NewXopt_end = zeros(obj.setup.dim_state,1);
-                            NewXopt_end(obj.setup.opt_vars) = NewXopt;
+                            NewXopt_end(obj.setup.opt_vars) = NewXopt(obj.setup.opt_vars);
                             NewXopt_end(obj.setup.nonopt_vars) = obj.init.temp_x0_nonopt(traj).val;                          
                             NewXopt_tmp(traj).val = NewXopt_end;                           
                         end
-                        NewXopt = NewXopt_tmp;
+                        
+                        %%% TEST WITH X_FILTER AS OPT VAR
+                        if obj.setup.opt_filters
+                            NewXfilter(traj).val = NewXopt(obj.setup.opt_vars(end)+1:end);
+                        end
+                        
+                        % set new state
+                        NewXopt = NewXopt_tmp;                                                
 
                         % opt counter
                         if traj == 1
@@ -1144,9 +1217,25 @@ classdef obsopt < handle
 
                             % on each trajectory
                             for traj=1:obj.setup.Ntraj
+                                
+                                % set traj
                                 obj.init.traj = traj;
-                                % update
+                                
+                                % update state
                                 obj.init.X_est(traj).val(:,obj.init.BackIterIndex) = NewXopt(traj).val;
+                                
+                                % update filters
+                                if obj.setup.opt_filters
+                                    filterstartpos = max(1,obj.init.BackIterIndex);
+                                    shift = 0;
+                                    for nfilt=1:obj.setup.Nfilt
+                                        for dim=1:obj.setup.dim_out
+                                            obj.init.X_filter_est(traj).val{nfilt,dim}(:,filterstartpos) = NewXfilter(traj).val(shift+1:shift+obj.setup.filterTF(nfilt).dim);
+                                            shift = shift + obj.setup.filterTF(nfilt).dim;
+                                        end
+                                    end
+                                end
+                                
                                 % store measure times
                                 obj.init.opt_chosen_time = [obj.init.opt_chosen_time obj.init.ActualTimeIndex];
                                 obj.init.just_optimised = 1;
@@ -1174,8 +1263,8 @@ classdef obsopt < handle
                                 yhat(traj).val = Yhat;
                                 for filt=1:obj.setup.Nfilt
                                     for dim=1:obj.setup.dim_out
-                                        y_tmp = dyhat{filt,dim}.val(end);
-                                        obj.init.X_filter_est(traj).val{filt,dim}(:,tspan_pos) = x_filter{filt,dim}.val;
+                                        y_tmp(dim,1) = dyhat{filt,dim}.val(end);
+                                        obj.init.X_filter_est(traj).val{filt,dim}(:,unique(tspan_pos)) = x_filter{filt,dim}.val;
                                     end
                                     yhat(traj).val = [yhat(traj).val, y_tmp];
                                 end
@@ -1219,8 +1308,8 @@ classdef obsopt < handle
                                     yhat(traj).val = Yhat;
                                     for filt=1:obj.setup.Nfilt
                                         for dim=1:obj.setup.dim_out
-                                            y_tmp = dyhat{filt,dim}.val(end);
-                                            obj.init.X_filter_est(traj).val{filt,dim}(:,tspan_pos) = x_filter{filt,dim}.val;
+                                            y_tmp(dim,1) = dyhat{filt,dim}.val(end);
+                                            obj.init.X_filter_est(traj).val{filt,dim}(:,unique(tspan_pos)) = x_filter{filt,dim}.val;
                                         end
                                         yhat(traj).val = [yhat(traj).val, y_tmp]; 
                                     end                                    
@@ -1394,7 +1483,7 @@ classdef obsopt < handle
             end
             linkaxes(ax,'x');
             
-            %%%% plot filters %%%%%
+            %%%% plot filters - measures %%%%%
             figure(5)
             sgtitle('Filters on measures')            
             ax = zeros(1,3);
@@ -1426,6 +1515,57 @@ classdef obsopt < handle
                 
             end
             linkaxes(ax,'x');
+            
+            %%%% plot filters - state estimation %%%
+            figure(6)
+            sgtitle('Filter State estimation')
+            for filt=1:obj.setup.Nfilt
+                subplot(obj.setup.Nfilt,1,filt);
+                hold on
+                grid on
+                box on
+                
+                for traj=1:obj.setup.Ntraj
+                    for dim=1:obj.setup.dim_out
+                        if strcat(obj.setup.DataType,'simulated')
+                            plot(obj.setup.time,obj.init.X_filter(traj).val{filt,dim},'--','LineWidth',2);
+                        end
+                        plot(obj.setup.time,obj.init.X_filter_est(traj).val{filt,dim},':','LineWidth',2);
+                    end
+
+                    if strcat(obj.setup.DataType,'simulated')
+                        legend('True','Est')
+                    else
+                        legend('Stored','Est')
+                    end
+                end
+                
+                % labels
+                xlabel(['time [s]'])
+                ylabel(['Filter ',num2str(filt)])
+            end
+            
+            %%%% plot filters - State estimation error %%%
+            figure(7)
+            sgtitle('Filter state estimation error')
+            for filt=1:obj.setup.Nfilt
+                subplot(obj.setup.Nfilt,1,filt);
+                hold on
+                grid on
+                box on
+                
+                for traj=1:obj.setup.Ntraj
+                    for dim=1:obj.setup.dim_out
+                        err = obj.init.X_filter(traj).val{filt,dim}-obj.init.X_filter_est(traj).val{filt,dim};
+                        plot(obj.setup.time,err,'--','LineWidth',2);                        
+                    end
+                    legend('Estimation error')                    
+                end
+                
+                % labels
+                xlabel(['time [s]'])
+                ylabel(['Filter ',num2str(filt)])
+            end
             
         end
     end
