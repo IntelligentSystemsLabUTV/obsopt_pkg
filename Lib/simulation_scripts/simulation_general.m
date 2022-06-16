@@ -12,7 +12,7 @@ function [params,obs] = simulation_general
 % close all
     
 % init observer buffer (see https://doi.org/10.48550/arXiv.2204.09359)
-Nw = 13;
+Nw = 11;
 Nts = 10;
 
 % set sampling time
@@ -20,7 +20,7 @@ Ts = 1e-1;
 
 % set initial and final time instant
 t0 = 0;
-tend = 20;
+tend = 5;
 % uncomment to test the MHE with a single optimisation step
 % tend = 1*(Nw*Nts+1)*Ts;
 
@@ -33,7 +33,7 @@ tend = 20;
 % model equations. e.g. for a mechanical system
 % params.M = mass
 % params.b = friction coefficient
-params_init = @params_battery;
+params_init = @params_battery_carnevale;
 
 %%%% params update function %%%%
 % remark: this file is used if the MHE is set to estimate mode parameters
@@ -45,7 +45,7 @@ params_init = @params_battery;
 % x: state vector
 % OUTPUT: 
 % params_out: updated structure with the new model parameters 
-params_update = @params_update_battery;
+params_update = @params_update_battery_carnevale;
 
 
 %%%% model function %%%%
@@ -58,7 +58,7 @@ params_update = @params_update_battery;
 % obs: instance of the obsopt observer class
 % OUTPUT:
 % xdot:output of the state space model
-model = @model_battery;
+model = @model_battery_carnevale;
 
 %%%% model reference function %%%%
 % remark: !DEVEL! this function is used to generate the reference
@@ -86,7 +86,7 @@ model_reference = model;
 % OUTPUT:
 % y = measure (no noise added). In the following examples it holds
 % y = x(params.observed_state) (see params_init options)
-measure = @measure_battery;
+measure = @measure_battery_carnevale;
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 %%%% filters %%%%
@@ -122,7 +122,7 @@ input_law = @control;
 % this should be a vector with 2 columns and as many rows as the state
 % dimension. All the noise are considered as Gaussian distributed. The 
 % first column defines the mean while the second column the variance.
-noise_mat = 0*[0,1e-1;0,1e-1;0,0;0,0;0,0;0,0];
+noise_mat = 0*[0,1e-1;0,1e-1;0,0;0,0;0,0];
 
 %%%% params init %%%%
 % init the parameters structure through funtion @model_init. 
@@ -130,9 +130,9 @@ noise_mat = 0*[0,1e-1;0,1e-1;0,0;0,0;0,0;0,0];
 % important is the 'params_init' option, which takes as input the function 
 % handle to the previously defined @params_init. For more information see 
 % directly the model_init.m file.
-params = model_init('Ts',Ts,'T0',[t0, tend],'noise',1,'noise_spec',noise_mat, 'params_update', params_update, ...
+params = model_init('Ts',Ts,'T0',[t0, tend],'noise',0,'noise_spec',noise_mat, 'params_update', params_update, ...
         'model',model,'measure',measure,'ObservedState',[1],'ode',ode, 'odeset', [1e-3 1e-6], ...
-        'input_enable',1,'input_law',input_law,'params_init',params_init);
+        'input_enable',0,'input_law',input_law,'params_init',params_init);
 
 %%%% observer init %%%%
 % create observer class instance. For more information on the setup

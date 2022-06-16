@@ -18,7 +18,7 @@ function u = control(t,drive,params)
     % simply uncomment or add the law you need, according to params
 
     %%%% control law - battery %%%%
-    u = [sin(t); zeros(size(t))];
+    u = sin(t);
         
     else
         u = zeros(params.dim_input,1);
