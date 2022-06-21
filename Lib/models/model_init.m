@@ -181,14 +181,14 @@ function params = model_init(varargin)
             if randflag
                 params.perc(params.nonopt_vars,traj) = 1*randn(1,length(params.nonopt_vars))*5e-1;
             else
-                params.perc(params.nonopt_vars,traj) = 1*ones(1,length(params.nonopt_vars))*6e-1;
+                params.perc(params.nonopt_vars,traj) = 1*ones(1,length(params.nonopt_vars))*3e-1;
             end
 
             % % if case: random perturbation percentage - optimised vars
             if randflag
                 params.perc(params.opt_vars,traj) = 1*randn(1,length(params.opt_vars));
             else
-                params.perc(params.opt_vars,traj) = 1*ones(1,length(params.opt_vars))*6e-1;
+                params.perc(params.opt_vars,traj) = 1*ones(1,length(params.opt_vars))*1e-1;
             end
 
             % final setup on perc

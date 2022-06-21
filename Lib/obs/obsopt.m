@@ -1382,9 +1382,13 @@ classdef obsopt < handle
                     data = reshape(obj.init.Yhat_full_story(traj).val(1,k,obj.init.temp_time),1,length(WindowTime));
 %                     plot(WindowTime,data,'s','MarkerSize',5);
 
-                    % plot target values
-                    data = reshape(obj.init.target_story(traj).val(1,k,obj.init.temp_time),1,length(WindowTime));
-                    plot(WindowTime,data,'bo','MarkerSize',5);
+                    % plot target values    
+                    try
+                        data = reshape(obj.init.target_story(traj).val(1,k,obj.init.temp_time),1,length(WindowTime));
+                        plot(WindowTime,data,'bo','MarkerSize',5);
+                    catch 
+                        disp('CHECK T_END OR AYELS CONDITION - LOOKS LIKE NO OPTIMISATION HAS BEEN RUN')
+                    end
 
                     ylabel(strcat('y_',num2str(k)));
                     xlabel('simulation time [s]');
