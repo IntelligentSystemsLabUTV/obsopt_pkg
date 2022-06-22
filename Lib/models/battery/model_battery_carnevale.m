@@ -21,7 +21,25 @@ function x_dot = model_battery_carnevale(t,x,params,obs)
     
     % model dynamics (carnevale 2019)
     % Vp
-    x_dot(1) = -x(1)-x(2)+x(3)-params.u(1)*x(4);
-    % all the following are constant    
+    x_dot(1) = -x(1)*x(2)+x(3)-params.u(1)*x(4);
+    
+    % time varying params - random walk
+%     x_dot(2) = 0.05*randn;
+%     x_dot(3) = 0.05*randn;
+%     x_dot(4) = 0.05*randn;
+%     x_dot(5) = 0.05*randn;
+    
+    % time varying params - exp decay
+%     x_dot(2) = -0.1*x(2);
+%     x_dot(3) = -0.5*x(3);
+%     x_dot(4) = -0.6*x(4);
+%     x_dot(5) = -0.8*x(5);
+
+    % time varying system - blue noise
+%     x_dot(2) = 0.8*randn + 0.05;
+%     x_dot(3) = 0.8*randn + 0.02;
+%     x_dot(4) = 0.8*randn + 0.06;
+%     x_dot(5) = 0.8*randn + 0.04;
+    
     
 end

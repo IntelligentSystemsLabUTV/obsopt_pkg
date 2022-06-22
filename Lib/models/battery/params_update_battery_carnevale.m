@@ -12,12 +12,9 @@
 function params_out = params_update_battery_carnevale(params,x)
 
     % assign params
-    params_out = params;
+    params_out = params;    
     
-    % update the nonlinearity
-    % params_out.mu = x(3);
-    
-%     params_out.Voc = x(3);
+%     params_out.Rc = x(2);
 %     params_out.R0 = x(4);
 %     params_out.R1 = x(5);
 %     params_out.C1 = x(6);

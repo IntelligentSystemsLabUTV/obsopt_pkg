@@ -16,5 +16,5 @@ function y = measure_battery_carnevale(x,params,t)
     params.u = params.input(t,x,params);    
     
     % get the observed components of the state vector
-    y = x(1)-params.u(1)*x(5);
+    y = x(1,:)-params.u(1,:).*x(5,:);
 end
