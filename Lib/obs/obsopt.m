@@ -90,6 +90,7 @@ classdef obsopt < handle
                 obj.setup.opt_vars = params.opt_vars;
                 obj.setup.nonopt_vars = params.nonopt_vars;
                 obj.setup.plot_vars = params.plot_vars;
+                obj.setup.plot_params = params.plot_params;
                                 
             else
                 obj.setup.model = @(t,x,params) -2*x;
@@ -161,6 +162,14 @@ classdef obsopt < handle
                 obj.setup.safety_density = varargin{pos+1};
             else
                 obj.setup.safety_density = 2;
+            end
+            
+            % option to define the safety interval in adaptive sampling
+            if any(strcmp(varargin,'WaitForN'))
+                pos = find(strcmp(varargin,'WaitForN'));
+                obj.setup.wait4N = varargin{pos+1};
+            else
+                obj.setup.wait4N = 0;
             end
             
             % enable or not the adaptive sampling
@@ -351,7 +360,7 @@ classdef obsopt < handle
             end
             
             % reference model
-            if any(strcmp(varargin,'model_reference')) && (obj.setup.control_design)
+            if any(strcmp(varargin,'model_reference')) 
                 pos = find(strcmp(varargin,'model_reference'));
                 obj.setup.model_reference = varargin{pos+1};
             else
@@ -385,6 +394,14 @@ classdef obsopt < handle
                 obj.setup.J_term_spring = 0;
             end
             obj.setup.Nfilt = obj.setup.J_nterm-1;
+            
+            % terminal cost
+            if any(strcmp(varargin,'terminal_cost')) && (obj.setup.control_design==0)
+                pos = find(strcmp(varargin,'terminal_cost'));
+                obj.setup.terminal_cost = varargin{pos+1};
+            else
+                obj.setup.terminal_cost = 0;
+            end
             
             % option to define the safety interval in adaptive sampling
             if any(strcmp(varargin,'filterTF'))
@@ -543,7 +560,7 @@ classdef obsopt < handle
             %%% start of optimisation setup %%%
             % optimset: check documentation for fminsearch or fminunc
             obj.init.TolX = 0;
-            obj.init.TolFun = 0;
+            obj.init.TolFun = 1e-10;
             obj.init.last_opt_time = 0;
             obj.init.opt_time = 0;
             
@@ -623,7 +640,7 @@ classdef obsopt < handle
                 x(obj.setup.dim_state+1:end) = x_filters;
                 
                 % update params
-                obj.init.params = obj.setup.params.params_update(obj.init.params,x);
+                obj.init.params = obj.setup.params.params_update(obj.init.params,x,obj.setup.time(obj.init.BackIterIndex));
                 
                 % get desired trajectory
                 y_target = varargin{4}(traj).val;
@@ -648,6 +665,15 @@ classdef obsopt < handle
                     J_final = NaN;
                     break
                 end
+                
+                %%% terminal cost - dev %%%
+                if obj.setup.terminal_cost
+                    x_mem = obj.init.X_est(traj).val(obj.setup.opt_vars,obj.init.BackIterIndex);
+                    terminal_cost = norm(x_mem-x_start);
+                else
+                    terminal_cost = 0;
+                end
+                J_terminal = obj.setup.terminal_cost*terminal_cost*0.01;
                 
                 %%% get measure  %%
                 Yhat = zeros(obj.setup.Nfilt+1,obj.setup.dim_out,size(X.y,2));
@@ -727,10 +753,11 @@ classdef obsopt < handle
                              
                 
                 % non opt vars barrier term
-                diff_var = x(obj.setup.nonopt_vars) - x_nonopt(obj.setup.nonopt_vars);
+                diff_var = x(obj.setup.nonopt_vars) - x_nonopt;
                 J_barr = 1e8*any(diff_var)*0;
                 
-                J_final = J_final + Jtot + Jspring + J_barr;
+                J_final = J_final + Jtot + Jspring + J_barr + J_terminal;
+                
 
                 %%% final stuff %%%
                 if n_iter > 0
@@ -985,7 +1012,11 @@ classdef obsopt < handle
 
                 % flag
                 if obj.setup.control_design == 0
-                    flag = 2*length(obj.setup.opt_vars)+1; % Aeyels condition (see https://doi.org/10.48550/arXiv.2204.09359)
+                    if obj.setup.wait4N == 0
+                        flag = 2*length(obj.setup.opt_vars)+1; % Aeyels condition (see https://doi.org/10.48550/arXiv.2204.09359)
+                    else
+                        flag = obj.setup.w; % wait to fill the entire buffer
+                    end
                 else
                     flag = obj.setup.w;
                 end
@@ -1140,7 +1171,7 @@ classdef obsopt < handle
                         if (obj.setup.AlwaysOpt) || ( (J_diff <= obj.setup.Jdot_thresh) || (distance > obj.init.safety_interval) )
                             
                             % update params
-                            obj.init.params = obj.setup.params.params_update(obj.init.params,NewXopt(1).val);
+                            obj.init.params = obj.setup.params.params_update(obj.init.params,NewXopt(1).val,obj.setup.time(obj.init.BackIterIndex));
 
                             % on each trajectory
                             for traj=1:obj.setup.Ntraj
@@ -1243,7 +1274,7 @@ classdef obsopt < handle
                             end
                             
                             % restore params
-                            obj.init.params = obj.setup.params.params_update(obj.init.params,obj.init.temp_x0(traj).val);
+                            obj.init.params = obj.setup.params.params_update(obj.init.params,obj.init.temp_x0(traj).val,obj.setup.time(obj.init.BackIterIndex));
                         end
 
                         % stop time counter
@@ -1271,21 +1302,24 @@ classdef obsopt < handle
         % plot results for control design
         function plot_section_control(obj,varargin)
             
+            fig_count = 0;
+            
             %%%% plot state estimation %%%
-            figure(1)
+            fig_count = fig_count+1;
+            figure(fig_count)
             sgtitle('State estimation')
-            for i=1:obj.setup.plot_vars
-                subplot(obj.setup.plot_vars,1,i);
+            for i=1:length(obj.setup.plot_vars)
+                subplot(length(obj.setup.plot_vars),1,i);
                 hold on
                 grid on
                 box on
                 
                 for traj=1:obj.setup.Ntraj
                     if strcat(obj.setup.DataType,'simulated')
-                        plot(obj.setup.time,obj.init.X(traj).val(i,:),'b--');
+                        plot(obj.setup.time,obj.init.X(traj).val(obj.setup.plot_vars(i),:),'b--');
                     end
-                    plot(obj.setup.time,obj.init.X_est(traj).val(i,:),'r--');
-                    plot(obj.setup.time,obj.init.X_est_runtime(traj).val(i,:),'k:','LineWidth',0.5);                                        
+                    plot(obj.setup.time,obj.init.X_est(traj).val(obj.setup.plot_vars(i),:),'r--');
+%                     plot(obj.setup.time,obj.init.X_est_runtime(traj).val(i,:),'k:','LineWidth',0.5);                                        
 
                     if strcat(obj.setup.DataType,'simulated')
                         legend('True','Est')
@@ -1297,21 +1331,54 @@ classdef obsopt < handle
                 
                 % labels
                 xlabel(['time [s]'])
-                ylabel(['x_',num2str(i)])
+                ylabel(['x_',num2str(obj.setup.plot_vars(i))])
+            end
+            
+            %%%% plot parameters estimation %%%
+            if ~isempty(obj.setup.plot_params)
+                fig_count = fig_count+1;
+                figure(fig_count)
+                sgtitle('Parameters estimation')
+                for i=1:length(obj.setup.plot_params)
+                    subplot(length(obj.setup.plot_params),1,i);
+                    hold on
+                    grid on
+                    box on
+
+                    for traj=1:obj.setup.Ntraj
+                        if strcat(obj.setup.DataType,'simulated')
+                            plot(obj.setup.time,obj.init.X(traj).val(obj.setup.plot_params(i),:),'b--');
+                        end
+                        plot(obj.setup.time,obj.init.X_est(traj).val(obj.setup.plot_params(i),:),'r--');
+    %                     plot(obj.setup.time,obj.init.X_est_runtime(traj).val(i,:),'k:','LineWidth',0.5);                                        
+
+                        if strcat(obj.setup.DataType,'simulated')
+                            legend('True','Est')
+    %                         legend('Stored','Est','Runtime')
+                        else
+                            legend('Stored','Est','Runtime')
+                        end
+                    end
+
+                    % labels
+                    xlabel(['time [s]'])
+                    ylabel(['x_',num2str(obj.setup.plot_params(i))])
+                end
             end
             
             %%%% plot state estimation error %%%
-            figure(2)
+            fig_count = fig_count+1;
+            figure(fig_count)
             sgtitle('Estimation error - components')
             
-            for i=1:obj.setup.plot_vars
-                subplot(obj.setup.plot_vars,1,i);
+            for i=1:length(obj.setup.plot_vars)
+                subplot(length(obj.setup.plot_vars),1,i);
                 hold on
                 grid on
                 box on
                 
                 % plot
-                est_error = obj.init.X(1).val(i,:) - obj.init.X_est_runtime(1).val(i,:);
+                est_error = obj.init.X(1).val(obj.setup.plot_vars(i),:) - obj.init.X_est_runtime(1).val(obj.setup.plot_vars(i),:);
                 
                 log_flag = 1;
                 if ~log_flag
@@ -1324,11 +1391,42 @@ classdef obsopt < handle
                 end
                 
                 xlabel('time [s]')
-                ylabel(['\delta x_',num2str(i)])
+                ylabel(['\delta x_',num2str(obj.setup.plot_vars(i))])
+            end
+            
+            %%%% plot parameters estimation error %%%
+            if ~isempty(obj.setup.plot_params)
+                fig_count = fig_count+1;
+                figure(fig_count)
+                sgtitle('Estimation error - parameters')
+
+                for i=1:length(obj.setup.plot_params)
+                    subplot(length(obj.setup.plot_params),1,i);
+                    hold on
+                    grid on
+                    box on
+
+                    % plot
+                    est_error = obj.init.X(1).val(obj.setup.plot_params(i),:) - obj.init.X_est_runtime(1).val(obj.setup.plot_params(i),:);
+
+                    log_flag = 1;
+                    if ~log_flag
+                        plot(obj.setup.time,est_error,'k','LineWidth',2);
+                    else
+                        % log 
+    %                     set(gca, 'XScale', 'log')
+                        set(gca, 'YScale', 'log')
+                        plot(obj.setup.time,abs(est_error),'k','LineWidth',2);
+                    end
+
+                    xlabel('time [s]')
+                    ylabel(['\delta x_',num2str(obj.setup.plot_params(i))])
+                end
             end
             
             %%%% plot state estimation error - norm%%%
-            figure(3)
+            fig_count = fig_count+1;
+            figure(fig_count)
             sgtitle('Estimation error - norm')
             hold on
             grid on
@@ -1354,7 +1452,8 @@ classdef obsopt < handle
             
             
             %%%% plot windowed data %%%%
-            figure(4)
+            fig_count = fig_count+1;
+            figure(fig_count)
             grid on
             sgtitle('Sampled measured')
             ax = zeros(1,3);
@@ -1399,7 +1498,8 @@ classdef obsopt < handle
             linkaxes(ax,'x');
             
             %%%% plot filters %%%%%
-            figure(5)
+            fig_count = fig_count+1;
+            figure(fig_count)
             sgtitle('Filters on measures')            
             ax = zeros(1,3);
             for k=1:obj.setup.J_nterm

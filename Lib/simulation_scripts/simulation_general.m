@@ -12,15 +12,15 @@ function [params,obs] = simulation_general
 % close all
     
 % init observer buffer (see https://doi.org/10.48550/arXiv.2204.09359)
-Nw = 11;
+Nw = 30;
 Nts = 10;
 
 % set sampling time
-Ts = 1e-1;
+Ts = 5e-2;
 
 % set initial and final time instant
 t0 = 0;
-tend = 5;
+tend = 20;
 % uncomment to test the MHE with a single optimisation step
 % tend = 1*(Nw*Nts+1)*Ts;
 
@@ -33,7 +33,7 @@ tend = 5;
 % model equations. e.g. for a mechanical system
 % params.M = mass
 % params.b = friction coefficient
-params_init = @params_battery_carnevale;
+params_init = @params_battery_yan;
 
 %%%% params update function %%%%
 % remark: this file is used if the MHE is set to estimate mode parameters
@@ -45,7 +45,7 @@ params_init = @params_battery_carnevale;
 % x: state vector
 % OUTPUT: 
 % params_out: updated structure with the new model parameters 
-params_update = @params_update_battery_carnevale;
+params_update = @params_update_battery_yan;
 
 
 %%%% model function %%%%
@@ -58,7 +58,8 @@ params_update = @params_update_battery_carnevale;
 % obs: instance of the obsopt observer class
 % OUTPUT:
 % xdot:output of the state space model
-model = @model_battery_carnevale;
+model = @model_battery_yan;
+model_true = @model_battery_yan_true;
 
 %%%% model reference function %%%%
 % remark: !DEVEL! this function is used to generate the reference
@@ -74,7 +75,7 @@ model = @model_battery_carnevale;
 % OUTPUT:
 % xdot:output of the state space model
 % model_reference = @model_reference;
-model_reference = model;
+model_reference = model_true;
 
 %%%% measure function %%%%
 % function: this file shall be in the following form:   
@@ -86,7 +87,7 @@ model_reference = model;
 % OUTPUT:
 % y = measure (no noise added). In the following examples it holds
 % y = x(params.observed_state) (see params_init options)
-measure = @measure_battery_carnevale;
+measure = @measure_battery_yan;
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 %%%% filters %%%%
@@ -105,7 +106,7 @@ measure = @measure_battery_carnevale;
 
 %%%% integration method %%%%
 % ode45-like integration method. For discrete time systems use @odeDD
-ode = @oderk4_fast;
+ode = @odeDD;
 
 %%%% input law %%%
 % function: defines the input law used. Remember to check the @model
@@ -122,7 +123,7 @@ input_law = @control;
 % this should be a vector with 2 columns and as many rows as the state
 % dimension. All the noise are considered as Gaussian distributed. The 
 % first column defines the mean while the second column the variance.
-noise_mat = 0*[0,1e-1;0,1e-1;0,0;0,0;0,0];
+noise_mat = 0*[0,1e-1];
 
 %%%% params init %%%%
 % init the parameters structure through funtion @model_init. 
@@ -130,18 +131,18 @@ noise_mat = 0*[0,1e-1;0,1e-1;0,0;0,0;0,0];
 % important is the 'params_init' option, which takes as input the function 
 % handle to the previously defined @params_init. For more information see 
 % directly the model_init.m file.
-params = model_init('Ts',Ts,'T0',[t0, tend],'noise',0,'noise_spec',noise_mat, 'params_update', params_update, ...
+params = model_init('Ts',Ts,'T0',[t0, tend],'noise',1,'noise_spec',noise_mat, 'params_update', params_update, ...
         'model',model,'measure',measure,'ObservedState',[1],'ode',ode, 'odeset', [1e-3 1e-6], ...
-        'input_enable',0,'input_law',input_law,'params_init',params_init);
+        'input_enable',1,'input_law',input_law,'params_init',params_init);
 
 %%%% observer init %%%%
 % create observer class instance. For more information on the setup
 % options check directly the class constructor in obsopt.m
 obs = obsopt('DataType', 'simulated', 'optimise', 1, ... 
       'Nw', Nw, 'Nts', Nts, 'ode', ode, 'PE_maxiter', 0, 'control_design', 0 , 'model_reference', model_reference, ...    
-      'params',params, 'filters', filterScale,'filterTF', filter, 'Jdot_thresh',0.9,'MaxIter',60,...
-      'Jterm_store', 1, 'AlwaysOpt', 1 , 'print', 1 , 'SafetyDensity', 3, 'AdaptiveHist', [1e-2, 3e-2, 1e0], ...
-      'AdaptiveSampling',0, 'FlushBuffer', 1, 'opt', @fminunc, 'spring', 0, 'LBcon', [0 -Inf], 'UBcon', [1 Inf]);
+      'params',params, 'filters', filterScale,'filterTF', filter, 'Jdot_thresh',0.9,'MaxIter',80,'WaitForN' ,1,...
+      'Jterm_store', 1, 'AlwaysOpt', 1 , 'print', 1 , 'SafetyDensity', 3, 'AdaptiveHist', [1e-2, 3e-2, 1e0], 'model_reference', model_reference, ...
+      'AdaptiveSampling',0, 'FlushBuffer', 0, 'opt', @fminunc, 'spring', 0, 'LBcon', [], 'UBcon', [], 'terminal_cost',0);
 
 %% %%%% SIMULATION %%%%
 % remark: the obs.setup.Ntraj variable describes on how many different
@@ -163,19 +164,22 @@ for i = 1:obs.setup.Niter
     
     % set current iteration in the obsopt class
     obs.init.ActualTimeIndex = i;
-    obs.init.t = obs.setup.time(i);
+    obs.init.t = obs.setup.time(i);        
     
     %%%% PROPAGATION %%%%
     % forward propagation of the previous estimate
-    for traj = 1:obs.setup.Ntraj
+    for traj = 1:obs.setup.Ntraj               
                  
         % propagate only if the time gets over the initial time instant
-        if(obs.init.ActualTimeIndex > 1)
+        if(obs.init.ActualTimeIndex > 1)                        
             
             % define the time span of the integration
             startpos = obs.init.ActualTimeIndex-1;
             stoppos = obs.init.ActualTimeIndex;
-            tspan = obs.setup.time(startpos:stoppos);            
+            tspan = obs.setup.time(startpos:stoppos);     
+            
+            % save the input
+            obs.init.u_story(:,obs.init.ActualTimeIndex) = params.input(obs.init.t,obs.init.X(1).val(:,startpos),params);
 
             % true system - correct initial condition and no noise
             % considered
@@ -206,7 +210,7 @@ for i = 1:obs.setup.Niter
     
     % stop time counter for the observer. Each optimisation process is
     % timed.
-    obs.init.iter_time(obs.init.ActualTimeIndex) = toc(t1);
+    obs.init.iter_time(obs.init.ActualTimeIndex) = toc(t1);    
 
 end
 
