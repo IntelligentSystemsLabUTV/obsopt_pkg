@@ -33,7 +33,7 @@ tend = 4;
 % model equations. e.g. for a mechanical system
 % params.M = mass
 % params.b = friction coefficient
-params_init = @params_double_pendulum;
+params_init = @params_control_test;
 
 %%%% params update function %%%%
 % remark: this file is used if the MHE is set to estimate mode parameters
@@ -45,7 +45,7 @@ params_init = @params_double_pendulum;
 % x: state vector
 % OUTPUT: 
 % params_out: updated structure with the new model parameters 
-params_update = @params_update_double_pendulum;
+params_update = @params_update_control_test;
 
 
 %%%% model function %%%%
@@ -58,7 +58,7 @@ params_update = @params_update_double_pendulum;
 % obs: instance of the obsopt observer class
 % OUTPUT:
 % xdot:output of the state space model
-model = @model_double_pendulum;
+model = @model_control_test;
 
 %%%% model reference function %%%%
 % remark: !DEVEL! this function is used to generate the reference
@@ -86,7 +86,7 @@ model_reference = model;
 % OUTPUT:
 % y = measure (no noise added). In the following examples it holds
 % y = x(params.observed_state) (see params_init options)
-measure = @measure_general;
+measure = @measure_control_test;
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 %%%% filters %%%%
@@ -122,7 +122,7 @@ input_law = @control;
 % this should be a vector with 2 columns and as many rows as the state
 % dimension. All the noise are considered as Gaussian distributed. The 
 % first column defines the mean while the second column the variance.
-noise_mat = 0*[0,1e-1;0,1e-1;0,1e-2;0,1e-2];
+noise_mat = 0*[0,1e-1;0,1e-1];
 
 %%%% params init %%%%
 % init the parameters structure through funtion @model_init. 
@@ -131,7 +131,7 @@ noise_mat = 0*[0,1e-1;0,1e-1;0,1e-2;0,1e-2];
 % handle to the previously defined @params_init. For more information see 
 % directly the model_init.m file.
 params = model_init('Ts',Ts,'T0',[t0, tend],'noise',0,'noise_spec',noise_mat, 'params_update', params_update, ...
-        'model',model,'measure',measure,'ObservedState',[1 2],'ode',ode, 'odeset', [1e-3 1e-6], ...
+        'model',model,'measure',measure,'ObservedState',[1],'ode',ode, 'odeset', [1e-3 1e-6], ...
         'input_enable',0,'input_law',input_law,'params_init',params_init);
 
 %%%% observer init %%%%
