@@ -21,7 +21,7 @@ function [filter, filterScale, reference] = filter_define(Ts,Nts)
     
     %%% derivative filter %%%
     if 0
-    i = 1;   
+    i = i+1;   
     eps1 = 1e-1;
     G = tf([1 0],[eps1 1]);
     SS = ss(G);
@@ -38,7 +38,7 @@ function [filter, filterScale, reference] = filter_define(Ts,Nts)
 
     %%%% integral filter %%%%
     if 0
-    i = 2;    
+    i = i+1;    
     eps2 = 1e2;
     G = tf(1,[eps2 1]);
     SS = ss(G);
