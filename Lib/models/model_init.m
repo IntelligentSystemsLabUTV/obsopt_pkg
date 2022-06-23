@@ -175,7 +175,7 @@ function params = model_init(varargin)
             params.perc = zeros(params.StateDim,params.Ntraj);
             
             % randomly define the percentage (bool flag, see below)
-            randflag = 0;
+            randflag = 1;
             
             % if case: random perturbation percentage - non optimised vars
             if randflag
@@ -186,14 +186,19 @@ function params = model_init(varargin)
 
             % % if case: random perturbation percentage - optimised vars
             if randflag
-                params.perc(params.opt_vars,traj) = 1*randn(1,length(params.opt_vars));
+                params.perc(params.opt_vars,traj) = 0*randn(1,length(params.opt_vars));
             else
-                params.perc(params.opt_vars,traj) = 1*ones(1,length(params.opt_vars))*6e-1;
+                params.perc(params.opt_vars,traj) = 0*ones(1,length(params.opt_vars))*6e-1;
             end
 
             % final setup on perc
             params.perc = 1*params.perc;
-            params.X_est(traj).val(:,1) = init.*(1 + params.noise*params.perc(:,traj).*ones(params.StateDim,1)) + params.noise*params.noise_std.*randn(params.StateDim,1);
+            
+            % around init
+%             params.X_est(traj).val(:,1) = init.*(1 + params.noise*params.perc(:,traj).*ones(params.StateDim,1)) + params.noise*params.noise_std.*randn(params.StateDim,1);
+            
+            % around 0
+            params.X_est(traj).val(:,1) =  params.noise*params.perc(:,traj).*ones(params.StateDim,1) + params.noise*params.noise_std.*randn(params.StateDim,1);
         else
         
             %%%% PERTURBATION ON X0 WITH RANDOM NOISE %%%%
@@ -206,7 +211,7 @@ function params = model_init(varargin)
 
             % final setup on initial condition
             params.X_est(traj).val(:,1) = init;
-            params.X_est(traj).val(1:params.dim_state,1) = params.X(traj).val(1:params.dim_state,1) + params.noise*noise;
+            params.X_est(traj).val(params.nonopt_vars,1) = params.X(traj).val(params.nonopt_vars,1) + params.noise*noise;
         end
 
         
