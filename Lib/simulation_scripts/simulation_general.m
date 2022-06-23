@@ -12,17 +12,17 @@ function [params,obs] = simulation_general
 % close all
     
 % init observer buffer (see https://doi.org/10.48550/arXiv.2204.09359)
-Nw = 5;
-Nts = 5;
+Nw = 200;
+Nts = 1;
 
 % set sampling time
 Ts = 5e-2;
 
 % set initial and final time instant
 t0 = 0;
-tend = 4;
+% tend = 4;
 % uncomment to test the MHE with a single optimisation step
-% tend = 1*(Nw*Nts+1)*Ts;
+tend = 1*(Nw*Nts-1)*Ts;
 
 %%%% params init function %%%%
 % function: this function shall be in the following form:
@@ -73,8 +73,8 @@ model = @model_control_test;
 % obs: instance of the obsopt observer class
 % OUTPUT:
 % xdot:output of the state space model
-% model_reference = @model_reference;
-model_reference = model;
+model_reference = @model_reference;
+% model_reference = model;
 
 %%%% measure function %%%%
 % function: this file shall be in the following form:   
@@ -122,7 +122,7 @@ input_law = @control;
 % this should be a vector with 2 columns and as many rows as the state
 % dimension. All the noise are considered as Gaussian distributed. The 
 % first column defines the mean while the second column the variance.
-noise_mat = 0*[0,1e-1;0,1e-1];
+noise_mat = 0*[0,1e-1;0,1e-1;0,0;0,0];  %0,0;0,0;0,0;0,0];
 
 %%%% params init %%%%
 % init the parameters structure through funtion @model_init. 
@@ -130,16 +130,16 @@ noise_mat = 0*[0,1e-1;0,1e-1];
 % important is the 'params_init' option, which takes as input the function 
 % handle to the previously defined @params_init. For more information see 
 % directly the model_init.m file.
-params = model_init('Ts',Ts,'T0',[t0, tend],'noise',0,'noise_spec',noise_mat, 'params_update', params_update, ...
+params = model_init('Ts',Ts,'T0',[t0, tend],'noise',1,'noise_spec',noise_mat, 'params_update', params_update, ...
         'model',model,'measure',measure,'ObservedState',[1],'ode',ode, 'odeset', [1e-3 1e-6], ...
-        'input_enable',0,'input_law',input_law,'params_init',params_init);
+        'input_enable',1,'input_law',input_law,'params_init',params_init);
 
 %%%% observer init %%%%
 % create observer class instance. For more information on the setup
 % options check directly the class constructor in obsopt.m
 obs = obsopt('DataType', 'simulated', 'optimise', 1, ... 
-      'Nw', Nw, 'Nts', Nts, 'ode', ode, 'PE_maxiter', 0, 'control_design', 0 , 'model_reference', model_reference, ...    
-      'params',params, 'filters', filterScale,'filterTF', filter, 'Jdot_thresh',0.9,'MaxIter',40,...
+      'Nw', Nw, 'Nts', Nts, 'ode', ode, 'PE_maxiter', 0, 'control_design', 1 , 'model_reference', model_reference, ...    
+      'params',params, 'filters', filterScale,'filterTF', filter, 'Jdot_thresh',0.9,'MaxIter',500,...
       'Jterm_store', 0, 'AlwaysOpt', 1 , 'print', 1 , 'SafetyDensity', 3, 'AdaptiveHist', [1e-2, 3e-2, 1e0], ...
       'AdaptiveSampling',0, 'FlushBuffer', 1, 'opt', @fminunc, 'spring', 0, 'LBcon', [-Inf -Inf 0]);
 
