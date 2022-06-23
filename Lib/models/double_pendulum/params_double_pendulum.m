@@ -14,7 +14,7 @@ function params = params_double_pendulum
     params.M1 = 1;
     params.Lt2 = 1;
     params.M2 = 1;
-    params.g = 9.81;
+    params.g = 0*9.81;
     params.c1 = 0.1;
     params.c2 = 0.1;  
     
@@ -33,11 +33,14 @@ function params = params_double_pendulum
     % number of reference trajectories (under development)
     params.Ntraj = 1;
     
-    % state dymension
-    params.dim_state = 4;
+    % state dimension
+    params.dim_state = 8;
     
     % initial condition
-    params.X(1).val(:,1) = [-pi/4;-pi/4;0.2;-0.2];
+    % state estimation
+%     params.X(1).val(:,1) = [-pi/4;-pi/4;0.2;-0.2];
+    % control design
+    params.X(1).val(:,1) = [pi/6;pi/6;0;0;params.K1;params.K2;params.K3;params.K4];%;params.K5;params.K6;params.K7;params.K8];
     
     % same initial condition for all the trajectories (under development)
     for traj=2:params.Ntraj
@@ -45,10 +48,10 @@ function params = params_double_pendulum
     end
     
     % position in the state vector of the estimated parameters
-    params.estimated_params = [];
+    params.estimated_params = [5:8];
     
     % which vars am I optimising
-    params.opt_vars = [1:4];
+    params.opt_vars = [5:8];
     
     % set the not optimised vars
     tmp = 1:length(params.X(1).val(:,1));
@@ -60,5 +63,6 @@ function params = params_double_pendulum
         
     % plot vars (used to plot the state estimation. When the parameters are
     % too many, consider to use only the true state components)
-    params.plot_vars = params.dim_state;
+    params.plot_vars = 1:4;
+    params.plot_params = [5:8];
 end

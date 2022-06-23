@@ -17,4 +17,9 @@ function params_out = params_update_double_pendulum(params,x)
     % update parameters
 %     params.c1 = x(5);
 %     params.c2 = x(6);
+
+    params_out.K1 = x(5);
+    params_out.K2 = x(6);
+    params_out.K3 = x(7);
+    params_out.K4 = x(8);
 end

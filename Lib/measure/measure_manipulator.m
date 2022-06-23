@@ -1,5 +1,5 @@
 %% measure function
-function [y, yall] = measure_manipulator(x,params)
+function [y, yall] = measure_manipulator(x,params,t)
     theta = x(params.observed_state,:);
     
     % position origin
