@@ -18,7 +18,18 @@ function u = control(t,drive,params)
     % simply uncomment or add the law you need, according to params
 
     %%%% control law - battery %%%%
-    u = [sin(t); zeros(size(t))];
+%     u = [sin(t); zeros(size(t))];
+    
+    %%%% control law - control test %%%%
+    u = [params.K1, params.K2]*drive(1:2);
+%     u = params.K1*drive(5);
+
+    %%%% control law - pendulum %%%%
+%     u = [params.K1, params.K2, params.K3, params.K4;...
+%          params.K5, params.K6, params.K7, params.K8]*drive(1:4);
+
+%     u = [params.K1, params.K2;...
+%          params.K3, params.K4]*drive(1:2);
         
     else
         u = zeros(params.dim_input,1);

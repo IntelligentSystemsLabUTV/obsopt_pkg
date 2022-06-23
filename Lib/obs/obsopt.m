@@ -90,6 +90,7 @@ classdef obsopt < handle
                 obj.setup.opt_vars = params.opt_vars;
                 obj.setup.nonopt_vars = params.nonopt_vars;
                 obj.setup.plot_vars = params.plot_vars;
+                obj.setup.plot_params = params.plot_params;
                                 
             else
                 obj.setup.model = @(t,x,params) -2*x;
@@ -351,7 +352,7 @@ classdef obsopt < handle
             end
             
             % reference model
-            if any(strcmp(varargin,'model_reference')) && (obj.setup.control_design)
+            if any(strcmp(varargin,'model_reference'))
                 pos = find(strcmp(varargin,'model_reference'));
                 obj.setup.model_reference = varargin{pos+1};
             else
@@ -673,7 +674,7 @@ classdef obsopt < handle
 
                 % create state
                 x = zeros(obj.setup.dim_state+Lfilt,1);
-                x(obj.setup.opt_vars) = x_opt(obj.setup.opt_vars);
+                x(obj.setup.opt_vars) = x_opt;
                 x(obj.setup.nonopt_vars) = x_nonopt;
                 x(obj.setup.dim_state+1:end) = x_filters;
                 
@@ -923,13 +924,28 @@ classdef obsopt < handle
         % control drive function (observer or control design)
         function drive = drive(varargin) 
             
-            obj = varargin{1};            
+            obj = varargin{1};   
+            
+            % init drive
+            drive = [];
             
             % x - varargin
             x_star = varargin{2}(1:obj.init.params.dim_state,:);            
             x = varargin{3}(1:obj.init.params.dim_state,:);            
-            drive = x_star-x;
-            
+
+            % difference between x_true and x 
+%             drive = x_star-x;
+
+            % just x
+            drive = [drive; x];
+
+            % get y
+%             y_meas = varargin{4};
+%             pos = varargin{5};
+%             y = obj.setup.measure(x,obj.init.params,pos);
+% 
+%             drive = [drive; y_meas-y];
+
         end
         
         % observer function: this method wraps up all the afromentioned
@@ -1189,7 +1205,7 @@ classdef obsopt < handle
                         for traj = 1:obj.setup.Ntraj
                             obj.init.traj = traj;
                             NewXopt_end = zeros(obj.setup.dim_state,1);
-                            NewXopt_end(obj.setup.opt_vars) = NewXopt(obj.setup.opt_vars);
+                            NewXopt_end(obj.setup.opt_vars) = NewXopt;
                             NewXopt_end(obj.setup.nonopt_vars) = obj.init.temp_x0_nonopt(traj).val;                          
                             NewXopt_tmp(traj).val = NewXopt_end;                           
                         end
@@ -1360,21 +1376,24 @@ classdef obsopt < handle
         % plot results for control design
         function plot_section_control(obj,varargin)
             
+            fig_count = 0;
+            
             %%%% plot state estimation %%%
-            figure(1)
+            fig_count = fig_count+1;
+            figure(fig_count)
             sgtitle('State estimation')
-            for i=1:obj.setup.plot_vars
-                subplot(obj.setup.plot_vars,1,i);
+            for i=1:length(obj.setup.plot_vars)
+                subplot(length(obj.setup.plot_vars),1,i);
                 hold on
                 grid on
                 box on
                 
                 for traj=1:obj.setup.Ntraj
                     if strcat(obj.setup.DataType,'simulated')
-                        plot(obj.setup.time,obj.init.X(traj).val(i,:),'b--');
+                        plot(obj.setup.time,obj.init.X(traj).val(obj.setup.plot_vars(i),:),'b--');
                     end
-                    plot(obj.setup.time,obj.init.X_est(traj).val(i,:),'r--');
-                    plot(obj.setup.time,obj.init.X_est_runtime(traj).val(i,:),'k:','LineWidth',0.5);                                        
+                    plot(obj.setup.time,obj.init.X_est(traj).val(obj.setup.plot_vars(i),:),'r--');
+%                     plot(obj.setup.time,obj.init.X_est_runtime(traj).val(i,:),'k:','LineWidth',0.5);                                        
 
                     if strcat(obj.setup.DataType,'simulated')
                         legend('True','Est')
@@ -1386,21 +1405,54 @@ classdef obsopt < handle
                 
                 % labels
                 xlabel(['time [s]'])
-                ylabel(['x_',num2str(i)])
+                ylabel(['x_',num2str(obj.setup.plot_vars(i))])
+            end
+            
+            %%%% plot parameters estimation %%%
+            if ~isempty(obj.setup.plot_params)
+                fig_count = fig_count+1;
+                figure(fig_count)
+                sgtitle('Parameters estimation')
+                for i=1:length(obj.setup.plot_params)
+                    subplot(length(obj.setup.plot_params),1,i);
+                    hold on
+                    grid on
+                    box on
+
+                    for traj=1:obj.setup.Ntraj
+                        if strcat(obj.setup.DataType,'simulated')
+                            plot(obj.setup.time,obj.init.X(traj).val(obj.setup.plot_params(i),:),'b--');
+                        end
+                        plot(obj.setup.time,obj.init.X_est(traj).val(obj.setup.plot_params(i),:),'r--');
+    %                     plot(obj.setup.time,obj.init.X_est_runtime(traj).val(i,:),'k:','LineWidth',0.5);                                        
+
+                        if strcat(obj.setup.DataType,'simulated')
+                            legend('True','Est')
+    %                         legend('Stored','Est','Runtime')
+                        else
+                            legend('Stored','Est','Runtime')
+                        end
+                    end
+
+                    % labels
+                    xlabel(['time [s]'])
+                    ylabel(['x_',num2str(obj.setup.plot_params(i))])
+                end
             end
             
             %%%% plot state estimation error %%%
-            figure(2)
+            fig_count = fig_count+1;
+            figure(fig_count)
             sgtitle('Estimation error - components')
             
-            for i=1:obj.setup.plot_vars
-                subplot(obj.setup.plot_vars,1,i);
+            for i=1:length(obj.setup.plot_vars)
+                subplot(length(obj.setup.plot_vars),1,i);
                 hold on
                 grid on
                 box on
                 
                 % plot
-                est_error = obj.init.X(1).val(i,:) - obj.init.X_est_runtime(1).val(i,:);
+                est_error = obj.init.X(1).val(obj.setup.plot_vars(i),:) - obj.init.X_est_runtime(1).val(obj.setup.plot_vars(i),:);
                 
                 log_flag = 1;
                 if ~log_flag
@@ -1413,11 +1465,42 @@ classdef obsopt < handle
                 end
                 
                 xlabel('time [s]')
-                ylabel(['\delta x_',num2str(i)])
+                ylabel(['\delta x_',num2str(obj.setup.plot_vars(i))])
+            end
+            
+            %%%% plot parameters estimation error %%%
+            if ~isempty(obj.setup.plot_params)
+                fig_count = fig_count+1;
+                figure(fig_count)
+                sgtitle('Estimation error - parameters')
+
+                for i=1:length(obj.setup.plot_params)
+                    subplot(length(obj.setup.plot_params),1,i);
+                    hold on
+                    grid on
+                    box on
+
+                    % plot
+                    est_error = obj.init.X(1).val(obj.setup.plot_params(i),:) - obj.init.X_est_runtime(1).val(obj.setup.plot_params(i),:);
+
+                    log_flag = 1;
+                    if ~log_flag
+                        plot(obj.setup.time,est_error,'k','LineWidth',2);
+                    else
+                        % log 
+    %                     set(gca, 'XScale', 'log')
+                        set(gca, 'YScale', 'log')
+                        plot(obj.setup.time,abs(est_error),'k','LineWidth',2);
+                    end
+
+                    xlabel('time [s]')
+                    ylabel(['\delta x_',num2str(obj.setup.plot_params(i))])
+                end
             end
             
             %%%% plot state estimation error - norm%%%
-            figure(3)
+            fig_count = fig_count+1;
+            figure(fig_count)
             sgtitle('Estimation error - norm')
             hold on
             grid on
@@ -1443,7 +1526,8 @@ classdef obsopt < handle
             
             
             %%%% plot windowed data %%%%
-            figure(4)
+            fig_count = fig_count+1;
+            figure(fig_count)
             grid on
             sgtitle('Sampled measured')
             ax = zeros(1,3);
@@ -1471,9 +1555,13 @@ classdef obsopt < handle
                     data = reshape(obj.init.Yhat_full_story(traj).val(1,k,obj.init.temp_time),1,length(WindowTime));
 %                     plot(WindowTime,data,'s','MarkerSize',5);
 
-                    % plot target values
-                    data = reshape(obj.init.target_story(traj).val(1,k,obj.init.temp_time),1,length(WindowTime));
-                    plot(WindowTime,data,'bo','MarkerSize',5);
+                    % plot target values    
+                    try
+                        data = reshape(obj.init.target_story(traj).val(1,k,obj.init.temp_time),1,length(WindowTime));
+                        plot(WindowTime,data,'bo','MarkerSize',5);
+                    catch 
+                        disp('CHECK T_END OR AYELS CONDITION - LOOKS LIKE NO OPTIMISATION HAS BEEN RUN')
+                    end
 
                     ylabel(strcat('y_',num2str(k)));
                     xlabel('simulation time [s]');
@@ -1483,8 +1571,9 @@ classdef obsopt < handle
             end
             linkaxes(ax,'x');
             
-            %%%% plot filters - measures %%%%%
-            figure(5)
+            %%%% plot filters %%%%%
+            fig_count = fig_count+1;
+            figure(fig_count)
             sgtitle('Filters on measures')            
             ax = zeros(1,3);
             for k=1:obj.setup.J_nterm
@@ -1515,57 +1604,6 @@ classdef obsopt < handle
                 
             end
             linkaxes(ax,'x');
-            
-            %%%% plot filters - state estimation %%%
-            figure(6)
-            sgtitle('Filter State estimation')
-            for filt=1:obj.setup.Nfilt
-                subplot(obj.setup.Nfilt,1,filt);
-                hold on
-                grid on
-                box on
-                
-                for traj=1:obj.setup.Ntraj
-                    for dim=1:obj.setup.dim_out
-                        if strcat(obj.setup.DataType,'simulated')
-                            plot(obj.setup.time,obj.init.X_filter(traj).val{filt,dim},'--','LineWidth',2);
-                        end
-                        plot(obj.setup.time,obj.init.X_filter_est(traj).val{filt,dim},':','LineWidth',2);
-                    end
-
-                    if strcat(obj.setup.DataType,'simulated')
-                        legend('True','Est')
-                    else
-                        legend('Stored','Est')
-                    end
-                end
-                
-                % labels
-                xlabel(['time [s]'])
-                ylabel(['Filter ',num2str(filt)])
-            end
-            
-            %%%% plot filters - State estimation error %%%
-            figure(7)
-            sgtitle('Filter state estimation error')
-            for filt=1:obj.setup.Nfilt
-                subplot(obj.setup.Nfilt,1,filt);
-                hold on
-                grid on
-                box on
-                
-                for traj=1:obj.setup.Ntraj
-                    for dim=1:obj.setup.dim_out
-                        err = obj.init.X_filter(traj).val{filt,dim}-obj.init.X_filter_est(traj).val{filt,dim};
-                        plot(obj.setup.time,err,'--','LineWidth',2);                        
-                    end
-                    legend('Estimation error')                    
-                end
-                
-                % labels
-                xlabel(['time [s]'])
-                ylabel(['Filter ',num2str(filt)])
-            end
             
         end
     end
