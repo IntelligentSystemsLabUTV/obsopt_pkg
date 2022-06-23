@@ -17,7 +17,10 @@ function x_dot = model_control_test(t,x,params,obs)
     x_dot = zeros(length(x),1);
     
     % compute the control
-    params.u = params.input(t,x,params);
+    tdiff = params.time-t;
+    pos = find(tdiff == min(tdiff));
+    drive = obs.drive(obs.init.X(obs.init.traj).val(:,pos),x,obs.init.Y_full_story(obs.init.traj).val(:,pos),pos);
+    params.u = params.input(t,drive,params);
     
     % A matrix
     A = [1 -1; 1 1];
