@@ -21,8 +21,10 @@ function u = control(t,drive,params)
 %     u = [sin(t); zeros(size(t))];
     
     %%%% control law - control test %%%%
-    u = [params.K1, params.K2]*drive(1:2);
-%     u = params.K1*drive(5);
+    u(1,:) = [params.K1, params.K2]*drive(1:2,:);
+    u(2,:) = params.K3*drive(3,:);
+    u(3,:) = 0*params.K4;   %*drive(4,:);
+
 
     %%%% control law - pendulum %%%%
 %     u = [params.K1, params.K2, params.K3, params.K4;...
