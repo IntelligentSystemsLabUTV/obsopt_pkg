@@ -12,11 +12,11 @@ function [params,obs] = simulation_general
 % close all
     
 % init observer buffer (see https://doi.org/10.48550/arXiv.2204.09359)
-Nw = 200;
-Nts = 1;
+Nw = 100;
+Nts = 10;
 
 % set sampling time
-Ts = 5e-2;
+Ts = 1e-2;
 
 % set initial and final time instant
 t0 = 0;
@@ -87,6 +87,9 @@ model_reference = @model_reference;
 % y = measure (no noise added). In the following examples it holds
 % y = x(params.observed_state) (see params_init options)
 measure = @measure_control_test;
+% measure = @measure_general;
+measure_reference = @measure_control_ref;
+% measure_reference = @measure_general;
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 %%%% filters %%%%
@@ -122,7 +125,8 @@ input_law = @control;
 % this should be a vector with 2 columns and as many rows as the state
 % dimension. All the noise are considered as Gaussian distributed. The 
 % first column defines the mean while the second column the variance.
-noise_mat = 0*[0,1e-1;0,1e-1;0,0;0,0];  %0,0;0,0;0,0;0,0];
+noise_mat = 0*ones(6,2);
+% noise_mat(1:2,2) = 5e-1;
 
 %%%% params init %%%%
 % init the parameters structure through funtion @model_init. 
@@ -139,7 +143,7 @@ params = model_init('Ts',Ts,'T0',[t0, tend],'noise',1,'noise_spec',noise_mat, 'p
 % options check directly the class constructor in obsopt.m
 obs = obsopt('DataType', 'simulated', 'optimise', 1, ... 
       'Nw', Nw, 'Nts', Nts, 'ode', ode, 'PE_maxiter', 0, 'control_design', 1 , 'model_reference', model_reference, ...    
-      'params',params, 'filters', filterScale,'filterTF', filter, 'Jdot_thresh',0.9,'MaxIter',500,...
+      'measure_reference', measure_reference, 'params',params, 'filters', filterScale,'filterTF', filter, 'Jdot_thresh',0.9,'MaxIter',30,...
       'Jterm_store', 0, 'AlwaysOpt', 1 , 'print', 1 , 'SafetyDensity', 3, 'AdaptiveHist', [1e-2, 3e-2, 1e0], ...
       'AdaptiveSampling',0, 'FlushBuffer', 1, 'opt', @fminunc, 'spring', 0, 'LBcon', [-Inf -Inf 0]);
 
@@ -180,16 +184,16 @@ for i = 1:obs.setup.Niter
             % true system - correct initial condition and no noise
             % considered
             X = obs.setup.ode(@(t,x)obs.setup.model_reference(t, x, params, obs), tspan, obs.init.X(traj).val(:,startpos),params.odeset); 
-            obs.init.X(traj).val(:,startpos:stoppos) = X.y;
+            obs.init.X(traj).val(:,startpos:stoppos) = [X.y(:,1),X.y(:,end)];
 
             % real system - initial condition perturbed 
             X = obs.setup.ode(@(t,x)obs.setup.model(t, x, obs.init.params, obs), tspan, obs.init.X_est(traj).val(:,startpos),params.odeset);
-            obs.init.X_est(traj).val(:,startpos:stoppos) = X.y;      
+            obs.init.X_est(traj).val(:,startpos:stoppos) = [X.y(:,1),X.y(:,end)];      
         end
         
         %%%% REAL MEASUREMENT %%%%
         % here the noise is noise added aggording to noise_spec
-        obs.init.Ytrue_full_story(traj).val(1,:,obs.init.ActualTimeIndex) = obs.setup.measure(obs.init.X(traj).val(:,obs.init.ActualTimeIndex),obs.init.params,obs.setup.time(obs.init.ActualTimeIndex));
+        obs.init.Ytrue_full_story(traj).val(1,:,obs.init.ActualTimeIndex) = obs.setup.measure_reference(obs.init.X(traj).val(:,obs.init.ActualTimeIndex),obs.init.params,obs.setup.time(obs.init.ActualTimeIndex));
         obs.init.noise_story(traj).val(:,obs.init.ActualTimeIndex) = obs.setup.noise*(obs.setup.noise_mu(obs.setup.observed_state)  + obs.setup.noise_std(obs.setup.observed_state).*randn(obs.setup.dim_out,1));
         y_meas(traj).val =  reshape(obs.init.Ytrue_full_story(traj).val(1,:,obs.init.ActualTimeIndex),obs.setup.dim_out,1) + obs.init.noise_story(traj).val(:,obs.init.ActualTimeIndex);
     end
