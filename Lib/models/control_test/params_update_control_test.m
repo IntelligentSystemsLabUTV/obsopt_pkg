@@ -17,5 +17,7 @@ function params_out = params_update_control_test(params,x)
     % update controller
     params_out.K1 = x(3);
     params_out.K2 = x(4);
+    params_out.K3 = x(5);
+    params_out.K4 = x(6);
     
 end

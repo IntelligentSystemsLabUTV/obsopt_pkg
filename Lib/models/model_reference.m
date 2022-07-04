@@ -20,8 +20,13 @@ function x_dot = model_reference(t, x, params, obs)
 %     x_dot(1) = -1.5*x(1) + 2;
 %     x_dot(2) = -1.5*x(2) + 1;
 
-    % model dynamics - stable eigs
-    x_dot(1) = -x(1,:) + x(2,:);
-    x_dot(2) = -2*x(2,:) + 0;
+    % model dynamics - stable eigs 2 dim
+%     A = [-1 1; 0 -2];
+%     B = [0; 1];
+%     x_dot(1:2) = A*x(1:2) + B*0;
+    
+    % model dynamics - stable eigs 1 dim
+    x_dot(1) = -x(1,:) + 0;    
+%     x_dot(1) = -cos(t);
         
 end

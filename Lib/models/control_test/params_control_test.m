@@ -12,18 +12,24 @@ function params = params_control_test
     % system parameters
     
     % control parameters
-    params.K1 = 0;
-    params.K2 = 0;
+    params.K1 = 5.0915e+00*0;
+    params.K2 = -1.1188e+01*0;
+    params.K3 = -20*0;
+    params.K4 = -5000*0;
+    params.K5 = 0;
+    params.K6 = 0;
+    params.K7 = 0;
+    params.K8 = 0;
     
     % number of reference trajectories (under development)
-    params.Ntraj = 20;
+    params.Ntraj = 4;
     
     % state dimension
-    params.dim_state = 4;
+    params.dim_state = 6;
     
     % initial condition
 %     params.X(1).val(:,1) = [1;1];
-    params.X(1).val(:,1) = [1;1;params.K1;params.K2];
+    params.X(1).val(:,1) = [1;1;params.K1;params.K2;params.K3;params.K4]; 
     
     % same initial condition for all the trajectories (under development)
     for traj=2:params.Ntraj
@@ -31,7 +37,7 @@ function params = params_control_test
     end
     
     % position in the state vector of the estimated parameters
-    params.estimated_params = [3:4];
+    params.estimated_params = [3:6];
     
     % which vars am I optimising
     params.opt_vars = [3:4];
@@ -47,5 +53,5 @@ function params = params_control_test
     % plot vars (used to plot the state estimation. When the parameters are
     % too many, consider to use only the true state components)
     params.plot_vars = 1:2;
-    params.plot_params = [3:4];
+    params.plot_params = [3:6];
 end
