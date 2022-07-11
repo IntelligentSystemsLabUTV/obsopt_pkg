@@ -26,7 +26,14 @@ function x_dot = model_reference(t, x, params, obs)
 %     x_dot(1:2) = A*x(1:2) + B*0;
     
     % model dynamics - stable eigs 1 dim
-    x_dot(1) = -x(1,:) + 0;    
-%     x_dot(1) = -cos(t);
+    
+    % the model_control_test is used with u_ecc (initial params for input)
+    x_dot_tmp = model_control_test(t, x, params, obs);
+    % the first two will be the states with u_ecc 
+    % the second two will be the states with the INITIAL stabilising input.
+    x_dot(1:4,:) = x_dot_tmp(1:4);
+    
+    % this is the desired plant evolution
+    x_dot(5,:) = -x(5,:) + 0;    
         
 end
