@@ -20,7 +20,7 @@ function [filter, filterScale, reference] = filter_define(Ts,Nts)
     filter = [];
     
     %%% derivative filter %%%
-    if 0
+    if 1
     i = i+1;   
     eps1 = 1e-2;
     G = tf([1 0],[eps1 1]);
