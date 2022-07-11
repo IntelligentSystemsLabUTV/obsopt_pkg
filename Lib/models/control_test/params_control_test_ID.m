@@ -7,7 +7,7 @@
 % INPUT: none
 % OUTPUT:
 % params: structure with all the necessary parameters
-function params = params_control_test
+function params = params_control_test_ID
 
     % system parameters
     
@@ -17,10 +17,10 @@ function params = params_control_test
     params.K3 = -49.6254*0;
     params.K4 = -2.5068e+04*0;    
     % model parameters
-    params.A1 = 1*1;
-    params.A2 = 1*-1;
-    params.A3 = 1*1;
-    params.A4 = 1*1;
+    params.A1 = 1*-1;
+    params.A2 = 1*1;
+    params.A3 = 1*-2;
+    params.A4 = 1*0;
     params.B1 = 1*1;
     params.B2 = 1*2;
     params.C1 = 1*2;
@@ -30,17 +30,17 @@ function params = params_control_test
     params.Ntraj = 1;
     
     % state dimension
-    params.dim_state = 13;  
+    params.dim_state = 8;  
     
     % initial condition
 %     params.X(1).val(:,1) = [1;1];
-    params.X(1).val(:,1) = [1;1;1;1;1;params.K1;params.K2;params.A1;params.A2;params.A3;params.A4;params.B1;params.B2];
+    params.X(1).val(:,1) = [1;1;params.A1;params.A2;params.A3;params.A4;params.B1;params.B2];
     
     % position in the state vector of the estimated parameters
-    params.estimated_params = [6:13];
+    params.estimated_params = [3:8];
     
     % which vars am I optimising
-    params.opt_vars = [6:11];
+    params.opt_vars = [3:8];
     
     % set the not optimised vars
     tmp = 1:length(params.X(1).val(:,1));
@@ -52,9 +52,9 @@ function params = params_control_test
     
     % plot vars (used to plot the state estimation. When the parameters are
     % too many, consider to use only the true state components)
-    params.plot_vars = 1:5;
-    params.plot_params = [6:13];  
-    params.multi_traj_var = 1:4;
+    params.plot_vars = 1:2;
+    params.plot_params = [3:8];  
+    params.multi_traj_var = 1:2;
     
     % same initial condition for all the trajectories (under development)
     for traj=2:params.Ntraj
