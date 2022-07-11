@@ -453,6 +453,7 @@ classdef obsopt < handle
             % get params structure. It's redundant but by doing so we save
             % the initial values of the params
             obj.init.params = obj.setup.params;
+            obj.init.params = obj.setup.params.params_update(obj.init.params,obj.setup.X_est(1).val(:,1));
             
             % get initial state
             obj.init.X = obj.setup.X;
@@ -779,7 +780,9 @@ classdef obsopt < handle
                     % get the J
                     for dim=1:obj.setup.dim_out
                         tspan_vals = tspan_pos(2:end) - tspan_pos(1) + 1;
-                        diff_var = reshape((y_target(term,dim,target_pos)-Yhat(term,dim,tspan_vals)),length(tspan_pos)-1,1);
+                        target_tmp = reshape((y_target(term,dim,target_pos)),length(tspan_pos)-1,1);
+                        hat_tmp = reshape(Yhat(term,dim,tspan_vals),length(tspan_pos)-1,1);
+                        diff_var = target_tmp-hat_tmp;
                         J(term,dim) = transpose(diff_var)*diff_var;
                     end
 
@@ -1048,14 +1051,14 @@ classdef obsopt < handle
 
                 % check only on the first traj as the sampling is coherent
                 % on the 2.
-                if obj.setup.control_design == 0
+                if 0 && obj.setup.control_design == 0
                     cols_nonzeros = length(find(obj.init.Y_space ~= 0))*obj.setup.dim_out*nnz(obj.setup.J_temp_scale);                
                 else
                     cols_nonzeros = length(find(obj.init.Y_space ~= 0));  
                 end
 
                 % flag
-                if obj.setup.control_design == 0
+                if 0 && obj.setup.control_design == 0
                     flag = 2*length(obj.setup.opt_vars)+1; % Aeyels condition (see https://doi.org/10.48550/arXiv.2204.09359)
                 else
                     flag = obj.setup.w;
@@ -1159,7 +1162,8 @@ classdef obsopt < handle
                         end
                         
                         %%% normalisation %%%
-                        if 1 && (~obj.init.normalised) 
+%                         if (~obj.setup.control_design) && (~obj.init.normalised) 
+                        if (~obj.init.normalised)
                             range = 1:obj.init.ActualTimeIndex;
                             for filt=1:obj.setup.J_nterm
                                 for dim=1:obj.setup.dim_out
@@ -1173,6 +1177,8 @@ classdef obsopt < handle
                                 end
                             end                            
                             obj.init.normalised = 1;
+                        else
+                            obj.init.scale_factor_scaled = obj.init.scale_factor;
                         end      
                         
                         %%% TEST WITH X_FILTERS IN OPT %%%
