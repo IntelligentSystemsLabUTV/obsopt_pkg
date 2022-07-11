@@ -12,8 +12,8 @@ function [params,obs] = simulation_general
 % close all
     
 % init observer buffer (see https://doi.org/10.48550/arXiv.2204.09359)
-Nw = 100;
-Nts = 10;
+Nw = 30;
+Nts = 20;
 
 % set sampling time
 Ts = 1e-2;
@@ -125,7 +125,7 @@ input_law = @control;
 % this should be a vector with 2 columns and as many rows as the state
 % dimension. All the noise are considered as Gaussian distributed. The 
 % first column defines the mean while the second column the variance.
-noise_mat = 0*ones(6,2);
+noise_mat = 0*ones(13,2);
 % noise_mat(1:2,2) = 5e-1;
 
 %%%% params init %%%%
@@ -135,17 +135,17 @@ noise_mat = 0*ones(6,2);
 % handle to the previously defined @params_init. For more information see 
 % directly the model_init.m file.
 params = model_init('Ts',Ts,'T0',[t0, tend],'noise',1,'noise_spec',noise_mat, 'params_update', params_update, ...
-        'model',model,'measure',measure,'ObservedState',[1],'ode',ode, 'odeset', [1e-3 1e-6], ...
+        'model',model,'measure',measure,'ObservedState',[1:3],'ode',ode, 'odeset', [1e-3 1e-6], ...
         'input_enable',1,'input_law',input_law,'params_init',params_init);
 
 %%%% observer init %%%%
 % create observer class instance. For more information on the setup
 % options check directly the class constructor in obsopt.m
 obs = obsopt('DataType', 'simulated', 'optimise', 1, ... 
-      'Nw', Nw, 'Nts', Nts, 'ode', ode, 'PE_maxiter', 0, 'control_design', 1 , 'model_reference', model_reference, ...    
-      'measure_reference', measure_reference, 'params',params, 'filters', filterScale,'filterTF', filter, 'Jdot_thresh',0.9,'MaxIter',30,...
+      'Nw', Nw, 'Nts', Nts, 'ode', ode, 'PE_maxiter', 0, 'control_design', 0 , 'model_reference', model_reference, ...    
+      'measure_reference', measure_reference, 'params',params, 'filters', filterScale,'filterTF', filter, 'Jdot_thresh',0.9,'MaxIter',1000,...
       'Jterm_store', 0, 'AlwaysOpt', 1 , 'print', 1 , 'SafetyDensity', 3, 'AdaptiveHist', [1e-2, 3e-2, 1e0], ...
-      'AdaptiveSampling',0, 'FlushBuffer', 1, 'opt', @fminunc, 'spring', 0, 'LBcon', [-Inf -Inf 0]);
+      'AdaptiveSampling',0, 'FlushBuffer', 1, 'opt', @fminunc, 'spring', 0);
 
 %% %%%% SIMULATION %%%%
 % remark: the obs.setup.Ntraj variable describes on how many different
@@ -228,7 +228,7 @@ obs.init.total_time = toc(t0);
 
 %% %%%%%%%%%%%%%%%%%%%%%%%%%%%% PLOTS %%%%%%%%%%%%%%%%%%%%%
 % obs self plots
-obs.plot_section_control(); 
+% obs.plot_section_control(); 
 
 % the whole process could be long, why not going for a nap? No worries, 
 % this "sounds" like a nice way to wake up. (Uncomment)
