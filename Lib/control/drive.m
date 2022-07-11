@@ -16,7 +16,7 @@ function drive_out = drive(varargin)
 
     % get y    
     if 1    
-    y_meas = varargin{4}(:,end);
+    y_meas = varargin{4}(:,:,end);
     pos = varargin{5};
     
     y = obj.setup.measure(x,obj.init.params,pos);    
@@ -58,8 +58,8 @@ function drive_out = drive(varargin)
             y = y_meas;            
         end
     end
-            
-    drive_out = [drive_out; y_meas-y];
+              
+        drive_out = [drive_out; y_meas-y];
     end
     
     % save drive story
