@@ -195,7 +195,7 @@ function params = model_init(varargin)
                 if randflag
                     params.perc(params.opt_vars,traj) = 1*randn(1,length(params.opt_vars))*2e-1;
                 else
-                    params.perc(params.opt_vars,traj) = 0*ones(1,length(params.opt_vars))*6e-1;
+                    params.perc(params.opt_vars,traj) = 1*ones(1,length(params.opt_vars))*2e-1;
                 end
             else
                 params.perc(params.opt_vars,traj) = 1*ones(1,length(params.opt_vars));
@@ -208,10 +208,10 @@ function params = model_init(varargin)
             if params.noise
             
                 % around init
-%                 params.X_est(traj).val(:,1) = init.*(1 + params.noise*params.perc(:,traj).*ones(params.StateDim,1)) + params.noise*params.noise_std.*randn(params.StateDim,1);
+                params.X_est(traj).val(:,1) = init.*(1 + params.noise*params.perc(:,traj).*ones(params.StateDim,1)) + params.noise*params.noise_std.*randn(params.StateDim,1);
 
                 % around 0
-                params.X_est(traj).val(:,1) =  params.noise*params.perc(:,traj).*init + params.noise*params.noise_std.*randn(params.StateDim,1);
+%                 params.X_est(traj).val(:,1) =  params.noise*params.perc(:,traj).*init + params.noise*params.noise_std.*randn(params.StateDim,1);
             else
                 params.X_est(traj).val(:,1) = init;
             end
