@@ -9,7 +9,7 @@
 % params: structure with all the necessary parameters 
 % OUTPUT:
 % u: control variable
-function u = control(t,drive,params)
+function u = control_ID(t,drive,params)
 
     % check if the input is enabled
     if params.input_enable
@@ -23,12 +23,12 @@ function u = control(t,drive,params)
     %%%% control law - control test %%%%
     % this first is u_ecc
 %     u(1,:) = 1*(sin(1*t)+sin(200*t));
-%     p = 20;
-%     u(1,:) = 1*(mod(t,p)<p/2);
+    p = 20;
+    u(1,:) = 1*(mod(t,p)<p/2);
     % this second is the stabilising input
-    u(1,:) = [params.K1, params.K2]*drive(1:2,:);
-    u(2,:) = params.K3*drive(3,:);
-    u(3,:) = params.K4*drive(4,:);
+%     u(2,:) = [params.K1, params.K2]*drive(3:4,:);
+%     u(2,:) = params.K3*drive(3,:);
+%     u(3,:) = params.K4*drive(4,:);
 %     u(4,:) = params.K5*drive(5,:);
 
 
