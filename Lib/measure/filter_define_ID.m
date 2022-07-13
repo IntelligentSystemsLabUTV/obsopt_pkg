@@ -12,7 +12,7 @@
 % OUTPUT:
 % filter: structure with the filter transfer function and ss realization
 % filterScale: array weighting the filters in the cost function
-function [filter, filterScale, reference] = filter_define(Ts,Nts)
+function [filter, filterScale, reference] = filter_define_ID(Ts,Nts)
 
     % init filterScale and filter
     i = 0;
@@ -37,7 +37,7 @@ function [filter, filterScale, reference] = filter_define(Ts,Nts)
     end
 
     %%%% integral filter %%%%
-    if 1
+    if 0
     i = i+1;    
     eps2 = 1e2;
     G = tf(1,[eps2 1]);
