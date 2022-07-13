@@ -13,10 +13,10 @@
 function y = measure_control_ref(x,params,t)
 
     % LTI system - C matrix
-    C = [0, 0, 0, 0, 1];
+    C = [1 0];
     
     % get the observed components of the state vector
-    y(1:2,:) = x(1:2,:);
-    y(3,:) = 0*C*x(1:5,:);
+%     y(1:2,:) = x(1:2,:);
+    y(1,:) = 1*C*x(1:2,:);
 
 end
