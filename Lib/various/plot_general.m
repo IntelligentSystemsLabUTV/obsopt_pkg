@@ -24,7 +24,7 @@ function plot_general(out)
         box on
         plot(out.time,out.x_true.val(out.obs.setup.plot_vars(j),:),'b','LineWidth',1.5);
         for n=1:N
-            plot(out.time,out.x_dist(n).val(out.obs.setup.plot_vars(j),:),'r:','LineWidth',0.8);           
+            plot(out.time,out.x_dist(n).val(out.obs.setup.plot_vars(j),:),'r:','LineWidth',1);           
         end
         % labels
         xlabel(['time [s]'])
@@ -49,7 +49,7 @@ function plot_general(out)
         
         plot(out.time,reshape(out.y_true.val(k,1,:),1,size(out.y_true.val,3)),'b','LineWidth',1.5);
         for n=1:N
-            plot(out.time,reshape(out.y_dist(n).val(k,:,:),1,size(out.y_dist(n).val,3)),'r:','LineWidth',0.8);           
+            plot(out.time,reshape(out.y_dist(n).val(k,:,:),1,size(out.y_dist(n).val,3)),'r:','LineWidth',1);           
         end        
 %         set(gca, 'YScale', 'log')
         % labels

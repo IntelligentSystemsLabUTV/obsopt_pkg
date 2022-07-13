@@ -16,7 +16,7 @@ function out = test_general_obs(obs,N)
     Niter = length(time);
     
     [filter, filterScale] = filter_define(Ts,1);
-    obs_tmp = obsopt( 'filters', filterScale,'filterTF', filter);                    
+    obs_tmp = obsopt( 'filters', filterScale,'filterTF', filter,'params',obs.init.params);                    
     obs_tmp.setup.Nfilt = length(filterScale)-1;
     Nfilt = obs_tmp.setup.Nfilt;
     obs_tmp.setup.dim_state = obs.setup.dim_state;
