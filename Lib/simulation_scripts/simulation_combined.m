@@ -5,7 +5,7 @@
 % description: function to setup and use the MHE observer on general model
 % INPUT: none
 % OUTPUT: params,obs
-function [params,obs] = simulation_combined
+function [params_ID,params_control,obs_ID,obs_control] = simulation_combined
 
 %%%% Init Section %%%%
 % uncomment to close previously opened figures
@@ -13,7 +13,7 @@ function [params,obs] = simulation_combined
     
 % init observer buffer (see https://doi.org/10.48550/arXiv.2204.09359)
 Nw = 40;
-Nts = 2;
+Nts = 10;
 
 % set sampling time
 Ts = 5e-2;
@@ -25,26 +25,36 @@ t0 = 0;
 tend = 1*(Nw*Nts-1)*Ts;
 
 %%%% filters %%%%
+[filter_ID, filterScale_ID] = filter_define_ID(Ts,Nts);
 [filter, filterScale] = filter_define(Ts,Nts);
 
 %%%% integration method %%%%
 % ode45-like integration method. For discrete time systems use @odeDD
 ode = @oderk4_fast;
 
-%%%% input law %%%
-input_law = @control;
-
 %%%% measurement noise %%%%
-noise_mat = 0*ones(8,2);
+noise_mat_ID = 0*ones(8,2);
+noise_mat = 0*ones(6,2);
 
-%%%% params init - ID%%%%
-params = model_init('Ts',Ts,'T0',[t0, tend],'noise',1,'noise_spec',noise_mat, 'params_update', @params_update_control_test_ID, ...
+%%%% params init - ID %%%%
+params_ID = model_init('Ts',Ts,'T0',[t0, tend],'noise',1,'noise_spec',noise_mat_ID, 'params_update', @params_update_control_test_ID, ...
         'model',@model_control_test_ID,'measure',@measure_control_test_ID,'ObservedState',[1],'ode',ode, 'odeset', [1e-3 1e-6], ...
-        'input_enable',1,'input_law',input_law,'params_init',@params_control_test_ID);
+        'input_enable',1,'input_law',@control_ID,'params_init',@params_control_test_ID);
+    
+%%%% params init - control %%%%
+params_control = model_init('Ts',Ts,'T0',[t0, tend],'noise',1,'noise_spec',noise_mat, 'params_update', @params_update_control_test, ...
+        'model',@model_control_test,'measure',@measure_control_test,'ObservedState',[1],'ode',ode, 'odeset', [1e-3 1e-6], ...
+        'input_enable',1,'input_law',@control,'params_init',@params_control_test);
 
 %%%% observer init - ID %%%%
-obs = obsopt('DataType', 'simulated', 'optimise', 1, ... 
-      'Nw', Nw, 'Nts', Nts, 'ode', ode, 'PE_maxiter', 0, 'control_design', 0, 'params',params, 'filters', filterScale, ...
+obs_ID = obsopt('DataType', 'simulated', 'optimise', 1, ... 
+      'Nw', Nw, 'Nts', Nts, 'ode', ode, 'PE_maxiter', 0, 'control_design', 0, 'params',params_ID, 'filters', filterScale_ID, ...
+      'filterTF', filter_ID, 'Jdot_thresh',0.9,'MaxIter',1000, 'Jterm_store', 0, 'AlwaysOpt', 1 , 'print', 1 , 'SafetyDensity', 3, ...
+      'AdaptiveHist', [1e-2, 3e-2, 1e0], 'AdaptiveSampling',0, 'FlushBuffer', 1, 'opt', @fminunc, 'spring', 0);
+  
+%%%% observer init - control %%%%
+obs_control = obsopt('DataType', 'simulated', 'optimise', 1, 'model_reference', @model_reference, 'measure_reference', @measure_control_ref, ... 
+      'Nw', Nw, 'Nts', Nts, 'ode', ode, 'PE_maxiter', 0, 'control_design', 1, 'params',params_control, 'filters', filterScale, ...
       'filterTF', filter, 'Jdot_thresh',0.9,'MaxIter',1000, 'Jterm_store', 0, 'AlwaysOpt', 1 , 'print', 1 , 'SafetyDensity', 3, ...
       'AdaptiveHist', [1e-2, 3e-2, 1e0], 'AdaptiveSampling',0, 'FlushBuffer', 1, 'opt', @fminunc, 'spring', 0);
 
@@ -54,45 +64,64 @@ obs = obsopt('DataType', 'simulated', 'optimise', 1, ...
 t0 = tic;
 
 % integration loop
-for i = 1:obs.setup.Niter
+for i = 1:obs_ID.setup.Niter
     
     % Display iteration step
     if ((mod(i,10) == 0) || (i == 1))
         clc
-        disp(['Iteration Number: ', num2str(obs.setup.time(i)),'/',num2str(obs.setup.time(obs.setup.Niter))])
+        disp(['Iteration Number: ', num2str(obs_ID.setup.time(i)),'/',num2str(obs_ID.setup.time(obs_ID.setup.Niter))])
     end
     
     % set current iteration in the obsopt class
-    obs.init.ActualTimeIndex = i;
-    obs.init.t = obs.setup.time(i);
+    obs_ID.init.ActualTimeIndex = i;
+    obs_ID.init.t = obs_ID.setup.time(i);
+    obs_control.init.ActualTimeIndex = i;
+    obs_control.init.t = obs_ID.setup.time(i);
     
     %%%% PROPAGATION %%%%
     % forward propagation of the previous estimate
-    for traj = 1:obs.setup.Ntraj
+    for traj = 1:obs_ID.setup.Ntraj
                  
         % propagate only if the time gets over the initial time instant
-        if(obs.init.ActualTimeIndex > 1)
+        if(obs_ID.init.ActualTimeIndex > 1)
             
             % define the time span of the integration
-            startpos = obs.init.ActualTimeIndex-1;
-            stoppos = obs.init.ActualTimeIndex;
-            tspan = obs.setup.time(startpos:stoppos);            
+            startpos = obs_ID.init.ActualTimeIndex-1;
+            stoppos = obs_ID.init.ActualTimeIndex;
+            tspan = obs_ID.setup.time(startpos:stoppos);            
 
+            %%% ID SYSTEM %%%
             % true system - correct initial condition and no noise
             % considered
-            X = obs.setup.ode(@(t,x)obs.setup.model_reference(t, x, obs.setup.params, obs), tspan, obs.init.X(traj).val(:,startpos),obs.setup.params.odeset); 
-            obs.init.X(traj).val(:,startpos:stoppos) = [X.y(:,1),X.y(:,end)];
+            X = obs_ID.setup.ode(@(t,x)obs_ID.setup.model_reference(t, x, obs_ID.setup.params, obs_ID), tspan, obs_ID.init.X(traj).val(:,startpos),obs_ID.setup.params.odeset); 
+            obs_ID.init.X(traj).val(:,startpos:stoppos) = [X.y(:,1),X.y(:,end)];
 
             % real system - initial condition perturbed 
-            X = obs.setup.ode(@(t,x)obs.setup.model(t, x, obs.init.params, obs), tspan, obs.init.X_est(traj).val(:,startpos),obs.setup.params.odeset);
-            obs.init.X_est(traj).val(:,startpos:stoppos) = [X.y(:,1),X.y(:,end)];      
+            X = obs_ID.setup.ode(@(t,x)obs_ID.setup.model(t, x, obs_ID.init.params, obs_ID), tspan, obs_ID.init.X_est(traj).val(:,startpos),obs_ID.setup.params.odeset);
+            obs_ID.init.X_est(traj).val(:,startpos:stoppos) = [X.y(:,1),X.y(:,end)];      
+            
+            %%% CONTROL SYSTEM %%%
+            % true system - correct initial condition and no noise
+            % considered
+            X = obs_control.setup.ode(@(t,x)obs_control.setup.model_reference(t, x, obs_control.setup.params, obs_control), tspan, obs_control.init.X(traj).val(:,startpos),obs_control.setup.params.odeset); 
+            obs_control.init.X(traj).val(:,startpos:stoppos) = [X.y(:,1),X.y(:,end)];
+
+            % real system - initial condition perturbed 
+            X = obs_control.setup.ode(@(t,x)obs_control.setup.model(t, x, obs_control.init.params, obs_control), tspan, obs_control.init.X_est(traj).val(:,startpos),obs_control.setup.params.odeset);
+            obs_control.init.X_est(traj).val(:,startpos:stoppos) = [X.y(:,1),X.y(:,end)];
         end
         
-        %%%% REAL MEASUREMENT %%%%
+        %%%% REAL MEASUREMENT - ID %%%%
         % here the noise is noise added aggording to noise_spec
-        obs.init.Ytrue_full_story(traj).val(1,:,obs.init.ActualTimeIndex) = obs.setup.measure_reference(obs.init.X(traj).val(:,obs.init.ActualTimeIndex),obs.init.params,obs.setup.time(obs.init.ActualTimeIndex));
-        obs.init.noise_story(traj).val(:,obs.init.ActualTimeIndex) = obs.setup.noise*(obs.setup.noise_mu(obs.setup.observed_state)  + obs.setup.noise_std(obs.setup.observed_state).*randn(obs.setup.dim_out,1));
-        y_meas(traj).val =  reshape(obs.init.Ytrue_full_story(traj).val(1,:,obs.init.ActualTimeIndex),obs.setup.dim_out,1) + obs.init.noise_story(traj).val(:,obs.init.ActualTimeIndex);
+        obs_ID.init.Ytrue_full_story(traj).val(1,:,obs_ID.init.ActualTimeIndex) = obs_ID.setup.measure_reference(obs_ID.init.X(traj).val(:,obs_ID.init.ActualTimeIndex),obs_ID.init.params,obs_ID.setup.time(obs_ID.init.ActualTimeIndex));
+        obs_ID.init.noise_story(traj).val(:,obs_ID.init.ActualTimeIndex) = obs_ID.setup.noise*(obs_ID.setup.noise_mu(obs_ID.setup.observed_state)  + obs_ID.setup.noise_std(obs_ID.setup.observed_state).*randn(obs_ID.setup.dim_out,1));
+        y_meas_ID(traj).val =  reshape(obs_ID.init.Ytrue_full_story(traj).val(1,:,obs_ID.init.ActualTimeIndex),obs_ID.setup.dim_out,1) + obs_ID.init.noise_story(traj).val(:,obs_ID.init.ActualTimeIndex);
+        
+        %%%% REAL MEASUREMENT - CONTROL %%%%
+        % here the noise is noise added aggording to noise_spec
+        obs_control.init.Ytrue_full_story(traj).val(1,:,obs_control.init.ActualTimeIndex) = obs_control.setup.measure_reference(obs_control.init.X(traj).val(:,obs_control.init.ActualTimeIndex),obs_control.init.params,obs_control.setup.time(obs_control.init.ActualTimeIndex));
+        obs_control.init.noise_story(traj).val(:,obs_control.init.ActualTimeIndex) = obs_control.setup.noise*(obs_control.setup.noise_mu(obs_control.setup.observed_state)  + obs_control.setup.noise_std(obs_control.setup.observed_state).*randn(obs_control.setup.dim_out,1));
+        y_meas_control(traj).val =  reshape(obs_control.init.Ytrue_full_story(traj).val(1,:,obs_control.init.ActualTimeIndex),obs_control.setup.dim_out,1) + obs_control.init.noise_story(traj).val(:,obs_control.init.ActualTimeIndex);
     end
       
     %%%% OBSERVER %%%%
@@ -100,27 +129,31 @@ for i = 1:obs.setup.Niter
     t1 = tic;
     
     % call the observer
-    obs = obs.observer(obs.init.X_est,y_meas);
+    obs_ID = obs_ID.observer(obs_ID.init.X_est,y_meas_ID);
+    
+    
+    obs_control.init.params = obs_ID.setup.params.params_update(obs_control.init.params,obs_ID.init.X_est(1).val(:,end));
+    obs_control = obs_control.observer(obs_control.init.X_est,y_meas_control);
     
     % update the model parameters
 %     params = obs.init.params;
     
     % stop time counter for the observer. Each optimisation process is
     % timed.
-    obs.init.iter_time(obs.init.ActualTimeIndex) = toc(t1);
+    obs_ID.init.iter_time(obs_ID.init.ActualTimeIndex) = toc(t1);
 
 end
 
 %%%% SNR %%%
 % the SNR is computed on the mesurements
-for traj = 1:obs.setup.Ntraj
-    for i=1:obs.setup.dim_out
-        obs.init.SNR(traj).val(i) = 10*log(sum(obs.init.Ytrue_full_story(traj).val(1,i,:).^2)/sum(obs.init.noise_story(traj).val(i,:).^2));
+for traj = 1:obs_ID.setup.Ntraj
+    for i=1:obs_ID.setup.dim_out
+        obs_ID.init.SNR(traj).val(i) = 10*log(sum(obs_ID.init.Ytrue_full_story(traj).val(1,i,:).^2)/sum(obs_ID.init.noise_story(traj).val(i,:).^2));
     end
 end
 
 % overall computation time
-obs.init.total_time = toc(t0);
+obs_ID.init.total_time = toc(t0);
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 %% %%%%%%%%%%%%%%%%%%%%%%%%%%%% PLOTS %%%%%%%%%%%%%%%%%%%%%
