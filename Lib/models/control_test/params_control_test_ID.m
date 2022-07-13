@@ -34,7 +34,7 @@ function params = params_control_test_ID
     
     % initial condition
 %     params.X(1).val(:,1) = [1;1];
-    params.X(1).val(:,1) = [0;0;params.A1;params.A2;params.A3;params.A4;params.B1;params.B2];
+    params.X(1).val(:,1) = [1;1;params.A1;params.A2;params.A3;params.A4;params.B1;params.B2];
     
     % position in the state vector of the estimated parameters
     params.estimated_params = [3:8];

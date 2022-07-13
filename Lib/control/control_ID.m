@@ -23,7 +23,7 @@ function u = control_ID(t,drive,params)
     %%%% control law - control test %%%%
     % this first is u_ecc
 %     u(1,:) = 1*(sin(1*t)+sin(200*t));
-    p = 20;
+    p = 5;
     u(1,:) = 1*(mod(t,p)<p/2);
     % this second is the stabilising input
 %     u(2,:) = [params.K1, params.K2]*drive(3:4,:);

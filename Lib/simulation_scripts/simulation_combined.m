@@ -10,10 +10,14 @@ function [params_ID,params_control,obs_ID,obs_control] = simulation_combined
 %%%% Init Section %%%%
 % uncomment to close previously opened figures
 % close all
+rng default
     
 % init observer buffer (see https://doi.org/10.48550/arXiv.2204.09359)
-Nw = 40;
-Nts = 10;
+Nw_ID = 40;
+Nts_ID = 10;
+
+Nw_control = 40;
+Nts_control = 10;
 
 % set sampling time
 Ts = 5e-2;
@@ -21,12 +25,12 @@ Ts = 5e-2;
 % set initial and final time instant
 t0 = 0;
 % tend = 7;
-% uncomment to test the MHE with a single optimisation step
-tend = 1*(Nw*Nts-1)*Ts;
+% uncomment to test the MHE with a single optimisation stephttps://in.bgu.ac.il/en/robotics/Pages/default.aspx
+tend = 1*(Nw_control*Nts_control-1)*Ts;
 
 %%%% filters %%%%
-[filter_ID, filterScale_ID] = filter_define_ID(Ts,Nts);
-[filter, filterScale] = filter_define(Ts,Nts);
+[filter_ID, filterScale_ID] = filter_define_ID(Ts,Nts_ID);
+[filter, filterScale] = filter_define(Ts,Nts_control);
 
 %%%% integration method %%%%
 % ode45-like integration method. For discrete time systems use @odeDD
@@ -47,14 +51,14 @@ params_control = model_init('Ts',Ts,'T0',[t0, tend],'noise',1,'noise_spec',noise
         'input_enable',1,'input_law',@control,'params_init',@params_control_test);
 
 %%%% observer init - ID %%%%
-obs_ID = obsopt('DataType', 'simulated', 'optimise', 1, ... 
-      'Nw', Nw, 'Nts', Nts, 'ode', ode, 'PE_maxiter', 0, 'control_design', 0, 'params',params_ID, 'filters', filterScale_ID, ...
+obs_ID = obsopt('DataType', 'simulated', 'optimise', 1, 'GlobalSearch', 1, 'MultiStart', 1, ... 
+      'Nw', Nw_ID, 'Nts', Nts_ID, 'ode', ode, 'PE_maxiter', 0, 'control_design', 0, 'params',params_ID, 'filters', filterScale_ID, 'WaitAllBuffer', 1, ...
       'filterTF', filter_ID, 'Jdot_thresh',0.9,'MaxIter',1000, 'Jterm_store', 0, 'AlwaysOpt', 1 , 'print', 1 , 'SafetyDensity', 3, ...
-      'AdaptiveHist', [1e-2, 3e-2, 1e0], 'AdaptiveSampling',0, 'FlushBuffer', 1, 'opt', @fminunc, 'spring', 0);
+      'AdaptiveHist', [1e-2, 3e-2, 1e0], 'AdaptiveSampling',0, 'FlushBuffer', 1, 'opt', @fmincon, 'spring', 0);
   
 %%%% observer init - control %%%%
 obs_control = obsopt('DataType', 'simulated', 'optimise', 1, 'model_reference', @model_reference, 'measure_reference', @measure_control_ref, ... 
-      'Nw', Nw, 'Nts', Nts, 'ode', ode, 'PE_maxiter', 0, 'control_design', 1, 'params',params_control, 'filters', filterScale, ...
+      'Nw', Nw_control, 'Nts', Nts_control, 'ode', ode, 'PE_maxiter', 0, 'control_design', 1, 'params',params_control, 'filters', filterScale, ...
       'filterTF', filter, 'Jdot_thresh',0.9,'MaxIter',1000, 'Jterm_store', 0, 'AlwaysOpt', 1 , 'print', 1 , 'SafetyDensity', 3, ...
       'AdaptiveHist', [1e-2, 3e-2, 1e0], 'AdaptiveSampling',0, 'FlushBuffer', 1, 'opt', @fminunc, 'spring', 0);
 
