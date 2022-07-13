@@ -271,6 +271,22 @@ classdef obsopt < handle
                 obj.setup.fmin = @fminsearch;
             end
             
+            % get the globalsearch option
+            if any(strcmp(varargin,'GlobalSearch'))
+                pos = find(strcmp(varargin,'GlobalSearch'));
+                obj.setup.GlobalSearch = varargin{pos+1};
+            else
+                obj.setup.GlobalSearch = 0;
+            end
+            
+            % get the multistart option
+            if any(strcmp(varargin,'MultiStart'))
+                pos = find(strcmp(varargin,'MultiStart'));
+                obj.setup.MultiStart = varargin{pos+1};
+            else
+                obj.setup.MultiStart = 0;
+            end
+            
             % handle fmincon
             try
                 test = func2str(obj.setup.fmin);
@@ -282,44 +298,52 @@ classdef obsopt < handle
                     pos = find(strcmp(varargin,'Acon'));
                     obj.setup.Acon = varargin{pos+1};
                 else
-                    obj.setup.Acon = [];
+                    obj.setup.Acon = [];                    
                 end
                 if any(strcmp(varargin,'Bcon'))
                     pos = find(strcmp(varargin,'Bcon'));
                     obj.setup.Bcon = varargin{pos+1};
                 else
-                    obj.setup.Bcon = [];
+                    obj.setup.Bcon = [];                
                 end
                 if any(strcmp(varargin,'Acon_eq'))
                     pos = find(strcmp(varargin,'Acon_eq'));
                     obj.setup.Acon_eq = varargin{pos+1};
                 else
-                    obj.setup.Acon_eq = [];
+                    obj.setup.Acon_eq = [];                
                 end
                 if any(strcmp(varargin,'Bcon_eq'))
                     pos = find(strcmp(varargin,'Bcon_eq'));
                     obj.setup.Bcon_eq = varargin{pos+1};
                 else
-                    obj.setup.Bcon_eq = [];
+                    obj.setup.Bcon_eq = [];                
                 end
                 if any(strcmp(varargin,'LBcon'))
                     pos = find(strcmp(varargin,'LBcon'));
                     obj.setup.LBcon = varargin{pos+1};
                 else
-                    obj.setup.LBcon = [];
+                    obj.setup.LBcon = [];                
                 end
                 if any(strcmp(varargin,'UBcon'))
                     pos = find(strcmp(varargin,'UBcon'));
                     obj.setup.UBcon = varargin{pos+1};
                 else
-                    obj.setup.UBcon = [];
+                    obj.setup.UBcon = [];                
                 end
                 if any(strcmp(varargin,'NONCOLcon'))
                     pos = find(strcmp(varargin,'NONCOLcon'));
-                    obj.setup.NONCOLcon = varargin{pos+1};
+                    obj.setup.NONCOLcon = varargin{pos+1}; 
                 else
                     obj.setup.NONCOLcon = [];
                 end
+            else
+                obj.setup.Acon = [];    
+                obj.setup.Bcon = [];
+                obj.setup.Acon_eq = [];
+                obj.setup.Bcon_eq = [];
+                obj.setup.LBcon = [];
+                obj.setup.UBcon = [];
+                obj.setup.NONCOLcon = [];
             end
             
             % store J terms
@@ -349,6 +373,14 @@ classdef obsopt < handle
                 obj.setup.control_design = varargin{pos+1};
             else
                 obj.setup.control_design = 0;
+            end
+            
+            % wait all buffer to be filled
+            if any(strcmp(varargin,'WaitAllBuffer'))
+                pos = find(strcmp(varargin,'WaitAllBuffer'));
+                obj.setup.WaitAllBuffer = varargin{pos+1};
+            else
+                obj.setup.WaitAllBuffer = 0;
             end
             
             % reference model
@@ -1051,14 +1083,14 @@ classdef obsopt < handle
 
                 % check only on the first traj as the sampling is coherent
                 % on the 2.
-                if 0 && obj.setup.control_design == 0
+                if ~obj.setup.WaitAllBuffer && obj.setup.control_design == 0
                     cols_nonzeros = length(find(obj.init.Y_space ~= 0))*obj.setup.dim_out*nnz(obj.setup.J_temp_scale);                
                 else
                     cols_nonzeros = length(find(obj.init.Y_space ~= 0));  
                 end
 
                 % flag
-                if 0 && obj.setup.control_design == 0
+                if ~obj.setup.WaitAllBuffer && obj.setup.control_design == 0
                     flag = 2*length(obj.setup.opt_vars)+1; % Aeyels condition (see https://doi.org/10.48550/arXiv.2204.09359)
                 else
                     flag = obj.setup.w;
@@ -1194,13 +1226,27 @@ classdef obsopt < handle
                         opt_time = tic;
                         
                         %%%%% OPTIMISATION - NORMAL MODE %%%%%%
-                        if strcmp(func2str(obj.setup.fmin),'fmincon')                                                       
-                            [NewXopt, J, obj.init.exitflag,output] = obj.setup.fmin(@(x)obj.setup.cost_run(x,obj.init.temp_x0_nonopt,obj.init.temp_x0_filters,obj.init.target,1),...
-                                                                     obj.init.temp_x0_opt, obj.setup.Acon, obj.setup.Bcon,obj.setup.Acon_eq, obj.setup.Bcon_eq, obj.setup.LBcon,...
-                                                                     obj.setup.UBcon, obj.setup.NONCOLcon, obj.init.myoptioptions);
+                        if ~obj.setup.GlobalSearch
+                            if strcmp(func2str(obj.setup.fmin),'fmincon')                                                       
+                                [NewXopt, J, obj.init.exitflag,output] = obj.setup.fmin(@(x)obj.setup.cost_run(x,obj.init.temp_x0_nonopt,obj.init.temp_x0_filters,obj.init.target,1),...
+                                                                         obj.init.temp_x0_opt, obj.setup.Acon, obj.setup.Bcon,obj.setup.Acon_eq, obj.setup.Bcon_eq, obj.setup.LBcon,...
+                                                                         obj.setup.UBcon, obj.setup.NONCOLcon, obj.init.myoptioptions);
+                            else
+                                [NewXopt, J, obj.init.exitflag,output] = obj.setup.fmin(@(x)obj.setup.cost_run(x,obj.init.temp_x0_nonopt,obj.init.temp_x0_filters,obj.init.target,1),...
+                                                                         obj.init.temp_x0_opt, obj.init.myoptioptions);
+                            end
                         else
-                            [NewXopt, J, obj.init.exitflag,output] = obj.setup.fmin(@(x)obj.setup.cost_run(x,obj.init.temp_x0_nonopt,obj.init.temp_x0_filters,obj.init.target,1),...
-                                                                     obj.init.temp_x0_opt, obj.init.myoptioptions);
+                            problem = createOptimProblem(func2str(obj.setup.fmin),'objective',@(x)obj.setup.cost_run(x,obj.init.temp_x0_nonopt,obj.init.temp_x0_filters,obj.init.target,1),...
+                                                                        'x0', obj.init.temp_x0_opt, 'Aineq', obj.setup.Acon, 'bineq', obj.setup.Bcon, 'Aeq', obj.setup.Acon_eq, 'beq', obj.setup.Bcon_eq, ...
+                                                                        'lb', obj.setup.LBcon, 'ub', obj.setup.UBcon, 'nonlcon', obj.setup.NONCOLcon, 'options', obj.init.myoptioptions);
+                            if obj.setup.MultiStart
+                                ms = MultiStart('FunctionTolerance',obj.init.TolFun, 'XTolerance', obj.init.TolX, 'UseParallel',true);
+                                gs = GlobalSearch(ms);
+                            else
+                                gs = GlobalSearch;
+                            end
+                            
+                            [NewXopt, J] = run(gs,problem);
                         end
                         
                         % save numer of iterations
