@@ -33,11 +33,13 @@ function x_dot = model_control_test(t,x,params,obs)
     
     %%% model dynamics %%%
     % model with u_ecc
-    x_dot(1:2,:) = A*x(1:2,:) + B*(params.u(1,:));
+    x_dot(1:2,:) = A*x(1:2,:) + B*(params.u(1,:)+params.u(2,:)+params.u(3,:));
+    
+    
     % model with stabilising input
-    x_dot(3:4,:) = A*x(3:4,:) + B*(params.u(2,:));
+%     x_dot(3:4,:) = A*x(3:4,:) + B*(params.u(2,:));
     % no dynamics in the 5th state - desired plant
-    x_dot(5,:) = 0;
+%     x_dot(5,:) = 0;
     
     % params dynamics (under development)    
 end
