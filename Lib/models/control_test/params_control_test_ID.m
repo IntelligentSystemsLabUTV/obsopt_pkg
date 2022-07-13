@@ -17,10 +17,10 @@ function params = params_control_test_ID
     params.K3 = -49.6254*0;
     params.K4 = -2.5068e+04*0;    
     % model parameters
-    params.A1 = 1*-1;
-    params.A2 = 1*1;
-    params.A3 = 1*-2;
-    params.A4 = 1*0;
+    params.A1 = 1*1;
+    params.A2 = 1*-1;
+    params.A3 = 1*1;
+    params.A4 = 1*1;
     params.B1 = 1*1;
     params.B2 = 1*2;
     params.C1 = 1*2;
@@ -34,7 +34,7 @@ function params = params_control_test_ID
     
     % initial condition
 %     params.X(1).val(:,1) = [1;1];
-    params.X(1).val(:,1) = [1;1;params.A1;params.A2;params.A3;params.A4;params.B1;params.B2];
+    params.X(1).val(:,1) = [0;0;params.A1;params.A2;params.A3;params.A4;params.B1;params.B2];
     
     % position in the state vector of the estimated parameters
     params.estimated_params = [3:8];
