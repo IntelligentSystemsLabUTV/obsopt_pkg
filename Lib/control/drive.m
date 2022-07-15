@@ -58,8 +58,11 @@ function drive_out = drive(varargin)
             y = y_meas;            
         end
     end
-              
-        drive_out = [drive_out; y_meas-y];
+          
+        y = reshape(y,size(y_meas));
+        tmp = y_meas-y;
+        tmp = reshape(tmp,length(y),1);
+        drive_out = [drive_out; tmp];
     end
     
     % save drive story

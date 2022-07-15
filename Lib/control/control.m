@@ -21,15 +21,8 @@ function u = control(t,drive,params)
 %     u = [sin(t); zeros(size(t))];
     
     %%%% control law - control test %%%%
-    % this first is u_ecc
-%     u(1,:) = 1*(sin(1*t)+sin(200*t));
-%     p = 20;
-%     u(1,:) = 1*(mod(t,p)<p/2);
-    % this second is the stabilising input
-    u(1,:) = [params.K1, params.K2]*drive(1:2,:);
-    u(2,:) = params.K3*drive(3,:);
-    u(3,:) = params.K4*drive(4,:);
-%     u(4,:) = params.K5*drive(5,:);
+    % error signal (r-y)
+    u(1,:) = drive(5,:);
 
 
     %%%% control law - pendulum %%%%

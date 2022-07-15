@@ -177,7 +177,7 @@ function params = model_init(varargin)
             % randomly define the percentage (bool flag, see below)
             randflag = 1;
             noise_opt = 1;
-            noise_nonopt = 0;
+            noise_nonopt = 1;
             
             % if case: random perturbation percentage - non optimised vars
             if noise_nonopt
@@ -202,27 +202,26 @@ function params = model_init(varargin)
             params.perc = 1*params.perc;
             
             params.X_est(traj).val(:,1) = init;
+            noise_std = 2e-1;
             
             if params.noise
             
                 
                 if noise_opt
                     % around init
-%                     params.X_est(traj).val(params.opt_vars,1) = init(params.opt_vars).*(1 + params.noise*params.perc(params.opt_vars,traj).*ones(length(params.opt_vars),1)) + params.noise*params.noise_std(params.opt_vars).*randn(length(params.opt_vars),1);
+%                     params.X_est(traj).val(params.opt_vars,1) = init(params.opt_vars).*(1 + params.noise*params.perc(params.opt_vars,traj).*ones(length(params.opt_vars),1)) + params.noise*noise_std.*randn(length(params.opt_vars),1);
                     
                     % around 0
-                    params.X_est(traj).val(params.opt_vars,1) =  params.noise*params.perc(params.opt_vars,traj).*init(params.opt_vars) + params.noise*params.noise_std(params.opt_vars).*randn(length(params.opt_vars),1);
+                    params.X_est(traj).val(params.opt_vars,1) =  params.noise*params.perc(params.opt_vars,traj).*init(params.opt_vars) + params.noise*noise_std.*randn(length(params.opt_vars),1);
                 end
                 
                 if noise_nonopt
                     % around init
-%                     params.X_est(traj).val(params.nonopt_vars,1) = init(params.nonopt_vars).*(1 + params.noise*params.perc(params.nonopt_vars,traj).*ones(length(params.nonopt_vars),1)) + params.noise*params.noise_std(params.nonopt_vars).*randn(length(params.nonopt_vars),1);
+%                     params.X_est(traj).val(params.multi_traj_var,1) = init(params.multi_traj_var).*(1 + params.noise*params.perc(params.multi_traj_var,traj).*ones(length(params.multi_traj_var),1)) + params.noise*noise_std.*randn(length(params.multi_traj_var),1);
                     
                     % around 0
-%                     params.X_est(traj).val(params.nonopt_vars,1) =  params.noise*params.perc(params.nonopt_vars,traj).*init + params.noise*params.noise_std.*randn(length(params.nonopt_vars),1);
-                end
-
-                
+                    params.X_est(traj).val(params.multi_traj_var,1) =  params.noise*params.perc(params.multi_traj_var,traj).*init(params.multi_traj_var) + params.noise*noise_std.*randn(length(params.multi_traj_var),1);
+                end               
                 
             end
         else

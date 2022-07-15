@@ -37,7 +37,7 @@ function [filter, filterScale, reference] = filter_define(Ts,Nts)
     end
 
     %%%% integral filter %%%%
-    if 1
+    if 0
     i = i+1;    
     eps2 = 1e2;
     G = tf(1,[eps2 1]);
