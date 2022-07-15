@@ -254,6 +254,14 @@ classdef obsopt < handle
                 obj.setup.J_thresh = [1e-10, 1e3];
             end
             
+            % normalise the cost function
+            if any(strcmp(varargin,'J_normalise'))
+                pos = find(strcmp(varargin,'J_normalise'));
+                obj.setup.J_normalise = varargin{pos+1};
+            else
+                obj.setup.J_normalise = 1;
+            end
+            
             % change max iterations depending on PE 
             if any(strcmp(varargin,'PE_maxiter'))
                 pos = find(strcmp(varargin,'PE_maxiter'));
@@ -1194,8 +1202,8 @@ classdef obsopt < handle
                         end
                         
                         %%% normalisation %%%
-%                         if (~obj.setup.control_design) && (~obj.init.normalised) 
-                        if (~obj.init.normalised)
+                        if (obj.setup.J_normalise) && (~obj.init.normalised) 
+%                         if (~obj.init.normalised)
                             range = 1:obj.init.ActualTimeIndex;
                             for filt=1:obj.setup.J_nterm
                                 for dim=1:obj.setup.dim_out
@@ -1235,6 +1243,10 @@ classdef obsopt < handle
                                 [NewXopt, J, obj.init.exitflag,output] = obj.setup.fmin(@(x)obj.setup.cost_run(x,obj.init.temp_x0_nonopt,obj.init.temp_x0_filters,obj.init.target,1),...
                                                                          obj.init.temp_x0_opt, obj.init.myoptioptions);
                             end
+                            
+                            % save numer of iterations
+                            obj.init.NiterFmin(obj.init.ActualTimeIndex) = output.iterations;
+                            obj.init.exitflag_story(obj.init.ActualTimeIndex) = obj.init.exitflag;
                         else
                             problem = createOptimProblem(func2str(obj.setup.fmin),'objective',@(x)obj.setup.cost_run(x,obj.init.temp_x0_nonopt,obj.init.temp_x0_filters,obj.init.target,1),...
                                                                         'x0', obj.init.temp_x0_opt, 'Aineq', obj.setup.Acon, 'bineq', obj.setup.Bcon, 'Aeq', obj.setup.Acon_eq, 'beq', obj.setup.Bcon_eq, ...
@@ -1249,9 +1261,7 @@ classdef obsopt < handle
                             [NewXopt, J] = run(gs,problem);
                         end
                         
-                        % save numer of iterations
-                        obj.init.NiterFmin(obj.init.ActualTimeIndex) = output.iterations;
-                        obj.init.exitflag_story(obj.init.ActualTimeIndex) = obj.init.exitflag;
+                       
                         
                         % reconstruct NewXopt from opt/nonopt vars
                         NewXopt_tmp = [];
@@ -1668,8 +1678,13 @@ classdef obsopt < handle
                     for dim=1:obj.setup.dim_out
                         y_plot = obj.setup.J_temp_scale(k)*reshape(obj.init.Y_full_story(traj).val(k,dim,:),size(obj.setup.time));
                         yhat_plot = obj.setup.J_temp_scale(k)*reshape(obj.init.Yhat_full_story(traj).val(k,dim,:),size(obj.setup.time));
-                        plot(obj.setup.time,y_plot,'b--');
-                        plot(obj.setup.time,yhat_plot,'r--');
+                        if 0
+                            plot(obj.setup.time,y_plot,'b--');
+                            plot(obj.setup.time,yhat_plot,'r--');
+                        else
+                            plot(obj.setup.time,abs(y_plot-yhat_plot));
+                            set(gca, 'YScale', 'log')
+                        end
                     end
                     
                     legend('measured','estimated')
