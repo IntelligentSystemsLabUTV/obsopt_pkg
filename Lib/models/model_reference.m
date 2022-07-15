@@ -33,7 +33,7 @@ function x_dot = model_reference(t, x, params, obs)
     % the second two will be the states with the INITIAL stabilising input.
 %     x_dot(1:4,:) = x_dot_tmp(1:4);
     
-    % this is the desired plant evolution
+    % this is the desired plant evolution    
     x_dot(1,:) = -0.5*x(1,:) + 1;    
         
 end
