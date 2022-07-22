@@ -11,16 +11,16 @@ function [params,obs] = simulation_general
 % uncomment to close previously opened figures
 % close all
     
-% init observer buffer (see https://doi.org/10.48550/arXiv.2204.09359)
-Nw = 30;
-Nts = 10;
+% init observer buffer (see https://doi.org/10.48550/arXiv.2204.09359)0
+Nw = 10;
+Nts = 1;
 
 % set sampling time
-Ts = 5e-2;
+Ts = 1;
 
 % set initial and final time instant
 t0 = 0;
-tend = 20;
+tend = 300;
 % uncomment to test the MHE with a single optimisation step
 % tend = 1*(Nw*Nts+1)*Ts;
 
@@ -33,7 +33,7 @@ tend = 20;
 % model equations. e.g. for a mechanical system
 % params.M = mass
 % params.b = friction coefficient
-params_init = @params_battery_yan;
+params_init = @params_battery_tushar;
 
 %%%% params update function %%%%
 % remark: this file is used if the MHE is set to estimate mode parameters
@@ -45,8 +45,7 @@ params_init = @params_battery_yan;
 % x: state vector
 % OUTPUT: 
 % params_out: updated structure with the new model parameters 
-params_update = @params_update_battery_yan;
-
+params_update = @params_update_battery_tushar;
 
 %%%% model function %%%%
 % function: this file shall be in the following form:
@@ -58,8 +57,7 @@ params_update = @params_update_battery_yan;
 % obs: instance of the obsopt observer class
 % OUTPUT:
 % xdot:output of the state space model
-model = @model_battery_yan;
-model_true = @model_battery_yan_true;
+model = @model_battery_tushar;
 
 %%%% model reference function %%%%
 % remark: !DEVEL! this function is used to generate the reference
@@ -75,7 +73,7 @@ model_true = @model_battery_yan_true;
 % OUTPUT:
 % xdot:output of the state space model
 % model_reference = @model_reference;
-model_reference = model_true;
+model_reference = model;
 
 %%%% measure function %%%%
 % function: this file shall be in the following form:   
@@ -87,7 +85,7 @@ model_reference = model_true;
 % OUTPUT:
 % y = measure (no noise added). In the following examples it holds
 % y = x(params.observed_state) (see params_init options)
-measure = @measure_battery_yan;
+measure = @measure_battery_tushar;
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 %%%% filters %%%%
@@ -131,14 +129,14 @@ noise_mat = 0*[0,1e-1];
 % important is the 'params_init' option, which takes as input the function 
 % handle to the previously defined @params_init. For more information see 
 % directly the model_init.m file.
-params = model_init('Ts',Ts,'T0',[t0, tend],'noise',1,'noise_spec',noise_mat, 'params_update', params_update, ...
+params = model_init('Ts',Ts,'T0',[t0, tend],'noise',0,'noise_spec',noise_mat, 'params_update', params_update, ...
         'model',model,'measure',measure,'ObservedState',[1],'ode',ode, 'odeset', [1e-3 1e-6], ...
         'input_enable',1,'input_law',input_law,'params_init',params_init);
 
 %%%% observer init %%%%
 % create observer class instance. For more information on the setup
 % options check directly the class constructor in obsopt.m
-obs = obsopt('DataType', 'simulated', 'optimise', 1, ... 
+obs = obsopt('DataType', 'simulated', 'optimise', 0, ... 
       'Nw', Nw, 'Nts', Nts, 'ode', ode, 'PE_maxiter', 0, 'control_design', 0 , 'model_reference', model_reference, ...    
       'params',params, 'filters', filterScale,'filterTF', filter, 'Jdot_thresh',0.9,'MaxIter',80,'WaitForN' ,1,...
       'Jterm_store', 1, 'AlwaysOpt', 1 , 'print', 1 , 'SafetyDensity', 3, 'AdaptiveHist', [1e-2, 3e-2, 1e0], 'model_reference', model_reference, ...

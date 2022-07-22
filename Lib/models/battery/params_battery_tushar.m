@@ -7,33 +7,47 @@
 % INPUT: none
 % OUTPUT:
 % params: structure with all the necessary parameters
-function params = params_battery_yan
+function params = params_battery_tushar
 
     % system parameters
     % battery EMF
-    params.Voc = 5;
+    params.Voc = 4.1924;
     % ohmic internal resistance
-    params.R0 = 2;
+    params.R0 = 0.0116;
     % polarization resistance
-    params.R1 = 2;
+    params.R1 = 0.0028114;
     % polarization capacity
-    params.C1 = 1;
-    % nominal capacity of the battery (constant)
-    params.Cn = 1;    
+    params.C1 = 9118;
+    % Battery Capacity (converting Ampere-hour to Ampere-second)
+    params.C_n = 28 * 3600; 
+    % Battery charging-discharging efficiency (for Li-ion=100%)
+    params.eta = 1;
+  
     
     % control parameters
     params.K1 = 0.1;
     params.K2 = 0.1;
-    params.period = 0.5;
+    params.period = 1;
+
+    % Loading input signals and parameter data
+    input_data = load('.\data\ECM_parameters.mat');
+    params.input_time = input_data.Time;
+    params.input_current = input_data.Current;
+    params.input_OCV = input_data.OCV;
+    params.input_soc = input_data.SOC;
+    params.input_R0 = input_data.R0;
+    params.input_R1 = input_data.R1;
+    params.input_C1 = input_data.C1;
+    
     
     % number of reference trajectories (under development)
     params.Ntraj = 1;
     
     % state dimension
-    params.dim_state = 10;
+    params.dim_state = 2;
     
     % initial condition
-     params.X(1).val(:,1) = [1;1;params.Voc;params.R0;params.R1;params.C1;0*0.08;0*0.07;0*0.06;0*0.05];
+    params.X(1).val(:,1) = [0.9; 0.01];
     
     % same initial condition for all the trajectories (under development)
     for traj=2:params.Ntraj
@@ -41,10 +55,10 @@ function params = params_battery_yan
     end
     
     % position in the state vector of the estimated parameters
-    params.estimated_params = [3:10];
+    params.estimated_params = [];
     
     % which vars am I optimising
-    params.opt_vars = [1:10];
+    params.opt_vars = [1:2];
     
     % set the not optimised vars
     tmp = 1:length(params.X(1).val(:,1));
@@ -56,7 +70,7 @@ function params = params_battery_yan
     
     % plot vars (used to plot the state estimation. When the parameters are
     % too many, consider to use only the true state components)
-    params.plot_vars = 1:6;
-    params.plot_params = 7:10;
+    params.plot_vars = params.dim_state;
+    params.plot_params = 1;
     
 end

@@ -12,7 +12,8 @@
 function u = control(t,drive,params)
 
     % init input
-    u = zeros(params.dim_input,length(t));
+    u = zeros(1,length(t));
+    % params.dim_input
 
     % check if the input is enabled
     if params.input_enable
@@ -22,7 +23,7 @@ function u = control(t,drive,params)
 
         %%%% control law - battery %%%%
         % sine wave
-        u(1,:) = sin(t/params.period);
+        u(1,:) = -1 * interp1(params.input_time,params.input_current,t,'previous');
         % PWM
 %         period = params.period;
 %         mod_t = mod(t,period);
