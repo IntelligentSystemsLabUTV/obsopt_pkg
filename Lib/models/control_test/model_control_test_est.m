@@ -33,13 +33,16 @@ function x_dot = model_control_test_est(t,x,params,obs)
     
     % Control
     Ac = [0 1; params.a0 params.a1];
-    Bc = [params.b0; params.b1]; 
+    Bc = [params.b0; params.b1];     
     
-    % get current output of controller C
-    uC = [1 0]*x(3:4)+x(13);
+    % u1 = input to identify 
+    % u2 = input to plant
+    % u3 = input to controller
     
-    %%% model dynamics %%%    
-    x_dot(1:2,:) = Ap*x(1:2,:) + Bp*uC;        
+    %%% model dynamics %%%           
+    % plant stabilisation
+    x_dot(1:2,:) = Ap*x(1:2,:) + Bp*(params.u(2,:));
+    % controller dynamics
     x_dot(3:4,:) = Ac*x(3:4,:) + Bc*(params.u(1,:));
     
     % params dynamics (under development)    

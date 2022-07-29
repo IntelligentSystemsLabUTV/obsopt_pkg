@@ -14,26 +14,32 @@
 function x_dot = model_reference(t, x, params, obs)
 
     % init the dynamics
-    x_dot = zeros(length(x),1);                    
+    x_dot = zeros(length(x),1);    
     
-    % model dynamics - first order
-%     x_dot(1) = -1.5*x(1) + 2;
-%     x_dot(2) = -1.5*x(2) + 1;
-
-    % model dynamics - stable eigs 2 dim
-%     A = [-1 1; 0 -2];
-%     B = [0; 1];
-%     x_dot(1:2) = A*x(1:2) + B*0;
+    % compute the control
+    tdiff = obs.setup.time-t;   
+    pos = find(abs(tdiff) == min(abs(tdiff)),1,'first');    
+    % check length of measurements
+    pos = min(pos,size(obs.init.Y_full_story(obs.init.traj).val,3));
+    drive_out = drive(obs,obs.init.X(obs.init.traj).val(:,pos),x,obs.init.Y_full_story(obs.init.traj).val(:,:,max(1,pos-1):pos),pos);
+    params.u = params.input(t,drive_out,params);
     
-    % model dynamics - stable eigs 1 dim
+    % Plant
+    Ap = [params.A1 params.A2; params.A3 params.A4];
+    Bp = [params.B1; params.B2];             
     
-    % the model_control_test is used with u_ecc (initial params for input)
-%     x_dot_tmp = model_control_test(t, x, params, obs);
-    % the first two will be the states with u_ecc 
-    % the second two will be the states with the INITIAL stabilising input.
-%     x_dot(1:4,:) = x_dot_tmp(1:4);
+    % u1 = input to identify 
+    % u2 = input to plant
+    % u3 = input to controller
     
-    % this is the desired plant evolution    
-    x_dot(1,:) = -0.5*x(1,:) + 1;    
+    %%% model dynamics %%%
+    % plant identification
+    x_dot(1:2,:) = Ap*x(1:2,:) + Bp*params.u(2,:);
+    % this is the desired reference    
+    p = 1;
+    a = 1;
+    u = a*(mod(t,p)<p/2);
+    alpha = -50;
+    x_dot(3:4,:) = [alpha*x(3,:)+u; 0];
         
 end

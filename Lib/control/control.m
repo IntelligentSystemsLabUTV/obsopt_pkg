@@ -21,8 +21,10 @@ function u = control(t,drive,params)
 %     u = [sin(t); zeros(size(t))];
     
     %%%% control law - control test %%%%
-    % error signal (r-y)
-    u(1,:) = drive(5,:);
+    % error signal (r-y) - input to identify
+    u(1,:) = drive(14,:);
+    % error signal (r-y) - input to stabilise     
+    u(2,:) = [1 0]*drive(3:4) + drive(13)*drive(15,:);    
 
 
     %%%% control law - pendulum %%%%

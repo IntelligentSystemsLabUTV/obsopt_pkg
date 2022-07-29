@@ -13,16 +13,16 @@ function [params,obs] = simulation_general
     
 % init observer buffer (see https://doi.org/10.48550/arXiv.2204.09359)
 Nw = 30;
-Nts = 10;
+Nts = 5;
 
 % set sampling time
-Ts = 5e-2;
+Ts = 1e-2;
 
 % set initial and final time instant
 t0 = 0;
-% tend = 4;
+tend = 6;
 % uncomment to test the MHE with a single optimisation step
-tend = 1*(Nw*Nts-1)*Ts;
+% tend = 1*(Nw*Nts-1)*Ts;
 
 %%%% params init function %%%%
 % function: this function shall be in the following form:
@@ -135,13 +135,13 @@ noise_mat = 0*ones(13,2);
 % handle to the previously defined @params_init. For more information see 
 % directly the model_init.m file.
 params = model_init('Ts',Ts,'T0',[t0, tend],'noise',0,'noise_spec',noise_mat, 'params_update', params_update, ...
-        'model',model,'measure',measure,'ObservedState',[1],'ode',ode, 'odeset', [1e-3 1e-6], ...
+        'model',model,'measure',measure,'ObservedState',[1 2],'ode',ode, 'odeset', [1e-3 1e-6], ...
         'input_enable',1,'input_law',input_law,'params_init',params_init);
 
 %%%% observer init %%%%
 % create observer class instance. For more information on the setup
 % options check directly the class constructor in obsopt.m
-obs = obsopt('DataType', 'simulated', 'optimise', 1, 'GlobalSearch', 0, 'MultiStart', 0, 'J_normalise', 0, ... 
+obs = obsopt('DataType', 'simulated', 'optimise', 0, 'GlobalSearch', 0, 'MultiStart', 0, 'J_normalise', 0, ... 
       'Nw', Nw, 'Nts', Nts, 'ode', ode, 'PE_maxiter', 0, 'control_design', 0 , 'model_reference', model_reference, 'WaitAllBuffer', 0, ...    
       'measure_reference', measure_reference, 'params',params, 'filters', filterScale,'filterTF', filter, 'Jdot_thresh',0.9,'MaxIter',1000,...
       'Jterm_store', 0, 'AlwaysOpt', 1 , 'print', 1 , 'SafetyDensity', 3, 'AdaptiveHist', [1e-2, 3e-2, 1e0], ...

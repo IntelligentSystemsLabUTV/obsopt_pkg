@@ -12,22 +12,19 @@
 function params_out = params_update_control_test(params,x)
 
     % assign params
-    params_out = params;
-    
-    % update controller
-%     params_out.K1 = x(3);
-%     params_out.K2 = x(4);
-%     params_out.K3 = x(5);
-%     params_out.K4 = x(6);
-%     params_out.K5 = x(7);
-%     params_out.K6 = x(8);
+    params_out = params;    
 
     % update model
-    params_out.a0est = x(3);
-    params_out.a1est = x(4);
-    params_out.b0est = x(5);
-    params_out.b1est = x(6);
-%     params_out.B1 = x(12);
-%     params_out.B2 = x(13);
+    params_out.a0est = x(5);
+    params_out.a1est = x(6);
+    params_out.b0est = x(7);
+    params_out.b1est = x(8);
+
+    % update controller
+    params_out.a0 = x(9);
+    params_out.a1 = x(10);
+    params_out.b0 = x(11);
+    params_out.b1 = x(12);
+    params_out.d0 = x(13);
     
 end

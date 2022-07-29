@@ -13,11 +13,10 @@
 function y = measure_control_test_est(x,params,t)
 
     % LTI system - C matrix
-    C = [1 0 1 0];
+    C = [1 0];
     
     % get the observed components of the state vector        
-%     y(1:2,:) = x(1:2,:);
     y(1,:) = 1*C(1:2)*x(1:2,:);
-%     y(2,:) = 1*C(3:4)*x(3:4,:) + params.d0;
+    y(2,:) = y(1,:);
     
 end

@@ -1069,7 +1069,7 @@ classdef obsopt < handle
                     disp(['n window: ', num2str(obj.setup.w),'  n samples: ', num2str(obj.setup.Nts)])                    
                     disp(['N. optimisations RUN: ',num2str(obj.init.opt_counter)]);
                     disp(['N. optimisations SELECTED: ',num2str(obj.init.select_counter)]);
-                end
+                end                                
                
                 %%%% OUTPUT measurements - buffer of w elements
                 % measures
@@ -1152,6 +1152,10 @@ classdef obsopt < handle
                             obj.init.BackTimeIndex = obj.setup.time(max(obj.init.ActualTimeIndex-sum(buf_dist(1:end)),1));
                         end
                         obj.init.BackIterIndex = find(obj.setup.time==obj.init.BackTimeIndex);
+                        
+                        %%%% TESTING - RESET STATES %%%%
+                        obj.init.X_est(obj.init.traj).val(obj.init.params.plot_vars,obj.init.BackIterIndex) = obj.init.X(obj.init.traj).val(obj.init.params.plot_vars,obj.init.BackIterIndex);
+                        obj.init.X_est(obj.init.traj).val(3:4,obj.init.BackIterIndex) = [0;0];
 
                         % set of initial conditions
                         for traj=1:obj.setup.Ntraj
@@ -1678,7 +1682,7 @@ classdef obsopt < handle
                     for dim=1:obj.setup.dim_out
                         y_plot = obj.setup.J_temp_scale(k)*reshape(obj.init.Y_full_story(traj).val(k,dim,:),size(obj.setup.time));
                         yhat_plot = obj.setup.J_temp_scale(k)*reshape(obj.init.Yhat_full_story(traj).val(k,dim,:),size(obj.setup.time));
-                        if 0
+                        if 1
                             plot(obj.setup.time,y_plot,'b--');
                             plot(obj.setup.time,yhat_plot,'r--');
                         else

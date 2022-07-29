@@ -12,7 +12,8 @@ function drive_out = drive(varargin)
 
 
     % just x
-    drive_out = [drive_out; x(obj.setup.plot_vars)];
+%     drive_out = [drive_out; x(obj.setup.plot_vars)];
+    drive_out = [drive_out; x];
 
     % get y    
     if 1    
