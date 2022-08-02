@@ -11,18 +11,18 @@ function [params,obs] = simulation_general
 % uncomment to close previously opened figures
 % close all
     
-% init observer buffer (see https://doi.org/10.48550/arXiv.2204.09359)0
-Nw = 10;
-Nts = 1;
+% init observer buffer (see https://doi.org/10.48550/arXiv.2204.09359)
+Nw = 30;
+Nts = 5;
 
 % set sampling time
-Ts = 1;
+Ts = 1e-2;
 
 % set initial and final time instant
 t0 = 0;
-tend = 300;
+tend = 6;
 % uncomment to test the MHE with a single optimisation step
-% tend = 1*(Nw*Nts+1)*Ts;
+% tend = 1*(Nw*Nts-1)*Ts;
 
 %%%% params init function %%%%
 % function: this function shall be in the following form:
@@ -33,7 +33,7 @@ tend = 300;
 % model equations. e.g. for a mechanical system
 % params.M = mass
 % params.b = friction coefficient
-params_init = @params_battery_tushar;
+params_init = @params_control_test;
 
 %%%% params update function %%%%
 % remark: this file is used if the MHE is set to estimate mode parameters
@@ -45,7 +45,8 @@ params_init = @params_battery_tushar;
 % x: state vector
 % OUTPUT: 
 % params_out: updated structure with the new model parameters 
-params_update = @params_update_battery_tushar;
+params_update = @params_update_control_test;
+
 
 %%%% model function %%%%
 % function: this file shall be in the following form:
@@ -57,7 +58,7 @@ params_update = @params_update_battery_tushar;
 % obs: instance of the obsopt observer class
 % OUTPUT:
 % xdot:output of the state space model
-model = @model_battery_tushar;
+model = @model_control_test_est;
 
 %%%% model reference function %%%%
 % remark: !DEVEL! this function is used to generate the reference
@@ -72,8 +73,8 @@ model = @model_battery_tushar;
 % obs: instance of the obsopt observer class
 % OUTPUT:
 % xdot:output of the state space model
-% model_reference = @model_reference;
-model_reference = model;
+model_reference = @model_reference;
+% model_reference = model;
 
 %%%% measure function %%%%
 % function: this file shall be in the following form:   
@@ -85,7 +86,10 @@ model_reference = model;
 % OUTPUT:
 % y = measure (no noise added). In the following examples it holds
 % y = x(params.observed_state) (see params_init options)
-measure = @measure_battery_tushar;
+measure = @measure_control_test_est;
+% measure = @measure_general;
+measure_reference = @measure_control_ref;
+% measure_reference = @measure_general;
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 %%%% filters %%%%
@@ -104,7 +108,7 @@ measure = @measure_battery_tushar;
 
 %%%% integration method %%%%
 % ode45-like integration method. For discrete time systems use @odeDD
-ode = @odeDD;
+ode = @oderk4_fast;
 
 %%%% input law %%%
 % function: defines the input law used. Remember to check the @model
@@ -121,7 +125,8 @@ input_law = @control;
 % this should be a vector with 2 columns and as many rows as the state
 % dimension. All the noise are considered as Gaussian distributed. The 
 % first column defines the mean while the second column the variance.
-noise_mat = 0*[0,1e-1];
+noise_mat = 0*ones(13,2);
+% noise_mat(1:2,2) = 5e-1;
 
 %%%% params init %%%%
 % init the parameters structure through funtion @model_init. 
@@ -130,17 +135,17 @@ noise_mat = 0*[0,1e-1];
 % handle to the previously defined @params_init. For more information see 
 % directly the model_init.m file.
 params = model_init('Ts',Ts,'T0',[t0, tend],'noise',0,'noise_spec',noise_mat, 'params_update', params_update, ...
-        'model',model,'measure',measure,'ObservedState',[1],'ode',ode, 'odeset', [1e-3 1e-6], ...
+        'model',model,'measure',measure,'ObservedState',[1 2],'ode',ode, 'odeset', [1e-3 1e-6], ...
         'input_enable',1,'input_law',input_law,'params_init',params_init);
 
 %%%% observer init %%%%
 % create observer class instance. For more information on the setup
 % options check directly the class constructor in obsopt.m
-obs = obsopt('DataType', 'simulated', 'optimise', 0, ... 
-      'Nw', Nw, 'Nts', Nts, 'ode', ode, 'PE_maxiter', 0, 'control_design', 0 , 'model_reference', model_reference, ...    
-      'params',params, 'filters', filterScale,'filterTF', filter, 'Jdot_thresh',0.9,'MaxIter',80,'WaitForN' ,1,...
-      'Jterm_store', 1, 'AlwaysOpt', 1 , 'print', 1 , 'SafetyDensity', 3, 'AdaptiveHist', [1e-2, 3e-2, 1e0], 'model_reference', model_reference, ...
-      'AdaptiveSampling',0, 'FlushBuffer', 0, 'opt', @fminunc, 'spring', 0, 'LBcon', [], 'UBcon', [], 'terminal_cost',0);
+obs = obsopt('DataType', 'simulated', 'optimise', 0, 'GlobalSearch', 0, 'MultiStart', 0, 'J_normalise', 0, ... 
+      'Nw', Nw, 'Nts', Nts, 'ode', ode, 'PE_maxiter', 0, 'control_design', 0 , 'model_reference', model_reference, 'WaitAllBuffer', 0, ...    
+      'measure_reference', measure_reference, 'params',params, 'filters', filterScale,'filterTF', filter, 'Jdot_thresh',0.9,'MaxIter',1000,...
+      'Jterm_store', 0, 'AlwaysOpt', 1 , 'print', 1 , 'SafetyDensity', 3, 'AdaptiveHist', [1e-2, 3e-2, 1e0], ...
+      'AdaptiveSampling',0, 'FlushBuffer', 1, 'opt', @fminunc, 'spring', 0);
 
 %% %%%% SIMULATION %%%%
 % remark: the obs.setup.Ntraj variable describes on how many different
@@ -162,36 +167,33 @@ for i = 1:obs.setup.Niter
     
     % set current iteration in the obsopt class
     obs.init.ActualTimeIndex = i;
-    obs.init.t = obs.setup.time(i);        
+    obs.init.t = obs.setup.time(i);
     
     %%%% PROPAGATION %%%%
     % forward propagation of the previous estimate
-    for traj = 1:obs.setup.Ntraj               
+    for traj = 1:obs.setup.Ntraj
                  
         % propagate only if the time gets over the initial time instant
-        if(obs.init.ActualTimeIndex > 1)                        
+        if(obs.init.ActualTimeIndex > 1)
             
             % define the time span of the integration
             startpos = obs.init.ActualTimeIndex-1;
             stoppos = obs.init.ActualTimeIndex;
-            tspan = obs.setup.time(startpos:stoppos);     
-            
-            % save the input
-            obs.init.u_story(:,obs.init.ActualTimeIndex) = params.input(obs.init.t,obs.init.X(1).val(:,startpos),params);
+            tspan = obs.setup.time(startpos:stoppos);            
 
             % true system - correct initial condition and no noise
             % considered
             X = obs.setup.ode(@(t,x)obs.setup.model_reference(t, x, params, obs), tspan, obs.init.X(traj).val(:,startpos),params.odeset); 
-            obs.init.X(traj).val(:,startpos:stoppos) = X.y;
+            obs.init.X(traj).val(:,startpos:stoppos) = [X.y(:,1),X.y(:,end)];
 
             % real system - initial condition perturbed 
             X = obs.setup.ode(@(t,x)obs.setup.model(t, x, obs.init.params, obs), tspan, obs.init.X_est(traj).val(:,startpos),params.odeset);
-            obs.init.X_est(traj).val(:,startpos:stoppos) = X.y;      
+            obs.init.X_est(traj).val(:,startpos:stoppos) = [X.y(:,1),X.y(:,end)];      
         end
         
         %%%% REAL MEASUREMENT %%%%
         % here the noise is noise added aggording to noise_spec
-        obs.init.Ytrue_full_story(traj).val(1,:,obs.init.ActualTimeIndex) = obs.setup.measure(obs.init.X(traj).val(:,obs.init.ActualTimeIndex),obs.init.params,obs.setup.time(obs.init.ActualTimeIndex));
+        obs.init.Ytrue_full_story(traj).val(1,:,obs.init.ActualTimeIndex) = obs.setup.measure_reference(obs.init.X(traj).val(:,obs.init.ActualTimeIndex),obs.init.params,obs.setup.time(obs.init.ActualTimeIndex));
         obs.init.noise_story(traj).val(:,obs.init.ActualTimeIndex) = obs.setup.noise*(obs.setup.noise_mu(obs.setup.observed_state)  + obs.setup.noise_std(obs.setup.observed_state).*randn(obs.setup.dim_out,1));
         y_meas(traj).val =  reshape(obs.init.Ytrue_full_story(traj).val(1,:,obs.init.ActualTimeIndex),obs.setup.dim_out,1) + obs.init.noise_story(traj).val(:,obs.init.ActualTimeIndex);
     end
@@ -208,7 +210,7 @@ for i = 1:obs.setup.Niter
     
     % stop time counter for the observer. Each optimisation process is
     % timed.
-    obs.init.iter_time(obs.init.ActualTimeIndex) = toc(t1);    
+    obs.init.iter_time(obs.init.ActualTimeIndex) = toc(t1);
 
 end
 
@@ -226,7 +228,7 @@ obs.init.total_time = toc(t0);
 
 %% %%%%%%%%%%%%%%%%%%%%%%%%%%%% PLOTS %%%%%%%%%%%%%%%%%%%%%
 % obs self plots
-obs.plot_section_control(); 
+% obs.plot_section_control(); 
 
 % the whole process could be long, why not going for a nap? No worries, 
 % this "sounds" like a nice way to wake up. (Uncomment)

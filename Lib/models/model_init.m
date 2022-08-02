@@ -175,25 +175,55 @@ function params = model_init(varargin)
             params.perc = zeros(params.StateDim,params.Ntraj);
             
             % randomly define the percentage (bool flag, see below)
-            randflag = 0;
+            randflag = 1;
+            noise_opt = 1;
+            noise_nonopt = 1;
             
             % if case: random perturbation percentage - non optimised vars
-            if randflag
-                params.perc(params.nonopt_vars,traj) = 1*randn(1,length(params.nonopt_vars))*5e-1;
-            else
-                params.perc(params.nonopt_vars,traj) = 1*ones(1,length(params.nonopt_vars))*3e-1;
+            if noise_nonopt
+                if randflag
+                    params.perc(params.nonopt_vars,traj) = randn(1,length(params.nonopt_vars))*2e-1;
+                else
+                    params.perc(params.nonopt_vars,traj) = ones(1,length(params.nonopt_vars))*6e-1;
+                end
             end
 
-            % % if case: random perturbation percentage - optimised vars
-            if randflag
-                params.perc(params.opt_vars,traj) = 1*randn(1,length(params.opt_vars))*5e-1;
-            else
-                params.perc(params.opt_vars,traj) = 1*ones(1,length(params.opt_vars))*1e0;
+            % if case: random perturbation percentage - optimised vars
+            if noise_opt
+                if randflag
+                    params.perc(params.opt_vars,traj) = 1*randn(1,length(params.opt_vars))*5e-1;
+                else
+                    params.perc(params.opt_vars,traj) = 1*ones(1,length(params.opt_vars))*5e-1;
+                end
             end
+            
 
             % final setup on perc
             params.perc = 1*params.perc;
-            params.X_est(traj).val(:,1) = init.*(1 + params.noise*params.perc(:,traj).*ones(params.StateDim,1)) + params.noise*params.noise_std.*randn(params.StateDim,1);
+            
+            params.X_est(traj).val(:,1) = init;
+            noise_std = 2e-1;
+            
+            if params.noise
+            
+                
+                if noise_opt
+                    % around init
+%                     params.X_est(traj).val(params.opt_vars,1) = init(params.opt_vars).*(1 + params.noise*params.perc(params.opt_vars,traj).*ones(length(params.opt_vars),1)) + params.noise*noise_std.*randn(length(params.opt_vars),1);
+                    
+                    % around 0
+                    params.X_est(traj).val(params.opt_vars,1) =  params.noise*params.perc(params.opt_vars,traj).*init(params.opt_vars) + params.noise*noise_std.*randn(length(params.opt_vars),1);
+                end
+                
+                if noise_nonopt
+                    % around init
+%                     params.X_est(traj).val(params.multi_traj_var,1) = init(params.multi_traj_var).*(1 + params.noise*params.perc(params.multi_traj_var,traj).*ones(length(params.multi_traj_var),1)) + params.noise*noise_std.*randn(length(params.multi_traj_var),1);
+                    
+                    % around 0
+                    params.X_est(traj).val(params.multi_traj_var,1) =  params.noise*params.perc(params.multi_traj_var,traj).*init(params.multi_traj_var) + params.noise*noise_std.*randn(length(params.multi_traj_var),1);
+                end               
+                
+            end
         else
         
             %%%% PERTURBATION ON X0 WITH RANDOM NOISE %%%%
@@ -206,7 +236,7 @@ function params = model_init(varargin)
 
             % final setup on initial condition
             params.X_est(traj).val(:,1) = init;
-            params.X_est(traj).val(1:params.dim_state,1) = params.X(traj).val(1:params.dim_state,1) + params.noise*noise;
+            params.X_est(traj).val(params.nonopt_vars,1) = params.X(traj).val(params.nonopt_vars,1) + params.noise*noise;
         end
 
         
