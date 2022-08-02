@@ -55,8 +55,8 @@ function [filter, filterScale, reference] = filter_define(Ts,Nts)
     
     %%%% reference filter %%%%
     % (under development)
-    eps = 2e0;
-    G = tf(eps,[1 eps]);
+    eps = 3;
+    G = tf(1,[eps 1]);
     SS = ss(G);
     D = c2d(SS,Ts);
     reference.TF = D;
@@ -66,5 +66,9 @@ function [filter, filterScale, reference] = filter_define(Ts,Nts)
     reference.D = D.D;
     reference.G = G;
     reference.dim = size(D.B,1);
+    reference.x0 = 6*ones(reference.dim,1);
+    
+    %%% butterworth %%%
+    [reference.butter.b,reference.butter.a] = butter(1,0.8);
     
 end
