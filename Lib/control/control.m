@@ -24,13 +24,14 @@ function u = control(t,drive,params)
         %%%% control law - battery %%%%
         % sine wave
         u(1,:) = -1 * interp1(params.input_time,params.input_current,t,'previous');
-        % PWM
-%         period = params.period;
-%         mod_t = mod(t,period);
-%         pos_less = find(mod_t<period/2);
-%         pos_geq = find(mod_t>=period/2);                          
-%         u(1,pos_less) = 0; 
-%         u(1,pos_geq) = 1;
+%         u(1,:) = sin(0.5*t);
+
+%         period = 300;
+%         if mod(t,period) > period/3
+%            u(1,:) = 2; 
+%         else
+%            u(1,:) = 0;
+%         end
            
     end
 end

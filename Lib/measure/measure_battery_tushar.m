@@ -16,5 +16,6 @@ function y = measure_battery_tushar(x,params,t)
     params.u = params.input(t,x,params);    
     
     % get the observed components of the state vector
-    y = params.Voc - x(2,:) -(params.R0 * params.u(1,:));
+    y = x(3,:) - x(2,:) -(x(4,:).*params.u(1,:));
+%     y = x(2,:);
 end
