@@ -7,3 +7,7 @@ workspace/
 # files
 *.asv
 *.save
+.gitignore
+
+# exceptions
+!results/simulations/battery/report
