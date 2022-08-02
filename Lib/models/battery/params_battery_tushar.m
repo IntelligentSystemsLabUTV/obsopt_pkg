@@ -30,7 +30,7 @@ function params = params_battery_tushar
     params.period = 1;
 
     % Loading input signals and parameter data
-    input_data = load('.\data\ECM_parameters.mat');
+    input_data = load('data/ECM_parameters.mat');
     params.input_time = input_data.Time;
     params.input_current = input_data.Current;
     params.input_OCV = input_data.OCV;
@@ -44,10 +44,10 @@ function params = params_battery_tushar
     params.Ntraj = 1;
     
     % state dimension
-    params.dim_state = 2;
+    params.dim_state = 6;
     
     % initial condition
-    params.X(1).val(:,1) = [0.9; 0.01];
+    params.X(1).val(:,1) = [0.9; 0.01; params.Voc; params.R0; params.R1; params.C1];
     
     % same initial condition for all the trajectories (under development)
     for traj=2:params.Ntraj
@@ -55,7 +55,7 @@ function params = params_battery_tushar
     end
     
     % position in the state vector of the estimated parameters
-    params.estimated_params = [];
+    params.estimated_params = [3:6];
     
     % which vars am I optimising
     params.opt_vars = [1:2];
@@ -70,7 +70,15 @@ function params = params_battery_tushar
     
     % plot vars (used to plot the state estimation. When the parameters are
     % too many, consider to use only the true state components)
-    params.plot_vars = params.dim_state;
-    params.plot_params = 1;
+    params.plot_vars = 1:2;
+    params.plot_params = [3:6];
+    params.multi_traj_var = params.nonopt_vars;
+    
+    % same initial condition for all the trajectories (under development)
+    for traj=2:params.Ntraj
+        params.X(traj).val(:,1) = params.X(traj-1).val(:,1);
+        params.X(traj).val(params.multi_traj_var,1) = params.X(traj-1).val(params.multi_traj_var,1) + abs(params.X(traj-1).val(params.multi_traj_var,1)).*randn(length(params.multi_traj_var),1);
+%         params.X(traj).val(params.multi_traj_var,1) = params.X(traj-1).val(params.multi_traj_var,1) + abs(params.X(traj-1).val(params.multi_traj_var,1)).*[1.5; 0.5; 1.5; 0.5];
+    end
     
 end
