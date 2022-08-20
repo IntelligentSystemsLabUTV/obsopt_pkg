@@ -20,7 +20,7 @@ function drive_out = drive(varargin)
     y_meas = varargin{4}(:,:,end);
     pos = varargin{5};
     
-    y = obj.setup.measure(x,obj.init.params,pos);    
+    y = obj.setup.measure(x,obj.init.params,pos,obj.init.input_story(obj.init.traj).val(:,max(1,pos-1)));    
     
     %%% compute filters %%%
     y_filt = [];
@@ -53,16 +53,22 @@ function drive_out = drive(varargin)
                 obj.init.Y_buffer_control(obj.init.traj).val(1+filt,:,pos) = y_filt(filt,:);
             end
             
-            y = [y; y_filt];                        
+            y_filt = reshape(y_filt,size(y));
+            y_pad = zeros(size(y).*[2,1]);
+            y_pad(1:2:end) = y;
+            y_pad(2:2:end) = y_filt;
+            y = y_pad;
             
         else
+%             y_meas = reshape(y_meas,size(y_meas,1)*size(y_meas,2));
             y = y_meas;            
         end
     end
           
-        y = reshape(y,size(y_meas));
-        tmp = y_meas-y;
+        y_meas = reshape(y_meas,size(y));
+        tmp = y_meas-y;        
         tmp = reshape(tmp,length(y),1);
+
         drive_out = [drive_out; tmp];
     end
     
