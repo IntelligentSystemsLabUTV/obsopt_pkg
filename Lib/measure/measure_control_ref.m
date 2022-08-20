@@ -10,13 +10,13 @@
 % t: time instant (may be not used)
 % OUTPUT:
 % y: output measurement
-function y = measure_control_ref(x,params,t)
+function y = measure_control_ref(x,params,t,u)
 
     % LTI system - C matrix
     C = [params.C1 params.C2];
     
     % get the observed components of the state vector
-    y(1,:) = 1*C(1:2)*x(1:2,:);
-    y(2,:) = x(3,:);
+    y(1,:) = 1*C(1:2)*x(6:7,:);     % y
+    y(2,:) = x(5,:);                % reference signal
 
 end

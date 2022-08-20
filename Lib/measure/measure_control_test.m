@@ -10,13 +10,13 @@
 % t: time instant (may be not used)
 % OUTPUT:
 % y: output measurement
-function y = measure_control_test(x,params,t)
+function y = measure_control_test(x,params,t,u)
 
     % LTI system - C matrix
     C = [params.C1 params.C2];
     
     % get the observed components of the state vector        
-%     y(1:2,:) = x(1:2,:);
-    y(1,:) = 1*C*x(1:2,:);
+    y(1,:) = 1*C(1:2)*x(6:7,:);        % yhat (for plant)
+    y(2,:) = 1*C(1:2)*x(1:2,:);        % yhat (for reference)
     
 end
