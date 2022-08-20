@@ -171,14 +171,7 @@ classdef obsopt < handle
             else
                 obj.setup.AdaptiveSampling = 0;
             end
-            
-            % enable or not the buffer flush on the adaptive sampling
-            if any(strcmp(varargin,'FlushBuffer'))
-                pos = find(strcmp(varargin,'FlushBuffer'));
-                obj.setup.FlushBuffer = (obj.setup.AdaptiveSampling && varargin{pos+1});
-            else
-                obj.setup.FlushBuffer = 0;
-            end
+                        
             
             % option to define the safety interval in adaptive sampling. If
             % AdaptiveSampling flag is zero the histeresis is set to zero,
@@ -195,6 +188,14 @@ classdef obsopt < handle
                 obj.setup.dPE = -1;
             end
             
+            % enable or not the buffer flush on the adaptive sampling
+            if any(strcmp(varargin,'FlushBuffer')) && (obj.setup.AdaptiveSampling)
+                pos = find(strcmp(varargin,'FlushBuffer'));
+                obj.setup.FlushBuffer = (obj.setup.AdaptiveSampling && varargin{pos+1});
+            else
+                obj.setup.FlushBuffer = 0;
+            end
+            
             % get the maximum number of iterations in the optimisation
             % process. Default is 100.
             if any(strcmp(varargin,'MaxIter'))
@@ -202,6 +203,17 @@ classdef obsopt < handle
                 obj.setup.max_iter = varargin{pos+1};
             else
                 obj.setup.max_iter = 100;
+            end
+            
+            % get the maximum number of iterations in the optimisation
+            % process. Default is 100.
+            if any(strcmp(varargin,'MaxOptTime'))
+                pos = find(strcmp(varargin,'MaxOptTime'));
+                obj.setup.MaxOptTime = varargin{pos+1};
+                obj.setup.MaxOptTimeFlag = 0;
+            else
+                obj.setup.MaxOptTime = Inf;
+                obj.setup.MaxOptTimeFlag = 0;
             end
             
             % check if the optimised value shall always be accepted. This
@@ -295,13 +307,23 @@ classdef obsopt < handle
                 obj.setup.MultiStart = 0;
             end
             
+            % get the multistart option
+            test = func2str(obj.setup.fmin);
+            if any(strcmp(varargin,'Bounds')) && ~strcmp(test,'fmincon')
+                pos = find(strcmp(varargin,'Bounds'));
+                obj.setup.bounds = varargin{pos+1};                
+            else
+                obj.setup.bounds = 0;
+            end
+            
+            
             % handle fmincon
             try
                 test = func2str(obj.setup.fmin);
             catch
                 test = 'null';
             end
-            if strcmp(test,'fmincon')
+            if strcmp(test,'fmincon') || any(strcmp(varargin,'Bounds'))
                 if any(strcmp(varargin,'Acon'))
                     pos = find(strcmp(varargin,'Acon'));
                     obj.setup.Acon = varargin{pos+1};
@@ -330,13 +352,13 @@ classdef obsopt < handle
                     pos = find(strcmp(varargin,'LBcon'));
                     obj.setup.LBcon = varargin{pos+1};
                 else
-                    obj.setup.LBcon = [];                
+                    obj.setup.LBcon = zeros(1,obj.setup.dim_state);                
                 end
                 if any(strcmp(varargin,'UBcon'))
                     pos = find(strcmp(varargin,'UBcon'));
                     obj.setup.UBcon = varargin{pos+1};
                 else
-                    obj.setup.UBcon = [];                
+                    obj.setup.UBcon = zeros(1,obj.setup.dim_state);;                
                 end
                 if any(strcmp(varargin,'NONCOLcon'))
                     pos = find(strcmp(varargin,'NONCOLcon'));
@@ -373,15 +395,7 @@ classdef obsopt < handle
                 obj.setup.forward = varargin{pos+1};
             else
                 obj.setup.forward = 1;
-            end
-            
-            % number of reference trajectories (>1 for control design)
-            if any(strcmp(varargin,'control_design'))
-                pos = find(strcmp(varargin,'control_design'));
-                obj.setup.control_design = varargin{pos+1};
-            else
-                obj.setup.control_design = 0;
-            end
+            end            
             
             % wait all buffer to be filled
             if any(strcmp(varargin,'WaitAllBuffer'))
@@ -437,6 +451,27 @@ classdef obsopt < handle
             else
                 obj.setup.J_term_spring = 0;
             end
+            
+            % get the spring like term in the cost function
+            if any(strcmp(varargin,'terminal'))
+                pos = find(strcmp(varargin,'terminal'));
+                if varargin{pos+1} ~= 0
+                    obj.setup.J_term_terminal = 1;
+                    obj.setup.J_temp_scale = [obj.setup.J_temp_scale, varargin{pos+1}];
+                    obj.setup.J_term_terminal_position = length(obj.setup.J_temp_scale);
+                    obj.setup.J_nterm_total = obj.setup.J_nterm_total+1;
+                else
+                    obj.setup.J_term_terminal = 0;
+                end
+            else
+                obj.setup.J_term_terminal = 0;
+            end            
+            
+            % no spring and terminal at the same time
+            if obj.setup.J_term_terminal && obj.setup.J_term_spring
+                error('Error: do not use both spring and terminal cost in J');                
+            end
+            
             obj.setup.Nfilt = obj.setup.J_nterm-1;
             
             % option to define the safety interval in adaptive sampling
@@ -464,12 +499,8 @@ classdef obsopt < handle
             % complete the params update in .setup
             obj.setup.params = params;
             
-            % number of reference trajectories (>1 for control design)
-            if (obj.setup.control_design)
-                obj.setup.Ntraj = params.Ntraj;
-            else
-                obj.setup.Ntraj = 1;
-            end
+            % number of reference trajectories            
+            obj.setup.Ntraj = params.Ntraj;
             
             % set the actual cost function (J, convex_envelope..)
             obj.setup.cost_run = @obj.cost_function;
@@ -655,7 +686,7 @@ classdef obsopt < handle
         % shall be stopped or not. Check setup.J_thresh for more
         % information. 
         function stop = outfun(obj,x, optimValues, state)
-            if (optimValues.iteration == obj.setup.max_iter) || (optimValues.fval <= obj.init.TolFun)
+            if (optimValues.iteration == obj.setup.max_iter) || (optimValues.fval <= obj.init.TolFun) || obj.setup.MaxOptTimeFlag
                 stop = true;
             else
                 stop = false;
@@ -852,16 +883,47 @@ classdef obsopt < handle
                 else
                     Jspring = 0;
                 end
+                
+                %%% terminal cost %%%
+                if obj.setup.J_term_terminal
+                    x0 = obj.init.temp_x0(1).val;                    
+                    xterm = x0-x;
+                    paramsDiff = reshape(xterm,1,obj.setup.dim_state);
+                    J_terminal = paramsDiff*obj.init.scale_factor(1,obj.setup.J_term_terminal_position)*transpose(paramsDiff);
+                    
+                    % store terms
+                    obj.init.Jterm_store(end) = J_terminal; 
+                else
+                    J_terminal = 0;
+                end
                              
                 
                 % non opt vars barrier term
-                diff_var = x(obj.setup.nonopt_vars) - x_nonopt;
-                J_barr = 1e8*any(diff_var)*0;
+                LB = -x + transpose(obj.setup.LBcon);
+                UB = x - transpose(obj.setup.UBcon);
+                LB_log = log(-LB);
+                UB_log = log(-UB);
+                if obj.setup.bounds
+                    if ~isreal([LB_log;UB_log])
+                        J_barr = 1e4*norm([LB_log;UB_log]);
+                    else
+                        J_barr = sum([LB_log; UB_log])*obj.setup.bounds;
+                    end
+                else
+                    J_barr = 0;
+                end
                 
-                J_final = J_final + Jtot + Jspring + J_barr;
+                
+                J_final = J_final + Jtot + Jspring + J_barr + J_terminal;
 
                 %%% final stuff %%%                
                 obj.init.Yhat_temp = Yhat;
+                
+                currentTime = toc(obj.setup.opt_temp_time);
+                if currentTime > obj.setup.MaxOptTime
+                   obj.setup.MaxOptTimeFlag = 1;
+                end
+            
 
             end
             
@@ -1057,7 +1119,8 @@ classdef obsopt < handle
             hyst_low = (obj.init.dJ_cond_story(max(1,obj.init.ActualTimeIndex-1)) < obj.setup.dJ_low) && (obj.init.dJ_cond >= obj.setup.dJ_low);
             hyst_high = (obj.init.dJ_cond >= obj.setup.dJ_high);
             % flag = all good, no sampling
-            obj.init.hyst_flag = ~(hyst_low || hyst_high);
+%             obj.init.hyst_flag = ~(hyst_low || hyst_high);
+            obj.init.hyst_flag = ~(hyst_high);
             %%%% select optimisation with hystheresis - PE %%%%%
             % flag = all good, no sampling
             obj.init.PE_flag = obj.init.PE(traj).val(obj.init.ActualTimeIndex) <= obj.setup.dPE;
@@ -1091,14 +1154,14 @@ classdef obsopt < handle
 
                 % check only on the first traj as the sampling is coherent
                 % on the 2.
-                if ~obj.setup.WaitAllBuffer && obj.setup.control_design == 0
+                if ~obj.setup.WaitAllBuffer
                     cols_nonzeros = length(find(obj.init.Y_space ~= 0))*obj.setup.dim_out*nnz(obj.setup.J_temp_scale);                
                 else
                     cols_nonzeros = length(find(obj.init.Y_space ~= 0));  
                 end
 
                 % flag
-                if ~obj.setup.WaitAllBuffer && obj.setup.control_design == 0
+                if ~obj.setup.WaitAllBuffer
                     flag = 2*length(obj.setup.opt_vars)+1; % Aeyels condition (see https://doi.org/10.48550/arXiv.2204.09359)
                 else
                     flag = obj.setup.w;
@@ -1125,7 +1188,7 @@ classdef obsopt < handle
                             
                             % buffer adaptive sampling: these buffers keep track of the
                             % time instants in which the measured data have been stored. 
-                            step = 2*obj.setup.Nts;
+                            step = 1*obj.setup.Nts;
                             start = obj.init.Y_space(end)-step*(obj.setup.w-1); 
                             stop = obj.init.Y_space(end);
                             obj.init.Y_space = start:step:stop;
@@ -1141,31 +1204,30 @@ classdef obsopt < handle
                             obj.init.Y_space_full_story = [obj.init.Y_space_full_story, obj.init.Y_space];
                             
                             % set again (used for back_time)
-                            buf_Y_space_full_story = obj.init.Y_space_full_story(end-obj.setup.w+1:end);
+                            buf_Y_space_full_story = obj.init.Y_space_full_story(end-1*obj.setup.w+1:end);
+                            
+                            % back time index
+                            buf_dist = diff(buf_Y_space_full_story);                        
+                            obj.init.BackTimeIndex = obj.setup.time(max(obj.init.ActualTimeIndex-sum(buf_dist(1:end)),1)); 
+                            
+                        else                            
+                            % back time index
+                            buf_dist = diff(buf_Y_space_full_story);                        
+                            obj.init.BackTimeIndex = obj.setup.time(max(obj.init.ActualTimeIndex-sum(buf_dist(2:end)),1)); 
                         end
                         
-                        % back time index
-                        buf_dist = diff(buf_Y_space_full_story);
-                        if (obj.setup.control_design == 0)
-                            obj.init.BackTimeIndex = obj.setup.time(max(obj.init.ActualTimeIndex-sum(buf_dist(2:end)),1)); 
-                        else
-                            obj.init.BackTimeIndex = obj.setup.time(max(obj.init.ActualTimeIndex-sum(buf_dist(1:end)),1));
-                        end
+                        
                         obj.init.BackIterIndex = find(obj.setup.time==obj.init.BackTimeIndex);
                         
                         %%%% TESTING - RESET STATES %%%%
-                        obj.init.X_est(obj.init.traj).val(obj.init.params.plot_vars,obj.init.BackIterIndex) = obj.init.X(obj.init.traj).val(obj.init.params.plot_vars,obj.init.BackIterIndex);
-                        obj.init.X_est(obj.init.traj).val(3:4,obj.init.BackIterIndex) = [0;0];
+%                         obj.init.X_est(obj.init.traj).val(obj.init.params.plot_vars,obj.init.BackIterIndex) = obj.init.X(obj.init.traj).val(obj.init.params.plot_vars,obj.init.BackIterIndex);
+%                         obj.init.X_est(obj.init.traj).val(3:4,obj.init.BackIterIndex) = [0;0];
 
                         % set of initial conditions
                         for traj=1:obj.setup.Ntraj
                             obj.init.traj = traj;
-                            % start from the correct one
-                            if obj.setup.control_design 
-                                obj.init.temp_x0_nonopt(traj).val = obj.init.X_est(traj).val(obj.setup.nonopt_vars,obj.init.BackIterIndex);
-                            else
-                                obj.init.temp_x0_nonopt(traj).val = obj.init.X(traj).val(obj.setup.nonopt_vars,obj.init.BackIterIndex);
-                            end
+                            % start from the correct one                             
+                            obj.init.temp_x0_nonopt(traj).val = obj.init.X_est(traj).val(obj.setup.nonopt_vars,obj.init.BackIterIndex);
                             % change only the values which are to be optimised
                             % only 1 set of vars regardless to the number
                             % of trajectories used as we're not estimating
@@ -1230,12 +1292,16 @@ classdef obsopt < handle
                             obj.init.temp_x0_opt = [obj.init.temp_x0_opt; reshape(obj.init.temp_x0_filters.val,length(obj.init.temp_x0_filters.val),1)];
                         end
                         
+                        % check fmin time (boundaries)
+                        obj.setup.opt_temp_time = tic;
+                        obj.setup.MaxOptTimeFlag = 0;
+                        
                         % save J before the optimisation to confront it later 
                         [J_before, obj_tmp] = obj.setup.cost_run(obj.init.temp_x0_opt,obj.init.temp_x0_nonopt,obj.init.temp_x0_filters,obj.init.target);                        
 
                         
                         % Optimisation (only if distance_safe_flag == 1)
-                        opt_time = tic;
+                        opt_time = tic;                        
                         
                         %%%%% OPTIMISATION - NORMAL MODE %%%%%%
                         if ~obj.setup.GlobalSearch
@@ -1640,8 +1706,15 @@ classdef obsopt < handle
                     y_meas = reshape(obj.init.Y_full_story(traj).val(1,k,:),size(obj.setup.time));
                     plot(obj.setup.time,y_meas,'m--')
                     
+                    % plot estimated values
+                    yhat = reshape(obj.init.Yhat_full_story(traj).val(1,k,:),size(obj.setup.time));
+                    plot(obj.setup.time,yhat,'b--','LineWidth',1.5)
+                    
+                    y_true = reshape(obj.init.Ytrue_full_story(traj).val(1,k,:),size(obj.setup.time));
+                    plot(obj.setup.time,y_true,'k--','LineWidth',1.5)
+                    
                     % plot down sampling
-                    data = reshape(obj.init.Yhat_full_story(traj).val(1,k,obj.init.temp_time),1,length(WindowTime));
+%                     data = reshape(obj.init.Yhat_full_story(traj).val(1,k,obj.init.temp_time),1,length(WindowTime));
 %                     plot(WindowTime,data,'s','MarkerSize',5);
 
                     % plot target values    
@@ -1681,10 +1754,12 @@ classdef obsopt < handle
                 for traj=1:obj.setup.Ntraj
                     for dim=1:obj.setup.dim_out
                         y_plot = obj.setup.J_temp_scale(k)*reshape(obj.init.Y_full_story(traj).val(k,dim,:),size(obj.setup.time));
+                        ytrue_plot = obj.setup.J_temp_scale(k)*reshape(obj.init.Ytrue_full_story(traj).val(k,dim,:),size(obj.setup.time));
                         yhat_plot = obj.setup.J_temp_scale(k)*reshape(obj.init.Yhat_full_story(traj).val(k,dim,:),size(obj.setup.time));
                         if 1
-                            plot(obj.setup.time,y_plot,'b--');
-                            plot(obj.setup.time,yhat_plot,'r--');
+%                             plot(obj.setup.time,y_plot,'b--');
+                            plot(obj.setup.time,yhat_plot,'r--','Linewidth',1.5);
+                            plot(obj.setup.time,ytrue_plot,'k--','Linewidth',1.5);                            
                         else
                             plot(obj.setup.time,abs(y_plot-yhat_plot));
                             set(gca, 'YScale', 'log')
@@ -1698,6 +1773,26 @@ classdef obsopt < handle
                 
             end
             linkaxes(ax,'x');
+            
+            %%% plot adaptive sampling
+            fig_count = fig_count+1;
+            figure(fig_count)
+            hold on
+            grid on
+            plot(obj.setup.time,obj.init.dJ_cond_story,'b','LineWidth',1.5)            
+            plot(obj.setup.time,ones(obj.setup.Niter,1)*obj.setup.dJ_low,'k--','LineWidth',2)
+            plot(obj.setup.time,ones(obj.setup.Niter,1)*obj.setup.dJ_high,'k--','LineWidth',2)
+            set(gca, 'YScale', 'log')            
+            plot(obj.setup.time,ones(obj.setup.Niter,1)*obj.setup.dPE,'k:','LineWidth',2)
+            plot(obj.setup.time,obj.init.PE(1).val,'r','LineWidth',1.5)
+            WindowTime = obj.setup.time(obj.init.temp_time);
+            data = obj.init.dJ_cond_story(obj.init.temp_time);
+            plot(WindowTime,data,'mo','MarkerSize',5);
+            WindowTime = obj.setup.time(obj.init.temp_time);
+            data = obj.init.PE(1).val(obj.init.temp_time);
+            plot(WindowTime,data,'mo','MarkerSize',5);
+            xlabel('time [s]');
+            ylabel('adaptive condition');
             
         end
     end
