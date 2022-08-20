@@ -141,7 +141,7 @@ function params = model_init(varargin)
     
     % input dimension. Default is the whole state dimension. Whether to use
     % it or not shall be explicited in the @model function
-    params.dim_input = params.StateDim;
+    params.dim_input = params.dim_input;
 
     % input law definition. Default is free evolution 
     if any(strcmp(varargin,'input_law'))
@@ -178,7 +178,7 @@ function params = model_init(varargin)
             randflag_opt = 1;
             randflag_nonopt = 1;
             noise_opt = 1;
-            noise_nonopt = 1;
+            noise_nonopt = 0;
             
             % if case: random perturbation percentage - non optimised vars
             if noise_nonopt
@@ -203,7 +203,7 @@ function params = model_init(varargin)
             params.perc = 1*params.perc;
             
             params.X_est(traj).val(:,1) = init;
-            noise_std = 0*5e-2;
+            noise_std = 1*5e-2;
             
             if params.noise            
                 
