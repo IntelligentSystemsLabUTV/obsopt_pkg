@@ -20,30 +20,38 @@ function x_dot = model_control_test_est(t,x,params,obs)
     tdiff = obs.setup.time-t;   
     pos = find(abs(tdiff) == min(abs(tdiff)),1,'first');    
     % check length of measurements
-    pos = min(pos,size(obs.init.Y_full_story(obs.init.traj).val,3));
+    pos = max(1,min(pos,size(obs.init.Y_full_story(obs.init.traj).val,3)));
     drive_out = drive(obs,obs.init.X(obs.init.traj).val(:,pos),x,obs.init.Y_full_story(obs.init.traj).val(:,:,max(1,pos-1):pos),pos);
-    params.u = params.input(t,drive_out,params);      
+    params.u = params.input(t,drive_out,params,obs);      
     
     % save input
     obs.init.input_story(obs.init.traj).val(:,pos) = params.u;
     
-    % Plant
+    % Plant - to be estimated
     Ap = [0 1; params.a0est params.a1est];
-    Bp = [params.b0est; params.b1est];    
+    Bp = [params.b0est; params.b1est];
+    
+    % Plant - true one
+    Ap_t = [params.A1 params.A2; params.A3 params.A4];
+    Bp_t = [params.B1; params.B2]; 
     
     % Control
     Ac = [0 1; params.a0 params.a1];
     Bc = [params.b0; params.b1];     
     
-    % u1 = input to identify 
-    % u2 = input to plant
-    % u3 = input to controller
+    % u1 = uc (input to plant - ref track)
+    % u2 = ec (input to controller - ref track)
+    % u3 = ur (input to reference model - ref track)
+    % u4 = ui (input to plant - sys id)
     
     %%% model dynamics %%%           
-    % plant stabilisation
-    x_dot(1:2,:) = Ap*x(1:2,:) + Bp*(params.u(2,:));
-    % controller dynamics
-    x_dot(3:4,:) = Ac*x(3:4,:) + Bc*(params.u(1,:));
-    
-    % params dynamics (under development)    
+    % plant dynamics - reference tracking
+    x_dot(1:2,:) = Ap*x(1:2,:) + Bp*(params.u(1,:));
+    % controller dynamics - reference tracking
+    x_dot(3:4,:) = Ac*x(3:4,:) + Bc*(params.u(2,:));
+    % reference model dynamics - reference tracking (useless here)
+    x_dot(5,:) = params.alpha*x(5,:)+abs(params.alpha)*params.u(3,:);
+    % plant dynamics - system identification
+    x_dot(6:7,:) = Ap*x(6:7,:) + Bp*(params.u(4,:));
+ 
 end

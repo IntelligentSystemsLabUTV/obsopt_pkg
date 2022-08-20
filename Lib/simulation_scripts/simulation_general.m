@@ -12,15 +12,15 @@ function [params,obs] = simulation_general
 % close all
     
 % init observer buffer (see https://doi.org/10.48550/arXiv.2204.09359)
-Nw = 30;
-Nts = 5;
+Nw = 120;
+Nts = 1;
 
 % set sampling time
 Ts = 1e-2;
 
 % set initial and final time instant
 t0 = 0;
-tend = 6;
+tend = 4;
 % uncomment to test the MHE with a single optimisation step
 % tend = 1*(Nw*Nts-1)*Ts;
 
@@ -141,11 +141,11 @@ params = model_init('Ts',Ts,'T0',[t0, tend],'noise',0,'noise_spec',noise_mat, 'p
 %%%% observer init %%%%
 % create observer class instance. For more information on the setup
 % options check directly the class constructor in obsopt.m
-obs = obsopt('DataType', 'simulated', 'optimise', 0, 'GlobalSearch', 0, 'MultiStart', 0, 'J_normalise', 0, ... 
-      'Nw', Nw, 'Nts', Nts, 'ode', ode, 'PE_maxiter', 0, 'control_design', 0 , 'model_reference', model_reference, 'WaitAllBuffer', 0, ...    
-      'measure_reference', measure_reference, 'params',params, 'filters', filterScale,'filterTF', filter, 'Jdot_thresh',0.9,'MaxIter',1000,...
+obs = obsopt('DataType', 'simulated', 'optimise', 1, 'GlobalSearch', 0, 'MultiStart', 0, 'J_normalise', 1, 'MaxOptTime', Inf, 'MaxOptTime_single', Inf, ... 
+      'Nw', Nw, 'Nts', Nts, 'ode', ode, 'PE_maxiter', 0 , 'model_reference', model_reference, 'WaitAllBuffer', 1, 'WeightTerms', [1;0.05] ,...    
+      'measure_reference', measure_reference, 'params',params, 'filters', filterScale,'filterTF', filter, 'Jdot_thresh',0.9,'MaxIter',200,...
       'Jterm_store', 0, 'AlwaysOpt', 1 , 'print', 1 , 'SafetyDensity', 3, 'AdaptiveHist', [1e-2, 3e-2, 1e0], ...
-      'AdaptiveSampling',0, 'FlushBuffer', 1, 'opt', @fminunc, 'spring', 0);
+      'AdaptiveSampling',0, 'FlushBuffer', 1, 'opt', @fminunc, 'spring', 0, 'terminal', 0, 'bounds', 0, 'LBcon',-Inf*ones(1,4), 'UBcon', Inf*ones(1,4));
 
 %% %%%% SIMULATION %%%%
 % remark: the obs.setup.Ntraj variable describes on how many different
@@ -172,6 +172,9 @@ for i = 1:obs.setup.Niter
     %%%% PROPAGATION %%%%
     % forward propagation of the previous estimate
     for traj = 1:obs.setup.Ntraj
+        
+        % update traj
+        obs.init.traj = traj;
                  
         % propagate only if the time gets over the initial time instant
         if(obs.init.ActualTimeIndex > 1)
@@ -193,7 +196,8 @@ for i = 1:obs.setup.Niter
         
         %%%% REAL MEASUREMENT %%%%
         % here the noise is noise added aggording to noise_spec
-        obs.init.Ytrue_full_story(traj).val(1,:,obs.init.ActualTimeIndex) = obs.setup.measure_reference(obs.init.X(traj).val(:,obs.init.ActualTimeIndex),obs.init.params,obs.setup.time(obs.init.ActualTimeIndex));
+        obs.init.Ytrue_full_story(traj).val(1,:,obs.init.ActualTimeIndex) = obs.setup.measure_reference(obs.init.X(traj).val(:,obs.init.ActualTimeIndex),obs.init.params,obs.setup.time(obs.init.ActualTimeIndex),...
+                                                                            obs.init.input_story(traj).val(:,max(1,obs.init.ActualTimeIndex-1)));
         obs.init.noise_story(traj).val(:,obs.init.ActualTimeIndex) = obs.setup.noise*(obs.setup.noise_mu(obs.setup.observed_state)  + obs.setup.noise_std(obs.setup.observed_state).*randn(obs.setup.dim_out,1));
         y_meas(traj).val =  reshape(obs.init.Ytrue_full_story(traj).val(1,:,obs.init.ActualTimeIndex),obs.setup.dim_out,1) + obs.init.noise_story(traj).val(:,obs.init.ActualTimeIndex);
     end
@@ -204,9 +208,11 @@ for i = 1:obs.setup.Niter
     
     % call the observer
     obs = obs.observer(obs.init.X_est,y_meas);
-    
-    % update the model parameters
-    params = obs.init.params;
+   
+    % update the controller state in the true model
+%     for traj = 1:obs.setup.Ntraj
+%         obs.init.X(traj).val(1:4,:) = obs.init.X_est(traj).val(1:4,:);
+%     endFrame Title
     
     % stop time counter for the observer. Each optimisation process is
     % timed.
@@ -215,7 +221,7 @@ for i = 1:obs.setup.Niter
 end
 
 %%%% SNR %%%
-% the SNR is computed on the mesurements
+% the SNR is computed on the mesurements https://ieeexplore.ieee.org/document/9805818 
 for traj = 1:obs.setup.Ntraj
     for i=1:obs.setup.dim_out
         obs.init.SNR(traj).val(i) = 10*log(sum(obs.init.Ytrue_full_story(traj).val(1,i,:).^2)/sum(obs.init.noise_story(traj).val(i,:).^2));
