@@ -1,7 +1,7 @@
 %%
-function out = model_analysis(obs,fromobs)
+function out = model_analysis(obs,option)
     
-    if fromobs
+    if strcmp(option,'fromobs')
         % true model
         A = [obs.setup.params.A1 obs.setup.params.A2; obs.setup.params.A3 obs.setup.params.A4];
         B = [obs.setup.params.B1; obs.setup.params.B2];
@@ -26,22 +26,29 @@ function out = model_analysis(obs,fromobs)
         hold on
         rlocus(out.test_est)
         rlocus(out.test_stable)
-    else
+    elseif strcmp(option,'routh')               
         
         % tf symbol
         syms s
         assume(s,'real')
         
-        % plant
-        Ap = [1 -1; 1 1];
-        Bp = [1; 2];
-        Cp = [2 1];
-        Dp = 0;
-        out.Ap = Ap;
-        out.Bp = Bp;
-        out.Cp = Cp;
-        out.Dp = Dp;
+        %%% Plant
+        out.omega = 2*pi*10;
+        out.rho = 0.5;
+        out.test = tf([1 -1],[1 2*out.omega*out.rho out.omega^2]);
+                
+        [A,B,C,D] = tf2ss(out.test.num{1},out.test.den{1});
+        out.test_ss = ss(A,B,C,D);
+        
+        out.test_ss_obsv = obsv(out.test_ss);
+        out.test_ss_ctrb = ctrb(out.test_ss);
+        
+        Ap = out.test_ss.A;
+        Bp = out.test_ss.B;
+        Cp = out.test_ss.C;
+        Dp = out.test_ss.D;
         out.P = ss(Ap,Bp,Cp,Dp);
+        
         % poly
         out.Gp = simplify(vpa(Cp*pinv((s*eye(size(Ap))-Ap))*Bp+Dp));
         [out.Np, out.Dp] = numden(out.Gp);
@@ -80,7 +87,60 @@ function out = model_analysis(obs,fromobs)
         
         % stability
         out.RE = simplify(myRouth(out.poli_coeffs));
+        
+    elseif strcmp(option,'rlocus')
+        
+        %%% Plant
+        Ap = [obs.init.params.A1 obs.init.params.A2; obs.init.params.A3 obs.init.params.A4];
+        Bp = [obs.init.params.B1; obs.init.params.B2]; 
+        Cp = [obs.init.params.C1 obs.init.params.C2];
+        Dp = 0;       
+        out.test_ss = ss(Ap,Bp,Cp,Dp);
+        
+        out.test_ss_obsv = obsv(out.test_ss);
+        out.test_ss_ctrb = ctrb(out.test_ss);        
+        
+        % estimated plant
+        Ap = [0 1; obs.init.params.a0est obs.init.params.a1est];
+        Bp = [obs.init.params.b0est; obs.init.params.b1est]; 
+        Cp = [obs.init.params.c0est obs.init.params.c1est];
+        Dp = obs.init.params.d0est;
+        out.test_ss_est = ss(Ap,Bp,Cp,Dp);
+        
+        %%% controller
+        Ac = [0 1; obs.init.params.a0 obs.init.params.a1];
+        Bc = [obs.init.params.b0; obs.init.params.b1]; 
+        Cc = [obs.init.params.c0 obs.init.params.c1];
+        Dc = obs.init.params.d0;
+        out.ctrl_ss = ss(Ac,Bc,Cc,Dc);
                 
+        %%% FB system
+        Af = [(Ap - Bp*Cp*Dc), (Bp*Cc); (-Bc*Cp), (Ac)];
+        Bf = [(Bp*Dc); Bc];
+        Cf = [(Cp), zeros(1,2); (-Dc*Cp), (Cc)];
+        Df = [0; (Dc)];
+        out.fb_ss = ss(Af,Bf,Cf,Df);        
+        
+        %%% plots
+        figure(1)
+        rlocus(out.test_ss);
+        hold on
+        rlocus(out.test_ss_est)
+        figure(2)
+        bode(out.test_ss);
+        hold on
+        bode(out.test_ss_est)
+        figure(3)
+        rlocus(out.ctrl_ss)       
+        figure(4)
+        bode(out.test_ss,out.ctrl_ss)
+        figure(5)
+        bode(out.fb_ss);
+
+        
+    else
+        
+        error('Wrong option');
     end
 
 end

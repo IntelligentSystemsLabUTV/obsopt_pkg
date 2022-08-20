@@ -33,45 +33,49 @@ function plot_general(out)
     end
     
     % output plot    
-    i = i + 1;            
-    figure(i)
-    sgtitle('Measurements')
-    % number fo subplots depending on the Nterm
-    n_subplot = out.obs.setup.Nfilt+1;
-    for k=1:n_subplot
-        % indicize axes
-        ax_index = k;
-        ax(ax_index)=subplot(n_subplot,1,ax_index);
-                
+    for dim=1:out.obs.setup.dim_out
+        i = i + 1;            
+        figure(i)
+        sgtitle('Measurements')
+        % number fo subplots depending on the Nterm
+        n_subplot = out.obs.setup.Nfilt+1;
+        for k=1:n_subplot
+            % indicize axes
+            ax_index = k;
+            ax(ax_index)=subplot(n_subplot,1,ax_index);
+
+            hold on
+            grid on
+            box on
+
+            plot(out.time,reshape(out.y_true.val(k,dim,:),1,size(out.y_true.val,3)),'b','LineWidth',1.5);
+            for n=1:N
+                plot(out.time,reshape(out.y_dist(n).val(k,dim,:),1,size(out.y_dist(n).val,3)),'r:','LineWidth',1);           
+            end        
+    %         set(gca, 'YScale', 'log')
+            % labels
+            xlabel(['time [s]'])
+            ylabel('y')
+            legend('ref','test')
+        end
+    end
+    
+    % error plot   
+    for dim=1:out.obs.setup.dim_out
+        i = i + 1;            
+        figure(i)
+        sgtitle('Output - error')        
         hold on
         grid on
         box on
-        
-        plot(out.time,reshape(out.y_true.val(k,1,:),1,size(out.y_true.val,3)),'b','LineWidth',1.5);
         for n=1:N
-            plot(out.time,reshape(out.y_dist(n).val(k,:,:),1,size(out.y_dist(n).val,3)),'r:','LineWidth',1);           
-        end        
-%         set(gca, 'YScale', 'log')
+            plot(out.time,abs(reshape(out.y_true.val(1,dim,:)-out.y_dist(n).val(1,dim,:),1,size(out.y_dist(n).val,3))),'r--');           
+        end
+        set(gca, 'YScale', 'log')
         % labels
         xlabel(['time [s]'])
         ylabel('y')
-        legend('ref','test')
+        legend('error')  
     end
-    
-    % error plot    
-    i = i + 1;            
-    figure(i)
-    sgtitle('Output - error')        
-    hold on
-    grid on
-    box on
-    for n=1:N
-        plot(out.time,abs(reshape(out.y_true.val(1,:,:)-out.y_dist(n).val(1,:,:),1,size(out.y_dist(n).val,3))),'r--');           
-    end
-    set(gca, 'YScale', 'log')
-    % labels
-    xlabel(['time [s]'])
-    ylabel('y')
-    legend('error')  
 
 end
