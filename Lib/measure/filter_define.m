@@ -53,6 +53,24 @@ function [filter, filterScale, reference] = filter_define(Ts,Nts)
     filterScale(i+1)= 1;
     end
     
+    %%%% 2nd order filter %%%%
+    if 0
+    i = i+1; 
+    eps1 = 1e1;
+    eps2 = 1e-1;
+    G = tf(1,[eps2 eps1 1]);
+    SS = ss(G);
+    D = c2d(SS,Ts);
+    filter(i).TF = D;
+    filter(i).A = D.A;
+    filter(i).B = D.B;
+    filter(i).C = D.C;
+    filter(i).D = D.D;
+    filter(i).G = G;
+    filter(i).dim = size(D.B,1);
+    filterScale(i+1)= 1;
+    end
+    
     %%%% reference filter %%%%
     % (under development)
     eps = 3;
