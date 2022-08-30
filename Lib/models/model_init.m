@@ -175,10 +175,10 @@ function params = model_init(varargin)
             params.perc = zeros(params.StateDim,params.Ntraj);
             
             % randomly define the percentage (bool flag, see below)
-            randflag_opt = 1;
-            randflag_nonopt = 1;
+            randflag_opt = 0;
+            randflag_nonopt = 0;
             noise_opt = 1;
-            noise_nonopt = 1;
+            noise_nonopt = 0;
             
             % if case: random perturbation percentage - non optimised vars
             if noise_nonopt
