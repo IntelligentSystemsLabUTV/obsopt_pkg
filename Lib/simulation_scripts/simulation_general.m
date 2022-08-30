@@ -12,15 +12,19 @@ function [params,obs] = simulation_general
 % close all
     
 % init observer buffer (see https://doi.org/10.48550/arXiv.2204.09359)
-Nw = 10;
-Nts = 5;
+Nw = 20;
+Nts = 2;
+
+% noise
+rng default
+first_guess_flag = 1;
 
 % set sampling time
 Ts = 1e0;
 
 % set initial and final time instant
 t0 = 0;
-tend = 6500;
+tend = 300;
 % uncomment to test the MHE with a single optimisation step
 % tend = 1*(Nw*Nts-1)*Ts;
 
@@ -74,7 +78,7 @@ model = @model_battery_tushar;
 % OUTPUT:
 % xdot:output of the state space model
 % model_reference = @model_reference;
-model_reference = model;
+model_reference = @model_battery_tushar_reference;
 
 %%%% measure function %%%%
 % function: this file shall be in the following form:   
@@ -126,7 +130,7 @@ input_law = @control;
 % dimension. All the noise are considered as Gaussian distributed. The 
 % first column defines the mean while the second column the variance.
 noise_mat = 0*ones(6,2);
-noise_mat(1,2) = [1e-2];
+% noise_mat(1,2) = [1e-2];
 
 %%%% params init %%%%
 % init the parameters structure through funtion @model_init. 
@@ -141,15 +145,32 @@ params = model_init('Ts',Ts,'T0',[t0, tend],'noise',1,'noise_spec',noise_mat, 'p
 %%%% observer init %%%%
 % create observer class instance. For more information on the setup
 % options check directly the class constructor in obsopt.m
-obs = obsopt('DataType', 'simulated', 'optimise', 1 , 'GlobalSearch', 0, 'MultiStart', 0, 'J_normalise', 0, 'MaxOptTime', Inf, ... 
-      'Nw', Nw, 'Nts', Nts, 'ode', ode, 'PE_maxiter', 0, 'model_reference', model_reference, 'WaitAllBuffer', 0, ...    
+obs = obsopt('DataType', 'simulated', 'optimise', 1 , 'GlobalSearch', 0, 'MultiStart', 0, 'J_normalise', 1, 'MaxOptTime', Inf, ... 
+      'Nw', Nw, 'Nts', Nts, 'ode', ode, 'PE_maxiter', 0, 'model_reference', model_reference, 'WaitAllBuffer', 1, ...    
       'measure_reference', measure_reference, 'params',params, 'filters', filterScale,'filterTF', filter, 'Jdot_thresh',0.9,'MaxIter',100,...
-      'Jterm_store', 0, 'AlwaysOpt', 1 , 'print', 0 , 'SafetyDensity', 6, 'AdaptiveHist', [1e-6, 1e-6, 1e-4], ...
-      'AdaptiveSampling',0, 'FlushBuffer', 1, 'opt', @fminunc, 'spring', 0, 'terminal', 10, 'LBcon', [0 0 0 0 0 0], 'UBcon', [1e3 1e3 1e3 1e3 1e3 1e5], 'Bounds', 0);
+      'Jterm_store', 1, 'AlwaysOpt', 1 , 'print', 0 , 'SafetyDensity', 6, 'AdaptiveHist', [1e-6, 5e-6, 1e-3], ...
+      'AdaptiveSampling',0, 'FlushBuffer', 1, 'opt', @fminunc, 'terminal', 0, 'terminal_states', [1:2,7:10,11:14], 'terminal_weights', [1 1 zeros(1,8)], ...
+      'LBcon', [0 0 0 0 0 0], 'UBcon', [1e3 1e3 1e3 1e3 1e3 1e5], 'Bounds', 0);
   
   
 %%%% measure filter state %%%%
 obs.init.x_filter = reference.x0;
+
+%%%% first guess %%%%
+if first_guess_flag
+    first_guess;
+    
+    % perturbate first guess
+    if obs.setup.noise
+        obs.init.X_est(1).val(obs.setup.opt_vars(3:end),1) = 0*obs.init.X_est(1).val(obs.setup.opt_vars(3:end),1);
+        obs.init.params = obs.setup.params.params_update(obs.init.params,obs.init.X_est(1).val(:,1));
+        
+        % test stuff
+%         obs.init.params.alpha_C1 = 0;
+%         obs.init.params.beta_C1 = 0;
+%         obs.init.X_est(1).val([10 14],1) = 0;
+    end
+end
 
 %% %%%% SIMULATION %%%%
 % remark: the obs.setup.Ntraj variable describes on how many different
@@ -167,6 +188,7 @@ for i = 1:obs.setup.Niter
     if ((mod(i,10) == 0) || (i == 1))
         clc
         disp(['Iteration Number: ', num2str(obs.setup.time(i)),'/',num2str(obs.setup.time(obs.setup.Niter))])
+        disp(['Last J: ',num2str(obs.init.Jstory(end))]);
     end
     
     % set current iteration in the obsopt class
@@ -187,7 +209,7 @@ for i = 1:obs.setup.Niter
 
             % true system - correct initial condition and no noise
             % considered
-            X = obs.setup.ode(@(t,x)obs.setup.model_reference(t, x, params, obs), tspan, obs.init.X(traj).val(:,startpos),params.odeset); 
+            X = odeDD(@(t,x)obs.setup.model_reference(t, x, obs.setup.params, obs), tspan, obs.init.X(traj).val(:,startpos),params.odeset); 
             obs.init.X(traj).val(:,startpos:stoppos) = [X.y(:,1),X.y(:,end)];
 
             % real system - initial condition perturbed 
@@ -202,7 +224,7 @@ for i = 1:obs.setup.Niter
         obs.init.y_noise(:,obs.init.ActualTimeIndex) =  reshape(obs.init.Ytrue_full_story(traj).val(1,:,obs.init.ActualTimeIndex),obs.setup.dim_out,1) + obs.init.noise_story(traj).val(:,obs.init.ActualTimeIndex); 
         
         % filter on the measurements
-        if 1
+        if 0
             % reference filter (filterScale)
             try
                 u = [obs.init.y_noise(:,obs.init.ActualTimeIndex);reshape(obs.init.Y_full_story(traj).val(1,:,obs.init.ActualTimeIndex),1,obs.setup.dim_out)];
@@ -231,10 +253,7 @@ for i = 1:obs.setup.Niter
     t1 = tic;
     
     % call the observer
-    obs = obs.observer(obs.init.X_est,y_meas);
-    
-    % update the model parameters
-%     params = obs.init.params;
+    obs = obs.observer(obs.init.X_est,y_meas);    
     
     % stop time counter for the observer. Each optimisation process is
     % timed.
