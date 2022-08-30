@@ -435,24 +435,9 @@ classdef obsopt < handle
             % filters
             obj.setup.J_temp_scale = temp_scale;
             obj.setup.J_nterm = length(temp_scale);
-            obj.setup.J_nterm_total = length(temp_scale); 
+            obj.setup.J_nterm_total = length(temp_scale);             
             
-            % get the spring like term in the cost function
-            if any(strcmp(varargin,'spring'))
-                pos = find(strcmp(varargin,'spring'));
-                if varargin{pos+1} ~= 0
-                    obj.setup.J_term_spring = 1;
-                    obj.setup.J_temp_scale = [obj.setup.J_temp_scale, varargin{pos+1}];
-                    obj.setup.J_term_spring_position = length(obj.setup.J_temp_scale);
-                    obj.setup.J_nterm_total = obj.setup.J_nterm_total+1;
-                else
-                    obj.setup.J_term_spring = 0;
-                end
-            else
-                obj.setup.J_term_spring = 0;
-            end
-            
-            % get the spring like term in the cost function
+            % get the terminal like term in the cost function
             if any(strcmp(varargin,'terminal'))
                 pos = find(strcmp(varargin,'terminal'));
                 if varargin{pos+1} ~= 0
@@ -465,12 +450,22 @@ classdef obsopt < handle
                 end
             else
                 obj.setup.J_term_terminal = 0;
-            end            
+            end     
             
-            % no spring and terminal at the same time
-            if obj.setup.J_term_terminal && obj.setup.J_term_spring
-                error('Error: do not use both spring and terminal cost in J');                
+            if any(strcmp(varargin,'terminal_states')) && obj.setup.J_term_terminal
+                pos = find(strcmp(varargin,'terminal_states'));
+                obj.setup.terminal_states = varargin{pos+1};
+            else
+                obj.setup.terminal_states = [];
             end
+            
+            if any(strcmp(varargin,'terminal_weights')) && obj.setup.J_term_terminal
+                pos = find(strcmp(varargin,'terminal_weights'));
+                obj.setup.terminal_weights = varargin{pos+1};
+            else
+                obj.setup.terminal_weights = ones(size(obj.setup.terminal_states));
+            end
+            
             
             obj.setup.Nfilt = obj.setup.J_nterm-1;
             
@@ -867,43 +862,27 @@ classdef obsopt < handle
                 end
 
                 % store terms
-                obj.init.Jterm_store(1:obj.setup.J_nterm) = obj.init.Jterm_store(1:obj.setup.J_nterm) + sum(J_scaled,2);
-
-                %%% spring like term %%%
-                if ~isempty(obj.setup.estimated_params) && obj.setup.J_term_spring
-                    x0 = obj.init.temp_x0(1).val;
-                    params0 = x0(obj.setup.estimated_params);
-                    paramsNow = x(obj.setup.estimated_params);
-                    paramsDiff = params0-paramsNow;
-                    paramsDiff = reshape(paramsDiff,1,length(obj.setup.estimated_params));
-                    Jspring = paramsDiff*obj.init.scale_factor(1,obj.setup.J_term_spring_position)*transpose(paramsDiff);
-                    
-                    % store terms
-                    obj.init.Jterm_store(end) = Jspring; 
-                else
-                    Jspring = 0;
-                end
+                obj.init.Jterm_store(1:obj.setup.J_nterm) = obj.init.Jterm_store(1:obj.setup.J_nterm) + sum(J_scaled,2);                
                 
                 %%% terminal cost %%%
                 if obj.setup.J_term_terminal
-                    x0 = obj.init.temp_x0(1).val;                    
-                    xterm = x0-x;
-                    paramsDiff = reshape(xterm,1,obj.setup.dim_state);
-                    J_terminal = paramsDiff*obj.init.scale_factor(1,obj.setup.J_term_terminal_position)*transpose(paramsDiff);
+                    x0 = obj.init.temp_x0(obj.init.traj).val;                    
+                    xterm = x0(obj.setup.terminal_states)-x(obj.setup.terminal_states);
+                    paramsDiff = reshape(xterm,1,length(obj.setup.terminal_states));
+                    J_terminal = paramsDiff*diag(obj.init.scale_factor_scaled_terminal)*transpose(paramsDiff);
                     
                     % store terms
                     obj.init.Jterm_store(end) = J_terminal; 
                 else
                     J_terminal = 0;
                 end
-                             
-                
-                % non opt vars barrier term
-                LB = -x + transpose(obj.setup.LBcon);
-                UB = x - transpose(obj.setup.UBcon);
-                LB_log = log(-LB);
-                UB_log = log(-UB);
+                                             
+                % non opt vars barrier term                
                 if obj.setup.bounds
+                    LB = -x + transpose(obj.setup.LBcon);
+                    UB = x - transpose(obj.setup.UBcon);
+                    LB_log = log(-LB);
+                    UB_log = log(-UB);
                     if ~isreal([LB_log;UB_log])
                         J_barr = 1e4*norm([LB_log;UB_log]);
                     else
@@ -914,14 +893,16 @@ classdef obsopt < handle
                 end
                 
                 
-                J_final = J_final + Jtot + Jspring + J_barr + J_terminal;
+                J_final = J_final + Jtot + J_barr + J_terminal;
 
                 %%% final stuff %%%                
                 obj.init.Yhat_temp = Yhat;
                 
                 currentTime = toc(obj.setup.opt_temp_time);
                 if currentTime > obj.setup.MaxOptTime
+                   J_final = 0;
                    obj.setup.MaxOptTimeFlag = 1;
+                   return
                 end
             
 
@@ -1131,7 +1112,7 @@ classdef obsopt < handle
                     % Display iteration slengthtep
                     disp(['n window: ', num2str(obj.setup.w),'  n samples: ', num2str(obj.setup.Nts)])                    
                     disp(['N. optimisations RUN: ',num2str(obj.init.opt_counter)]);
-                    disp(['N. optimisations SELECTED: ',num2str(obj.init.select_counter)]);
+                    disp(['N. optimisations SELECTED: ',num2str(obj.init.select_counter)]);                    
                 end                                
                
                 %%%% OUTPUT measurements - buffer of w elements
@@ -1269,7 +1250,6 @@ classdef obsopt < handle
                         
                         %%% normalisation %%%
                         if (obj.setup.J_normalise) && (~obj.init.normalised) 
-%                         if (~obj.init.normalised)
                             range = 1:obj.init.ActualTimeIndex;
                             for filt=1:obj.setup.J_nterm
                                 for dim=1:obj.setup.dim_out
@@ -1281,10 +1261,26 @@ classdef obsopt < handle
                                     end
                                     obj.init.scale_factor_scaled(dim,filt) = obj.init.scale_factor(dim,filt)/Emax;
                                 end
+                            end        
+                            if obj.setup.J_term_terminal
+                                E = vecnorm(obj.init.X_est(traj).val(obj.setup.terminal_states,range)');
+                                E_scale = E/sum(E);
+                                for dim=1:length(obj.setup.terminal_states)                                                                        
+                                    obj.init.scale_factor_scaled_terminal(dim) = obj.init.scale_factor(1,obj.setup.J_term_terminal_position)/(E_scale(dim));
+                                    if ~isempty(obj.setup.terminal_weights)
+                                        obj.init.scale_factor_scaled_terminal(dim) = obj.init.scale_factor_scaled_terminal(dim)*obj.setup.terminal_weights(dim);
+                                    end
+                                end            
+                                
                             end                            
                             obj.init.normalised = 1;
-                        else
+                        elseif (~obj.setup.J_normalise)
                             obj.init.scale_factor_scaled = obj.init.scale_factor;
+                            if obj.setup.J_term_terminal
+                                for dim=1:length(obj.setup.terminal_states)
+                                    obj.init.scale_factor_scaled_terminal(dim) = obj.init.scale_factor(1,obj.setup.J_term_terminal_position)*obj.setup.terminal_weights(dim);
+                                end
+                            end
                         end      
                         
                         %%% TEST WITH X_FILTERS IN OPT %%%
@@ -1329,23 +1325,25 @@ classdef obsopt < handle
                             end
                             
                             [NewXopt, J] = run(gs,problem);
-                        end
-                        
-                       
+                        end                                               
                         
                         % reconstruct NewXopt from opt/nonopt vars
-                        NewXopt_tmp = [];
-                        for traj = 1:obj.setup.Ntraj
-                            obj.init.traj = traj;
-                            NewXopt_end = zeros(obj.setup.dim_state,1);
-                            NewXopt_end(obj.setup.opt_vars) = NewXopt;
-                            NewXopt_end(obj.setup.nonopt_vars) = obj.init.temp_x0_nonopt(traj).val;                          
-                            NewXopt_tmp(traj).val = NewXopt_end;                           
-                        end
-                        
-                        %%% TEST WITH X_FILTER AS OPT VAR
-                        if obj.setup.opt_filters
-                            NewXfilter(traj).val = NewXopt(obj.setup.opt_vars(end)+1:end);
+                        if obj.setup.MaxOptTimeFlag == 0
+                            NewXopt_tmp = [];
+                            for traj = 1:obj.setup.Ntraj
+                                obj.init.traj = traj;
+                                NewXopt_end = zeros(obj.setup.dim_state,1);
+                                NewXopt_end(obj.setup.opt_vars) = NewXopt;
+                                NewXopt_end(obj.setup.nonopt_vars) = obj.init.temp_x0_nonopt(traj).val;                          
+                                NewXopt_tmp(traj).val = NewXopt_end;                           
+                            end
+
+                            %%% TEST WITH X_FILTER AS OPT VAR
+                            if obj.setup.opt_filters
+                                NewXfilter(traj).val = NewXopt(obj.setup.opt_vars(end)+1:end);
+                            end
+                        else
+                            NewXopt_tmp = obj.init.temp_x0;
                         end
                         
                         % set new state
@@ -1359,10 +1357,7 @@ classdef obsopt < handle
                         % check J_dot condition
                         J_diff = (J/J_before);
 
-                        if (obj.setup.AlwaysOpt) || ( (J_diff <= obj.setup.Jdot_thresh) || (distance > obj.init.safety_interval) )
-                            
-                            % update params
-                            obj.init.params = obj.setup.params.params_update(obj.init.params,NewXopt(1).val);
+                        if (obj.setup.AlwaysOpt) || ( (J_diff <= obj.setup.Jdot_thresh) || (distance > obj.init.safety_interval) )                                                        
 
                             % on each trajectory
                             for traj=1:obj.setup.Ntraj
@@ -1394,6 +1389,9 @@ classdef obsopt < handle
                                 obj.init.select_counter = obj.init.select_counter + 1;
 
                                 x_propagate = NewXopt(traj).val;
+                                
+                                % update params
+                                obj.init.params = obj.setup.params.params_update(obj.init.params,x_propagate);
 
                                 %%%%%%%%%%%%%%%%% FIRST MEASURE UPDATE %%%%%%%%
                                 % manage measurements
@@ -1427,7 +1425,10 @@ classdef obsopt < handle
                                 %%%%%%%%%%% PROPAGATION %%%%%%%%%%%%%%%%%%%%%%%
                                 n_iter_propagate = obj.init.ActualTimeIndex-obj.init.BackIterIndex;
 
-                                for j =1:n_iter_propagate                                    
+                                for j =1:n_iter_propagate    
+                                    
+                                    % update params
+%                                     obj.init.params = obj.setup.params.params_update(obj.init.params,x_propagate);
                                     
                                     % back time
                                     back_time = obj.init.BackIterIndex+j;
@@ -1509,6 +1510,8 @@ classdef obsopt < handle
         % plot results for control design
         function plot_section_control(obj,varargin)
             
+            set(0,'DefaultFigureWindowStyle','docked');
+            
             fig_count = 0;
             
             %%%% plot state estimation %%%
@@ -1554,7 +1557,7 @@ classdef obsopt < handle
                         if strcat(obj.setup.DataType,'simulated')
                             plot(obj.setup.time,obj.init.X(traj).val(obj.setup.plot_params(i),:),'b--');
                         end
-                        plot(obj.setup.time,obj.init.X_est(traj).val(obj.setup.plot_params(i),:),'r--');                                      
+                        plot(obj.setup.time,obj.init.X_est_runtime(traj).val(obj.setup.plot_params(i),:),'r--');                                      
 
                         if strcat(obj.setup.DataType,'simulated')
                             legend('True','Est')
@@ -1759,14 +1762,14 @@ classdef obsopt < handle
                         if 1
 %                             plot(obj.setup.time,y_plot,'b--');
                             plot(obj.setup.time,yhat_plot,'r--','Linewidth',1.5);
-                            plot(obj.setup.time,ytrue_plot,'k--','Linewidth',1.5);                            
+                            plot(obj.setup.time,y_plot,'k--','Linewidth',1.5);                            
                         else
                             plot(obj.setup.time,abs(y_plot-yhat_plot));
                             set(gca, 'YScale', 'log')
                         end
                     end
                     
-                    legend('measured','estimated')
+                    legend('estimated','measured')
                     ylabel(strcat('y_{filter}^',num2str(k)));
                     xlabel('simulation time [s]');
                 end            
