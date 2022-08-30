@@ -14,24 +14,39 @@ function u = control(t,drive,params)
     % init input
     u = zeros(1,length(t));
     % params.dim_input
+        
+    % type of input
+    type = 2;
+    
+    % params
+    period = 100;
+    DC = 0.1;
 
     % check if the input is enabled
     if params.input_enable
         
-        % !REMARK!
-        % simply uncomment or add the law you need, according to params
+        switch type                
 
-        %%%% control law - battery %%%%
-        % sine wave
-        u(1,:) = -1 * interp1(params.input_time,params.input_current,t,'previous');
-%         u(1,:) = sin(0.5*t);
-
-%         period = 300;
-%         if mod(t,period) > period/3
-%            u(1,:) = 2; 
-%         else
-%            u(1,:) = 0;
-%         end
+            %%%% control law - battery %%%%
+            % HCCP
+            case 1 
+                u(1,:) = -1 * interp1(params.input_time,params.input_current,t,'previous');
+            
+            %%%% control law - battery %%%%
+            % sum of sins
+            case 2
+                u(1,:) = 5*sin(0.1*t) + 1*sin(0.5*t) + 0.2*sin(1*t) + (1*ceil(t/period));
+            
+            case 3           
+                if mod(t,period) > period*DC
+                   u(1,:) = 1; 
+                else
+                   u(1,:) = 0;
+                end
+            
+            otherwise
+                disp('no input law selected')
+        end
            
     end
 end
