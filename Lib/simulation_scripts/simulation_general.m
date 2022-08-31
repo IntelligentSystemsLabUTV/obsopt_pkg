@@ -12,8 +12,8 @@ function [params,obs] = simulation_general
 % close all
     
 % init observer buffer (see https://doi.org/10.48550/arXiv.2204.09359)
-Nw = 20;
-Nts = 2;
+Nw = 40;
+Nts = 10;
 
 % noise
 rng default
@@ -24,7 +24,7 @@ Ts = 1e0;
 
 % set initial and final time instant
 t0 = 0;
-tend = 300;
+tend = 700;
 % uncomment to test the MHE with a single optimisation step
 % tend = 1*(Nw*Nts-1)*Ts;
 
@@ -147,10 +147,10 @@ params = model_init('Ts',Ts,'T0',[t0, tend],'noise',1,'noise_spec',noise_mat, 'p
 % options check directly the class constructor in obsopt.m
 obs = obsopt('DataType', 'simulated', 'optimise', 1 , 'GlobalSearch', 0, 'MultiStart', 0, 'J_normalise', 1, 'MaxOptTime', Inf, ... 
       'Nw', Nw, 'Nts', Nts, 'ode', ode, 'PE_maxiter', 0, 'model_reference', model_reference, 'WaitAllBuffer', 1, ...    
-      'measure_reference', measure_reference, 'params',params, 'filters', filterScale,'filterTF', filter, 'Jdot_thresh',0.9,'MaxIter',100,...
+      'measure_reference', measure_reference, 'params',params, 'filters', filterScale,'filterTF', filter, 'Jdot_thresh',0.9,'MaxIter',200,...
       'Jterm_store', 1, 'AlwaysOpt', 1 , 'print', 0 , 'SafetyDensity', 6, 'AdaptiveHist', [1e-6, 5e-6, 1e-3], ...
-      'AdaptiveSampling',0, 'FlushBuffer', 1, 'opt', @fminunc, 'terminal', 0, 'terminal_states', [1:2,7:10,11:14], 'terminal_weights', [1 1 zeros(1,8)], ...
-      'LBcon', [0 0 0 0 0 0], 'UBcon', [1e3 1e3 1e3 1e3 1e3 1e5], 'Bounds', 0);
+      'AdaptiveSampling',0, 'FlushBuffer', 1, 'opt', @fminsearch, 'terminal', 1, 'terminal_states', [1:2], 'terminal_weights', [1 1], 'terminal_normalise', 0, ...
+      'ConPos', [1], 'LBcon', [0], 'UBcon', [1], 'Bounds', 0);
   
   
 %%%% measure filter state %%%%
@@ -162,7 +162,7 @@ if first_guess_flag
     
     % perturbate first guess
     if obs.setup.noise
-        obs.init.X_est(1).val(obs.setup.opt_vars(3:end),1) = 0*obs.init.X_est(1).val(obs.setup.opt_vars(3:end),1);
+        obs.init.X_est(1).val(obs.setup.opt_vars(3:end),1) = 0.95*obs.init.X_est(1).val(obs.setup.opt_vars(3:end),1);
         obs.init.params = obs.setup.params.params_update(obs.init.params,obs.init.X_est(1).val(:,1));
         
         % test stuff

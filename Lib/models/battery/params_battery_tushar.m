@@ -88,7 +88,7 @@ function params = params_battery_tushar
     params.estimated_params = [7:18];
     
     % which vars am I optimising
-    params.opt_vars = [1:2 3:4 7:8];
+    params.opt_vars = [1:2 9:10];
     
     % set the not optimised vars
     tmp = 1:length(params.X(1).val(:,1));
