@@ -16,7 +16,7 @@ function u = control(t,drive,params)
     % params.dim_input
         
     % type of input
-    type = 2;
+    type = 4;
     
     % params
     period = 100;
@@ -43,6 +43,12 @@ function u = control(t,drive,params)
                 else
                    u(1,:) = 0;
                 end
+                
+            case 4
+                startpos = 320;
+                stoppos = 677;
+                dT = stoppos-startpos;
+                u(1,:) = -params.input_current(startpos+mod(t,dT));
             
             otherwise
                 disp('no input law selected')
