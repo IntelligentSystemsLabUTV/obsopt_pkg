@@ -12,8 +12,8 @@ function [params,obs] = simulation_general
 % close all
     
 % init observer buffer (see https://doi.org/10.48550/arXiv.2204.09359)
-Nw = 40;
-Nts = 10;
+Nw = 60;
+Nts = 5;
 
 % noise
 rng default
@@ -24,7 +24,7 @@ Ts = 1e0;
 
 % set initial and final time instant
 t0 = 0;
-tend = 700;
+tend = 6000;
 % uncomment to test the MHE with a single optimisation step
 % tend = 1*(Nw*Nts-1)*Ts;
 
@@ -130,7 +130,7 @@ input_law = @control;
 % dimension. All the noise are considered as Gaussian distributed. The 
 % first column defines the mean while the second column the variance.
 noise_mat = 0*ones(6,2);
-% noise_mat(1,2) = [1e-2];
+noise_mat(1,2) = [3e-4];
 
 %%%% params init %%%%
 % init the parameters structure through funtion @model_init. 
@@ -147,9 +147,9 @@ params = model_init('Ts',Ts,'T0',[t0, tend],'noise',1,'noise_spec',noise_mat, 'p
 % options check directly the class constructor in obsopt.m
 obs = obsopt('DataType', 'simulated', 'optimise', 1 , 'GlobalSearch', 0, 'MultiStart', 0, 'J_normalise', 1, 'MaxOptTime', Inf, ... 
       'Nw', Nw, 'Nts', Nts, 'ode', ode, 'PE_maxiter', 0, 'model_reference', model_reference, 'WaitAllBuffer', 1, ...    
-      'measure_reference', measure_reference, 'params',params, 'filters', filterScale,'filterTF', filter, 'Jdot_thresh',0.9,'MaxIter',200,...
-      'Jterm_store', 1, 'AlwaysOpt', 1 , 'print', 0 , 'SafetyDensity', 6, 'AdaptiveHist', [1e-6, 5e-6, 1e-3], ...
-      'AdaptiveSampling',0, 'FlushBuffer', 1, 'opt', @fminsearch, 'terminal', 1, 'terminal_states', [1:2], 'terminal_weights', [1 1], 'terminal_normalise', 0, ...
+      'measure_reference', measure_reference, 'params',params, 'filters', filterScale,'filterTF', filter, 'Jdot_thresh',0.9,'MaxIter',20,...
+      'Jterm_store', 1, 'AlwaysOpt', 1 , 'print', 0 , 'SafetyDensity', 6, 'AdaptiveHist', [5e-4, 1e-3, 1e-3], ...
+      'AdaptiveSampling',0, 'FlushBuffer', 1, 'opt', @fminsearch, 'terminal', 1, 'terminal_states', [1:2 8:10], 'terminal_weights', [1 1 0.1 0.1 0.1], 'terminal_normalise', 1, ...
       'ConPos', [1], 'LBcon', [0], 'UBcon', [1], 'Bounds', 0);
   
   
@@ -161,14 +161,11 @@ if first_guess_flag
     first_guess;
     
     % perturbate first guess
-    if obs.setup.noise
-        obs.init.X_est(1).val(obs.setup.opt_vars(3:end),1) = 0.95*obs.init.X_est(1).val(obs.setup.opt_vars(3:end),1);
+    if obs.setup.noise && 1
+        delta = 0.1;
+        nvars = length(obs.setup.opt_vars);
+        obs.init.X_est(1).val(obs.setup.opt_vars,1) = (1+delta*randn(nvars,1)).*obs.init.X_est(1).val(obs.setup.opt_vars,1);
         obs.init.params = obs.setup.params.params_update(obs.init.params,obs.init.X_est(1).val(:,1));
-        
-        % test stuff
-%         obs.init.params.alpha_C1 = 0;
-%         obs.init.params.beta_C1 = 0;
-%         obs.init.X_est(1).val([10 14],1) = 0;
     end
 end
 
@@ -220,11 +217,12 @@ for i = 1:obs.setup.Niter
         %%%% REAL MEASUREMENT %%%%
         % here the noise is noise added aggording to noise_spec
         obs.init.Ytrue_full_story(traj).val(1,:,obs.init.ActualTimeIndex) = obs.setup.measure_reference(obs.init.X(traj).val(:,obs.init.ActualTimeIndex),obs.init.params,obs.setup.time(obs.init.ActualTimeIndex));
-        obs.init.noise_story(traj).val(:,obs.init.ActualTimeIndex) = obs.setup.noise*(obs.setup.noise_mu(obs.setup.observed_state)  + obs.setup.noise_std(obs.setup.observed_state).*randn(obs.setup.dim_out,1));
-        obs.init.y_noise(:,obs.init.ActualTimeIndex) =  reshape(obs.init.Ytrue_full_story(traj).val(1,:,obs.init.ActualTimeIndex),obs.setup.dim_out,1) + obs.init.noise_story(traj).val(:,obs.init.ActualTimeIndex); 
+        CurrentMeas = reshape(obs.init.Ytrue_full_story(traj).val(1,:,obs.init.ActualTimeIndex),obs.setup.dim_out,1);
+        obs.init.noise_story(traj).val(:,obs.init.ActualTimeIndex) = obs.setup.noise*(obs.setup.noise_mu(obs.setup.observed_state)  + obs.setup.noise_std(obs.setup.observed_state).*CurrentMeas.*randn(obs.setup.dim_out,1));
+        obs.init.y_noise(:,obs.init.ActualTimeIndex) =  CurrentMeas + obs.init.noise_story(traj).val(:,obs.init.ActualTimeIndex); 
         
         % filter on the measurements
-        if 0
+        if 1
             % reference filter (filterScale)
             try
                 u = [obs.init.y_noise(:,obs.init.ActualTimeIndex);reshape(obs.init.Y_full_story(traj).val(1,:,obs.init.ActualTimeIndex),1,obs.setup.dim_out)];
@@ -279,7 +277,7 @@ obs.init.total_time = toc(t0);
 
 % the whole process could be long, why not going for a nap? No worries, 
 % this "sounds" like a nice way to wake up. (Uncomment)
-% load handel
-% sound(y,Fs)
+load handel
+sound(y,Fs)
 end
 
