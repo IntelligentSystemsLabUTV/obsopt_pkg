@@ -23,7 +23,7 @@ function u = control(t,drive,params)
     DC = 0.1;
 
     % check if the input is enabled
-    if params.input_enable
+    if params.input_enable3
         
         switch type                
 
@@ -44,11 +44,9 @@ function u = control(t,drive,params)
                    u(1,:) = 0;
                 end
                 
-            case 4
-                startpos = 320;
-                stoppos = 677;
-                dT = stoppos-startpos;
-                u(1,:) = -params.input_current(startpos+mod(t,dT));
+            case 4    
+                len = min(length(params.input_current_modular_time_slown_dense),length(params.input_current_modular_slown));
+                u(1,:) = -1*interp1(params.input_current_modular_time_slown_dense(1:len),params.input_current_modular_slown(1:len),mod(t,params.input_current_modular_period_slown),'previous');
             
             otherwise
                 disp('no input law selected')
