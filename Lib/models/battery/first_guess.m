@@ -8,11 +8,11 @@ t_pos = 1;
 traj = 1;
 
 % set Npoint for cloud
-Npoint = 10;
+Npoint = 50;
 
 % define noise
 perc = 0.01;
-sigma = 0*0.01;
+sigma = 0*[0.05 0.2 0.2 0.2];
 
 % define param
 Nparam = 4;
@@ -107,13 +107,23 @@ function x_out = gen_meas(obs_default,x,Npoint,perc,sigma)
     for i=1:Npoint
         
         % generate SOC
-        x_out(1,i) =  x(1)*(1 + perc*randn(1)) + sigma*randn(1);
+        if mod(i,2)
+            x_out(1,i) =  x(1)*(1 + 0.5*perc*randn(1));
+        else
+            x_out(1,i) =  x(1)*(1 - 0.5*perc*randn(1));
+        end
+        
+        % compute the real val
+        ref(3) = spline(params.input_soc, params.input_OCV, x_out(1,i));
+        ref(4) = spline(params.input_soc, params.input_R0, x_out(1,i));
+        ref(5) = spline(params.input_soc, params.input_R1, x_out(1,i));
+        ref(6) = spline(params.input_soc, params.input_C1, x_out(1,i));
         
         % compute and perturb params
-        x_out(3,i) = spline(params.input_soc, params.input_OCV, x_out(1,i))*(1 + sigma*randn(1));
-        x_out(4,i) = spline(params.input_soc, params.input_R0, x_out(1,i))*(1 + sigma*randn(1));
-        x_out(5,i) = spline(params.input_soc, params.input_R1, x_out(1,i))*(1 + sigma*randn(1));
-        x_out(6,i) = spline(params.input_soc, params.input_C1, x_out(1,i))*(1 + sigma*randn(1));
+        x_out(3,i) = spline(params.input_soc, params.input_OCV, x_out(1,i)) + sigma(1)*ref(3)*randn(1);
+        x_out(4,i) = spline(params.input_soc, params.input_R0, x_out(1,i)) + sigma(2)*ref(4)*randn(1);
+        x_out(5,i) = spline(params.input_soc, params.input_R1, x_out(1,i)) + sigma(3)*ref(5)*randn(1);
+        x_out(6,i) = spline(params.input_soc, params.input_C1, x_out(1,i)) + sigma(4)*ref(6)*randn(1);
        
     end
 

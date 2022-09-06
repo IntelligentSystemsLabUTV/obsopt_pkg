@@ -19,6 +19,23 @@ function params = params_battery_tushar
     params.input_R1 = input_data.R1;
     params.input_C1 = input_data.C1;
 
+    % generate modular HPPC
+    params.input_current_Ts = 1;
+    params.startpos = 320;
+    params.stoppos = 677;
+    params.input_current_modular_period = params.stoppos-params.startpos;    
+    params.input_current_modular_time = 0:params.input_current_modular_period;
+    params.input_current_modular_time_dense = 0:params.input_current_Ts:params.input_current_modular_period;
+    params.input_current_modular = interp1(params.input_current_modular_time,params.input_current(params.startpos:params.stoppos),params.input_current_modular_time_dense);
+    
+    % slow modular HPPC
+    params.time_slow = 1;
+    params.input_current_modular_period_slown = params.input_current_modular_period*params.time_slow;
+    params.input_current_modular_time_slown_dense = 0:params.input_current_Ts:params.input_current_modular_period_slown;
+    for i=1:length(params.input_current_modular_time_dense)
+        params.input_current_modular_slown(params.time_slow*(i-1)+1:params.time_slow*(i-1)+params.time_slow) = params.input_current_modular(i);
+    end
+    
     % initial SOC
     x10 = 0.9;
     x20 = 0.01;
@@ -88,7 +105,7 @@ function params = params_battery_tushar
     params.estimated_params = [7:18];
     
     % which vars am I optimising
-    params.opt_vars = [1:2 9:10];
+    params.opt_vars = [1:2 8:10];
     
     % set the not optimised vars
     tmp = 1:length(params.X(1).val(:,1));

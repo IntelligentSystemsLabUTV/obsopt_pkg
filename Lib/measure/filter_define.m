@@ -22,7 +22,7 @@ function [filter, filterScale, reference] = filter_define(Ts,Nts)
     %%% derivative filter %%%
     if 0
     i = i+1;   
-    eps1 = 1e-3;
+    eps1 = 1e-2;
     G = tf([1 0],[eps1 1]);
     SS = ss(G);
     D = c2d(SS,Ts);
@@ -73,7 +73,7 @@ function [filter, filterScale, reference] = filter_define(Ts,Nts)
     
     %%%% reference filter %%%%
     % (under development)
-    eps = 3;
+    eps = 2;
     G = tf(1,[eps 1]);
     SS = ss(G);
     D = c2d(SS,Ts);
@@ -84,7 +84,7 @@ function [filter, filterScale, reference] = filter_define(Ts,Nts)
     reference.D = D.D;
     reference.G = G;
     reference.dim = size(D.B,1);
-    reference.x0 = 6*ones(reference.dim,1);
+    reference.x0 = 4*ones(reference.dim,1);
     
     %%% butterworth %%%
     [reference.butter.b,reference.butter.a] = butter(1,0.8);
