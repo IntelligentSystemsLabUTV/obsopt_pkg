@@ -657,7 +657,7 @@ classdef obsopt < handle
             % optimset: check documentation for fminsearch or fminunc
             obj.init.TolX = 0;
             obj.init.TolFun = 0;
-            obj.init.DiffMinChange = 1e-6;
+            obj.init.DiffMinChange = 1e-3;
             obj.init.last_opt_time = 0;
             obj.init.opt_time = 0;
             
@@ -673,7 +673,8 @@ classdef obsopt < handle
             if strcmp(func2str(obj.setup.fmin),'fmincon')
                 obj.init.myoptioptions = optimoptions('fmincon', 'MaxIter', obj.setup.max_iter, 'display',obj.init.display, ...
                                                       'OptimalityTolerance', 0, 'StepTolerance', 0,'MaxFunEvals',Inf, 'GradObj', 'off',...
-                                                      'OutputFcn',@obj.outfun,'TolFun',obj.init.TolFun,'TolX',obj.init.TolX);  
+                                                      'OutputFcn',@obj.outfun,'TolFun',obj.init.TolFun,'TolX',obj.init.TolX, ...
+                                                      'FiniteDifferenceStepSize', obj.init.DiffMinChange, 'FiniteDifferenceType','central');  
             elseif strcmp(func2str(obj.setup.fmin),'fminunc')
                 obj.init.myoptioptions = optimoptions('fminunc', 'MaxIter', obj.setup.max_iter, 'display',obj.init.display, ...
                                                       'OptimalityTolerance', 0, 'StepTolerance', 0,'MaxFunEvals',Inf, 'GradObj', 'off',...
@@ -824,6 +825,12 @@ classdef obsopt < handle
                     break
                 end
                 
+                Inf_Flag = find(isinf(X.y));
+                if Inf_Flag
+                    J_final = Inf;
+                    break
+                end
+                
                 %%% get measure  %%
                 Yhat = zeros(obj.setup.Nfilt+1,obj.setup.dim_out,size(X.y,2));
                 Yhat(1,:,:) = obj.setup.measure(X.y,obj.init.params,tspan);                                
@@ -846,25 +853,15 @@ classdef obsopt < handle
                            startpos = startpos + obj.setup.filterTF(filt).dim;
                        end
                     end
-                    
-                    try
+                                        
                     [Y, ~] = obj.measure_filter(Yhat(:,:,tspan_filt),tspan_filt,x0_filter); 
-                    catch
-                       a=1; 
-                    end
+                    
                     for filt=1:obj.setup.Nfilt
                         for dim=1:obj.setup.dim_out
                             % odeDD
 %                             Yhat(filt+1,dim,tspan_filt(2:end)) = Y{filt,dim}.val;
-                            % Lsim
-                            try
-                                Yhat(filt+1,dim,tspan_filt) = Y{filt,dim}.val(tspan_filt);
-                            catch
-                                J_final = 0;
-                                obj.setup.MaxOptTimeFlag = 1;
-                                return
-                            end
-                                
+                            % Lsim                            
+                            Yhat(filt+1,dim,tspan_filt) = Y{filt,dim}.val(tspan_filt);                               
                         end
                     end
                 end                                                                              
@@ -1299,7 +1296,8 @@ classdef obsopt < handle
                                 E = vecnorm(obj.init.X_est(traj).val(obj.setup.terminal_states,range)');
                                 E_scale = E/sum(E);
                                 for dim=1:length(obj.setup.terminal_states)                                                                        
-                                    obj.init.scale_factor_scaled_terminal(dim) = obj.init.scale_factor(1,obj.setup.J_term_terminal_position)/(E_scale(dim));                                    
+%                                     obj.init.scale_factor_scaled_terminal(dim) = obj.init.scale_factor(1,obj.setup.J_term_terminal_position)/(E_scale(dim));                                    
+                                    obj.init.scale_factor_scaled_terminal(dim) = obj.init.scale_factor(1,obj.setup.J_term_terminal_position)/E(dim);
                                 end    
                             elseif (obj.setup.J_term_terminal)
                                 for dim=1:length(obj.setup.terminal_states)
@@ -1582,7 +1580,7 @@ classdef obsopt < handle
                     if strcat(obj.setup.DataType,'simulated')
                         plot(obj.setup.time,obj.init.X(traj).val(obj.setup.plot_vars(i),:),'b--');
                     end
-                    plot(obj.setup.time,obj.init.X_est(traj).val(obj.setup.plot_vars(i),:),'r--');                                      
+                    plot(obj.setup.time,obj.init.X_est_runtime(traj).val(obj.setup.plot_vars(i),:),'r--');                                      
 
                     if strcat(obj.setup.DataType,'simulated')
                         legend('True','Est')
