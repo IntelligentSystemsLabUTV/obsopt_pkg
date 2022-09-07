@@ -16,7 +16,7 @@ function y = measure_control_ref(x,params,t,u)
     C = [params.C1 params.C2];
     
     % get the observed components of the state vector
-    y(1,:) = 1*C(1:2)*x(6:7,:);     % y
-    y(2,:) = x(5,:);                % reference signal
+    y(1,:) = 1*C(1:2)*x(3:4,:);     % y
+    y(2,:) = x(7,:);                % reference signal
 
 end

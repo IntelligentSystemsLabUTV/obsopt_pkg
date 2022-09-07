@@ -12,8 +12,8 @@ function [params,obs] = simulation_general
 % close all
     
 % init observer buffer (see https://doi.org/10.48550/arXiv.2204.09359)
-Nw = 120;
-Nts = 1;
+Nw = 40;
+Nts = 5;
 
 % set sampling time
 Ts = 1e-2;
@@ -73,8 +73,8 @@ model = @model_control_test_est;
 % obs: instance of the obsopt observer class
 % OUTPUT:
 % xdot:output of the state space model
-model_reference = @model_reference;
-% model_reference = model;
+% model_reference = @model_reference;
+model_reference = model;
 
 %%%% measure function %%%%
 % function: this file shall be in the following form:   
@@ -141,11 +141,11 @@ params = model_init('Ts',Ts,'T0',[t0, tend],'noise',0,'noise_spec',noise_mat, 'p
 %%%% observer init %%%%
 % create observer class instance. For more information on the setup
 % options check directly the class constructor in obsopt.m
-obs = obsopt('DataType', 'simulated', 'optimise', 1, 'GlobalSearch', 0, 'MultiStart', 0, 'J_normalise', 1, 'MaxOptTime', Inf, 'MaxOptTime_single', Inf, ... 
-      'Nw', Nw, 'Nts', Nts, 'ode', ode, 'PE_maxiter', 0 , 'model_reference', model_reference, 'WaitAllBuffer', 1, 'WeightTerms', [1;0.05] ,...    
-      'measure_reference', measure_reference, 'params',params, 'filters', filterScale,'filterTF', filter, 'Jdot_thresh',0.9,'MaxIter',200,...
-      'Jterm_store', 0, 'AlwaysOpt', 1 , 'print', 1 , 'SafetyDensity', 3, 'AdaptiveHist', [1e-2, 3e-2, 1e0], ...
-      'AdaptiveSampling',0, 'FlushBuffer', 1, 'opt', @fminunc, 'spring', 0, 'terminal', 0, 'bounds', 0, 'LBcon',-Inf*ones(1,4), 'UBcon', Inf*ones(1,4));
+obs = obsopt('DataType', 'simulated', 'optimise', 0, 'GlobalSearch', 0, 'MultiStart', 0, 'J_normalise', 1, 'MaxOptTime', Inf, 'MaxOptTime_single', Inf, ... 
+      'Nw', Nw, 'Nts', Nts, 'ode', ode, 'PE_maxiter', 0 , 'model_reference', model_reference, 'WaitAllBuffer', 1, 'WeightTerms', [1;1] ,...    
+      'measure_reference', measure_reference, 'params',params, 'filters', filterScale,'filterTF', filter, 'Jdot_thresh',0.9,'MaxIter',500,...
+      'Jterm_store', 0, 'AlwaysOpt', 1 , 'print', 0 , 'SafetyDensity', 3, 'AdaptiveHist', [1e-2, 3e-2, 1e0], ...
+      'AdaptiveSampling',0, 'FlushBuffer', 1, 'opt', @fminsearch, 'spring', 0, 'terminal', 0, 'bounds', 0, 'LBcon',-Inf*ones(1,4), 'UBcon', Inf*ones(1,4));
 
 %% %%%% SIMULATION %%%%
 % remark: the obs.setup.Ntraj variable describes on how many different
@@ -163,6 +163,7 @@ for i = 1:obs.setup.Niter
     if ((mod(i,10) == 0) || (i == 1))
         clc
         disp(['Iteration Number: ', num2str(obs.setup.time(i)),'/',num2str(obs.setup.time(obs.setup.Niter))])
+        disp(['Last J:', num2str(obs.init.Jstory(end))]);
     end
     
     % set current iteration in the obsopt class
@@ -184,14 +185,10 @@ for i = 1:obs.setup.Niter
             stoppos = obs.init.ActualTimeIndex;
             tspan = obs.setup.time(startpos:stoppos);            
 
-            % true system - correct initial condition and no noise
-            % considered
-            X = obs.setup.ode(@(t,x)obs.setup.model_reference(t, x, params, obs), tspan, obs.init.X(traj).val(:,startpos),params.odeset); 
-            obs.init.X(traj).val(:,startpos:stoppos) = [X.y(:,1),X.y(:,end)];
-
             % real system - initial condition perturbed 
             X = obs.setup.ode(@(t,x)obs.setup.model(t, x, obs.init.params, obs), tspan, obs.init.X_est(traj).val(:,startpos),params.odeset);
-            obs.init.X_est(traj).val(:,startpos:stoppos) = [X.y(:,1),X.y(:,end)];      
+            obs.init.X_est(traj).val(:,startpos:stoppos) = [X.y(:,1),X.y(:,end)]; 
+            obs.init.X(traj) = obs.init.X_est(traj);
         end
         
         %%%% REAL MEASUREMENT %%%%

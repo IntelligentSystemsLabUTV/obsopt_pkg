@@ -42,16 +42,16 @@ function x_dot = model_control_test_est(t,x,params,obs)
     % u1 = uc (input to plant - ref track)
     % u2 = ec (input to controller - ref track)
     % u3 = ur (input to reference model - ref track)
-    % u4 = ui (input to plant - sys id)
     
     %%% model dynamics %%%           
-    % plant dynamics - reference tracking
+    % estimated plant dynamics - reference tracking
     x_dot(1:2,:) = Ap*x(1:2,:) + Bp*(params.u(1,:));
+    % true plant dynamics - reference tracking
+    x_dot(3:4,:) = Ap_t*x(3:4,:) + Bp_t*(params.u(1,:));
     % controller dynamics - reference tracking
-    x_dot(3:4,:) = Ac*x(3:4,:) + Bc*(params.u(2,:));
+    x_dot(5:6,:) = Ac*x(5:6,:) + Bc*(params.u(2,:));
     % reference model dynamics - reference tracking (useless here)
-    x_dot(5,:) = params.alpha*x(5,:)+abs(params.alpha)*params.u(3,:);
-    % plant dynamics - system identification
-    x_dot(6:7,:) = Ap*x(6:7,:) + Bp*(params.u(4,:));
+    x_dot(7,:) = params.alpha*x(7,:)+abs(params.alpha)*params.u(3,:);
+
  
 end

@@ -13,13 +13,13 @@ function params = params_control_test
     omega = 2*pi*10;
     
     % control parameters
-    params.a0 = 0*-277.5195;
-    params.a1 = 0*-280.9650;
-    params.b0 = 0*206.4773;
-    params.b1 = 0*-525.4540;    
+    params.a0 = 1*1;
+    params.a1 = 1*1;
+    params.b0 = 0*1;
+    params.b1 = 1*1;    
     params.c0 = 1;
     params.c1 = 0;
-    params.d0 = 0*18.4970;    
+    params.d0 = 0;    
     
     % true model parameters
     params.A1 = 1*-2*rho*omega;
@@ -32,11 +32,11 @@ function params = params_control_test
     params.C2 = 1*omega^2;
     
     % estimated model parameters
-    params.a0est = 0*-4.0360e+03;                %1*-omega^2;
-    params.a1est = 0*-13.6317;            %1*-2*rho*omega;
-    params.b0est = 0*1.3473;                      %1*0;
-    params.b1est = 0*4.0160e+03;                      %1*1;
-    params.c0est = 1;                         %1*394.8;
+    params.a0est = 1*-omega^2;                %1*-omega^2;
+    params.a1est = 1*-2*rho*omega;            %1*-2*rho*omega;
+    params.b0est = 1*0;                       %1*0;
+    params.b1est = 1*1;                       %1*1;
+    params.c0est = 1*omega^2;                 %1*omega^2;
     params.c1est = 0;                         %1*0;
     params.d0est = 0;                         %1*0;
     
@@ -51,17 +51,17 @@ function params = params_control_test
     params.rescale = 1e0;
     
     % input stuff
-    params.dim_input = 4;
+    params.dim_input = 3;
     
     % number of reference trajectories (under development)
-    params.Ntraj = 2;
+    params.Ntraj = 1;
     
     % state dimension
     params.dim_state = 16;  
     
     % initial condition
     % [xpc, xc, xr, xpi, @P, @C]
-    params.X(1).val(:,1) = [0;0;0;0;0;0;0;params.a0est;params.a1est;params.b0est;params.b1est;params.a0;params.a1;params.b0;params.b1;params.d0];
+    params.X(1).val(:,1) = [0.1;0.1;0.1;0.1;0;0;0;params.a0est;params.a1est;params.b0est;params.b1est;params.a0;params.a1;params.b0;params.b1;params.d0];
     
     % position in the state vector of the estimated parameters
     params.estimated_params = [8:16];
@@ -81,7 +81,7 @@ function params = params_control_test
     % too many, consider to use only the true state components)
     params.plot_vars = 1:7;
     params.plot_params = [8:16];  
-    params.multi_traj_var = [1:2,6:7];
+    params.multi_traj_var = [1:4];
     
     % same initial condition for all the trajectories (under development)
     for traj=2:params.Ntraj

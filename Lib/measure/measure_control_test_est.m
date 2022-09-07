@@ -12,11 +12,14 @@
 % y: output measurement
 function y = measure_control_test_est(x,params,t,u)
 
-    % LTI system - C matrix
-    C = [params.c0est params.c1est];
+    % LTI system - C matrix - est
+    Chat = [params.c0est params.c1est];
+    
+    % LTI system - C matrix - true
+    C = [params.C1 params.C2];
     
     % get the observed components of the state vector        
-    y(1,:) = 1*C(1:2)*x(6:7,:) + params.d0est*u(4,:);        % yhat (for plant)
-    y(2,:) = 1*C(1:2)*x(1:2,:) + params.d0est*u(1,:);        % yhat (for reference)
+    y(1,:) = 1*Chat(1:2)*x(1:2,:) + params.d0est*u(1,:);        % yhat (for plant)
+    y(2,:) = 1*C(1:2)*x(3:4,:);                                 % ytrue (for reference)
     
 end
