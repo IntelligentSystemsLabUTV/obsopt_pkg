@@ -828,9 +828,14 @@ classdef obsopt < handle
                         X.y = x_start;
                     end
 
+                    %%% TESTING %%%
+                    obj.init.X(traj) = obj.init.X_est(traj);
+                    obj.init.X(traj).val(:,tspan_pos(1):tspan_pos(end)) = X.y;
+                    
                     % check for NaN or Inf
                     NaN_Flag = find(isnan(X.y));
-                    if NaN_Flag
+                    Inf_Flag = find(isinf(X.y));
+                    if ~isempty(NaN_Flag) || ~isempty(Inf_Flag)
                         J_final = NaN;
                         break
                     end
@@ -1747,8 +1752,8 @@ classdef obsopt < handle
                     yhat = reshape(obj.init.Yhat_full_story(traj).val(1,k,:),size(obj.setup.time));
                     plot(obj.setup.time,yhat,'b--','LineWidth',1.5)
                     
-                    y_true = reshape(obj.init.Ytrue_full_story(traj).val(1,k,:),size(obj.setup.time));
-                    plot(obj.setup.time,y_true,'k--','LineWidth',1.5)
+%                     y_true = reshape(obj.init.Ytrue_full_story(traj).val(1,k,:),size(obj.setup.time));
+%                     plot(obj.setup.time,y_true,'k--','LineWidth',1.5)
                     
                     % plot down sampling
 %                     data = reshape(obj.init.Yhat_full_story(traj).val(1,k,obj.init.temp_time),1,length(WindowTime));
@@ -1765,7 +1770,7 @@ classdef obsopt < handle
                     ylabel(strcat('y_',num2str(k)));
                     xlabel('simulation time [s]');
 %                     legend('true','estimation','target')
-                    legend('trajectory','measures')
+                    legend('real','est')
                 end
             end
             linkaxes(ax,'x');
@@ -1795,15 +1800,15 @@ classdef obsopt < handle
                         yhat_plot = obj.setup.J_temp_scale(k)*reshape(obj.init.Yhat_full_story(traj).val(k,dim,:),size(obj.setup.time));
                         if 1
 %                             plot(obj.setup.time,y_plot,'b--');
-                            plot(obj.setup.time,yhat_plot,'r--','Linewidth',1.5);
-                            plot(obj.setup.time,ytrue_plot,'k--','Linewidth',1.5);                            
+                            plot(obj.setup.time,y_plot,'r--','Linewidth',1.5);
+                            plot(obj.setup.time,yhat_plot,'k--','Linewidth',1.5);                            
                         else
                             plot(obj.setup.time,abs(y_plot-yhat_plot));
                             set(gca, 'YScale', 'log')
                         end
                     end
                     
-                    legend('measured','estimated')
+                    legend('real','est')
                     ylabel(strcat('y_{filter}^',num2str(k)));
                     xlabel('simulation time [s]');
                 end            
