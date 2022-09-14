@@ -12,17 +12,17 @@ function [params,obs] = simulation_general
 % close all
     
 % init observer buffer (see https://doi.org/10.48550/arXiv.2204.09359)
-Nw = 40;
-Nts = 5;
+Nw = 400;
+Nts = 1;
 
 % set sampling time
 Ts = 1e-2;
 
 % set initial and final time instant
 t0 = 0;
-tend = 4;
+% tend = 4;
 % uncomment to test the MHE with a single optimisation step
-% tend = 1*(Nw*Nts-1)*Ts;
+tend = 1*(Nw*Nts-1)*Ts;
 
 %%%% params init function %%%%
 % function: this function shall be in the following form:
@@ -142,9 +142,9 @@ params = model_init('Ts',Ts,'T0',[t0, tend],'noise',0,'noise_spec',noise_mat, 'p
 % create observer class instance. For more information on the setup
 % options check directly the class constructor in obsopt.m
 obs = obsopt('DataType', 'simulated', 'optimise', 0, 'GlobalSearch', 0, 'MultiStart', 0, 'J_normalise', 1, 'MaxOptTime', Inf, 'MaxOptTime_single', Inf, ... 
-      'Nw', Nw, 'Nts', Nts, 'ode', ode, 'PE_maxiter', 0 , 'model_reference', model_reference, 'WaitAllBuffer', 1, 'WeightTerms', [1;1] ,...    
-      'measure_reference', measure_reference, 'params',params, 'filters', filterScale,'filterTF', filter, 'Jdot_thresh',0.9,'MaxIter',500,...
-      'Jterm_store', 0, 'AlwaysOpt', 1 , 'print', 0 , 'SafetyDensity', 3, 'AdaptiveHist', [1e-2, 3e-2, 1e0], ...
+      'Nw', Nw, 'Nts', Nts, 'ode', ode, 'PE_maxiter', 0 , 'model_reference', model_reference, 'WaitAllBuffer', 1, 'WeightTerms', [0; 1] ,...    
+      'measure_reference', measure_reference, 'params',params, 'filters', filterScale,'filterTF', filter, 'Jdot_thresh',0.9,'MaxIter',10000,...
+      'Jterm_store', 0, 'AlwaysOpt', 1 , 'print', 1 , 'SafetyDensity', 3, 'AdaptiveHist', [1e-2, 3e-2, 1e0], ...
       'AdaptiveSampling',0, 'FlushBuffer', 1, 'opt', @fminsearch, 'spring', 0, 'terminal', 0, 'bounds', 0, 'LBcon',-Inf*ones(1,4), 'UBcon', Inf*ones(1,4));
 
 %% %%%% SIMULATION %%%%
@@ -183,12 +183,19 @@ for i = 1:obs.setup.Niter
             % define the time span of the integration
             startpos = obs.init.ActualTimeIndex-1;
             stoppos = obs.init.ActualTimeIndex;
-            tspan = obs.setup.time(startpos:stoppos);            
+            tspan = obs.setup.time(startpos:stoppos);   
+            
+            % true system - correct initial condition and no noise
+            % considered
+            X = obs.setup.ode(@(t,x)obs.setup.model_reference(t, x, obs.setup.params, obs), tspan, obs.init.X(traj).val(:,startpos),params.odeset); 
+            obs.init.X(traj).val(:,startpos:stoppos) = [X.y(:,1),X.y(:,end)];
 
             % real system - initial condition perturbed 
             X = obs.setup.ode(@(t,x)obs.setup.model(t, x, obs.init.params, obs), tspan, obs.init.X_est(traj).val(:,startpos),params.odeset);
             obs.init.X_est(traj).val(:,startpos:stoppos) = [X.y(:,1),X.y(:,end)]; 
-            obs.init.X(traj) = obs.init.X_est(traj);
+            
+            %%% TESTING OFFLINE TRAINING %%%
+            obs.init.X(traj) = obs.init.X_est(traj);            
         end
         
         %%%% REAL MEASUREMENT %%%%

@@ -9,7 +9,7 @@
 % params: structure with all the necessary parameters
 function params = params_control_test
 
-    rho = 0.1;
+    rho = 0.5;
     omega = 2*pi*10;
     
     % control parameters
@@ -37,8 +37,8 @@ function params = params_control_test
     params.b0est = 1*0;                       %1*0;
     params.b1est = 1*1;                       %1*1;
     params.c0est = 1*omega^2;                 %1*omega^2;
-    params.c1est = 0;                         %1*0;
-    params.d0est = 0;                         %1*0;
+    params.c1est = 1*0;                       %1*0;
+    params.d0est = 0*0;                       %1*0;
     
     % reference model
     params.alpha = -50;
@@ -61,13 +61,13 @@ function params = params_control_test
     
     % initial condition
     % [xpc, xc, xr, xpi, @P, @C]
-    params.X(1).val(:,1) = [0.1;0.1;0.1;0.1;0;0;0;params.a0est;params.a1est;params.b0est;params.b1est;params.a0;params.a1;params.b0;params.b1;params.d0];
+    params.X(1).val(:,1) = [0;0;0;0;0;0;0;params.a0est;params.a1est;params.b0est;params.b1est;params.a0;params.a1;params.b0;params.b1;params.d0];
     
     % position in the state vector of the estimated parameters
     params.estimated_params = [8:16];
     
     % which vars am I optimising
-    params.opt_vars = [8:16];
+    params.opt_vars = [12:16];
     
     % set the not optimised vars
     tmp = 1:length(params.X(1).val(:,1));
@@ -81,11 +81,14 @@ function params = params_control_test
     % too many, consider to use only the true state components)
     params.plot_vars = 1:7;
     params.plot_params = [8:16];  
-    params.multi_traj_var = [1:4];
+    params.multi_traj_var = [1:2];
     
     % same initial condition for all the trajectories (under development)
     for traj=2:params.Ntraj
         params.X(traj).val(:,1) = params.X(traj-1).val(:,1);
         params.X(traj).val(params.multi_traj_var,1) = params.X(traj-1).val(params.multi_traj_var,1) + 5e-3*randn(length(params.multi_traj_var),1);
+        
+        % only for models with both xp and xphat
+        params.X(traj).val(3:4,1) = params.X(traj).val(params.multi_traj_var,1);
     end
 end

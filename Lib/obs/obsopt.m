@@ -513,12 +513,6 @@ classdef obsopt < handle
                 obj.setup.J_int_reset = 0;
             end
             
-            if ~any(strcmp(varargin,'params'))
-                % set initial condition perturbed
-                obj.setup.X_est(:,1) = obj.setup.X(:,1) + 1e1*obj.setup.noise*(obj.setup.noise_mu + obj.setup.noise_std.*randn(obj.setup.dim_state,1));
-                
-                obj.setup.Ntraj = 1;
-            end
             % complete the params update in .setup
             obj.setup.params = params;
             
@@ -799,7 +793,7 @@ classdef obsopt < handle
                     % update params
                     obj.init.params = obj.setup.params.params_update(obj.init.params,x);
 
-                    % get desired trajectory
+                    % get desired trajectory                    
                     y_target = varargin{4}(traj).val;
 
                     % init Jterm store
@@ -828,9 +822,6 @@ classdef obsopt < handle
                         X.y = x_start;
                     end
 
-                    %%% TESTING %%%
-                    obj.init.X(traj) = obj.init.X_est(traj);
-                    obj.init.X(traj).val(:,tspan_pos(1):tspan_pos(end)) = X.y;
                     
                     % check for NaN or Inf
                     NaN_Flag = find(isnan(X.y));
@@ -842,10 +833,17 @@ classdef obsopt < handle
 
                     %%% get measure  %%
                     Yhat = zeros(obj.setup.Nfilt+1,obj.setup.dim_out,size(X.y,2));
-                    Yhat(1,:,:) = obj.setup.measure(X.y,obj.init.params,tspan,obj.init.input_story(traj).val(:,tspan_pos(1):1:tspan_pos(end)));                                
+                    Yhat(1,:,:) = obj.setup.measure(X.y,obj.init.params,tspan,obj.init.input_story(traj).val(:,tspan_pos(1):1:tspan_pos(end)));  
+                    
+                    %%% TESTING OFFLINE TRAINING %%%
+                    Yref = zeros(obj.setup.Nfilt+1,obj.setup.dim_out,size(X.y,2));
+                    Yref(1,:,:) = obj.setup.measure_reference(X.y,obj.init.params,tspan,obj.init.input_story(traj).val(:,tspan_pos(1):1:tspan_pos(end)));                                          
 
                     %%% compute filters %%%
-                    if obj.setup.Nfilt > 0                     
+                    if obj.setup.Nfilt > 0      
+                        
+                        %%% TESTING OFFLINE TRAINING %%%
+                        x_filters_ref = x_filters;
 
                         % how long iterate
                         % odeDD
@@ -853,7 +851,7 @@ classdef obsopt < handle
                         % Lsim
                         tspan_filt = 1+(0:tspan_pos(end)-tspan_pos(1));
 
-                        % filter state
+                        % filter state - hat
                         x0_filter.val = cell(obj.setup.Nfilt,obj.setup.dim_out);
                         startpos = 0;
                         for filt=1:obj.setup.Nfilt 
@@ -862,24 +860,40 @@ classdef obsopt < handle
                                startpos = startpos + obj.setup.filterTF(filt).dim;
                            end
                         end
-
-                        try
-                        [Y, ~] = obj.measure_filter(Yhat(:,:,tspan_filt),tspan_filt,x0_filter); 
-                        catch
-                           a=1; 
+                        
+                        % filter state - ref
+                        x0_filter_ref.val = cell(obj.setup.Nfilt,obj.setup.dim_out);
+                        startpos = 0;
+                        for filt=1:obj.setup.Nfilt 
+                           for dim=1:obj.setup.dim_out
+                               x0_filter_ref.val{filt,dim}(:,max(1,tspan_filt(1)-1)) = x_filters_ref(startpos+1:startpos+obj.setup.filterTF(filt).dim);
+                               startpos = startpos + obj.setup.filterTF(filt).dim;
+                           end
                         end
+
+                        
+                        [Y_filt, ~] = obj.measure_filter(Yhat(:,:,tspan_filt),tspan_filt,x0_filter); 
+                        
+                        %%% TESTING OFFLINE TRAINING %%%
+                        [Yref_filt, ~] = obj.measure_filter(Yref(:,:,tspan_filt),tspan_filt,x0_filter_ref);
+                        
                         for filt=1:obj.setup.Nfilt
                             for dim=1:obj.setup.dim_out
-                                % odeDD
-    %                             Yhat(filt+1,dim,tspan_filt(2:end)) = Y{filt,dim}.val;
                                 % Lsim
-                                Yhat(filt+1,dim,tspan_filt) = Y{filt,dim}.val(tspan_filt);
+                                Yhat(filt+1,dim,tspan_filt) = Y_filt{filt,dim}.val(tspan_filt);
+                                Yref(filt+1,dim,tspan_filt) = Yref_filt{filt,dim}.val(tspan_filt);
                             end
                         end
-                    end                                                                              
+                    end           
+                    
                     % cost function
                     J = zeros(obj.setup.J_nterm,size(Yhat,1));
                     target_pos = find(obj.init.Y_space ~= 0);
+                    
+                    %%% TESTING OFFLINE TRAINING %%%
+                    obj.init.Y_full_story(traj).val(:,:,tspan_pos(1):tspan_pos(end)) = Yref;
+                    obj.init.Yhat_full_story(traj).val(:,:,tspan_pos(1):tspan_pos(end)) = Yhat;
+                    y_target = Yref(:,:,target_pos); 
 
                     for filt=1:obj.setup.J_nterm
                         % get the J
@@ -902,7 +916,7 @@ classdef obsopt < handle
                     end
 
                     % store terms
-                    obj.init.Jterm_store(1:obj.setup.J_nterm) = obj.init.Jterm_store(1:obj.setup.J_nterm) + sum(J_scaled,1);
+                    obj.init.Jterm_store(1:obj.setup.J_nterm) = obj.init.Jterm_store(1:obj.setup.J_nterm) + reshape(sum(J_scaled,1),size(obj.init.Jterm_store(1:obj.setup.J_nterm)));
 
                     %%% spring like term %%%
                     if ~isempty(obj.setup.estimated_params) && obj.setup.J_term_spring
@@ -947,7 +961,6 @@ classdef obsopt < handle
                     else
                         J_barr = 0;
                     end
-
 
                     J_final = J_final + Jtot + Jspring + J_barr + J_terminal;
 
@@ -1256,11 +1269,7 @@ classdef obsopt < handle
                         end
                         
                         
-                        obj.init.BackIterIndex = find(obj.setup.time==obj.init.BackTimeIndex);
-                        
-                        %%%% TESTING - RESET STATES %%%%
-%                         obj.init.X_est(obj.init.traj).val(obj.init.params.plot_vars,obj.init.BackIterIndex) = obj.init.X(obj.init.traj).val(obj.init.params.plot_vars,obj.init.BackIterIndex);
-%                         obj.init.X_est(obj.init.traj).val(3:4,obj.init.BackIterIndex) = [0;0];
+                        obj.init.BackIterIndex = find(obj.setup.time==obj.init.BackTimeIndex);                       
 
                         % set of initial conditions
                         for traj=1:obj.setup.Ntraj
@@ -1551,6 +1560,8 @@ classdef obsopt < handle
         % plot results for control design
         function plot_section_control(obj,varargin)
             
+            set(0,'DefaultFigureWindowStyle','docked');
+            
             fig_count = 0;
             
             %%%% plot state estimation %%%
@@ -1762,7 +1773,7 @@ classdef obsopt < handle
                     % plot target values    
                     try
                         data = reshape(obj.init.target_story(traj).val(1,k,obj.init.temp_time),1,length(WindowTime));
-                        plot(WindowTime,data,'bo','MarkerSize',5);
+%                         plot(WindowTime,data,'bo','MarkerSize',5);
                     catch 
                         disp('CHECK T_END OR AYELS CONDITION - LOOKS LIKE NO OPTIMISATION HAS BEEN RUN')
                     end

@@ -35,7 +35,7 @@ function out = model_analysis(obs,option)
         %%% Plant
         out.omega = 2*pi*10;
         out.rho = 0.5;
-        out.test = tf([1 -1],[1 2*out.omega*out.rho out.omega^2]);
+        out.test = tf([out.omega^2],[1 2*out.omega*out.rho out.omega^2]);
                 
         [A,B,C,D] = tf2ss(out.test.num{1},out.test.den{1});
         out.test_ss = ss(A,B,C,D);
@@ -51,7 +51,7 @@ function out = model_analysis(obs,option)
         
         % poly
         out.Gp = simplify(vpa(Cp*pinv((s*eye(size(Ap))-Ap))*Bp+Dp));
-        [out.Np, out.Dp] = numden(out.Gp);
+        [out.Nump, out.Denp] = numden(out.Gp);
         
         % controller
         syms a0 a1 b0 b1 d0
@@ -75,16 +75,28 @@ function out = model_analysis(obs,option)
         out.Cc = Cc;
         out.Dc = Dc;
         out.Gc = simplify(vpa(Cc*pinv((s*eye(size(Ac))-Ac))*Bc+Dc));
-        [out.Nc, out.Dc] = numden(out.Gc);
+        [out.Numc, out.Denc] = numden(out.Gc);
         
         % total model
         out.A = [Ap-Bp*Cp*Dc, Bp*Cc; -Bc*Cp, Ac];
         out.B = [Bp*Dc; Bc];
         out.C = [Cp, [0 0]; -Dc*Cp, Cc];
         out.D = [0; Dc];
-        out.poli = simplify(out.Np*out.Nc + out.Dp*out.Nc);
+        out.poli = simplify(out.Nump*out.Numc + out.Denp*out.Denc);
         out.poli_coeffs = coeffs(out.poli,s);
         
+        % create example
+        Ac_es = double(subs(out.Ac,[a0 a1],[10 20]));
+        Bc_es = double(subs(out.Bc,[b0 b1],[30 60]));
+        Cc_es = Cc;
+        Dc_es = double(subs(out.Dc,d0,50));
+        Gc_es_ss = ss(Ac_es,Bc_es,Cc_es,Dc_es);
+        Gc_es_tf = subs(out.Gc,[a0 a1 b0 b1 d0],[10 20 30 60 50]);
+        [Gc_es_num,Gc_es_den] = numden(Gc_es_tf);
+        Gc_es_num = double(coeffs(Gc_es_num,s));
+        Gc_es_den = double(coeffs(Gc_es_den,s));
+        Gc_es_tf = tf(Gc_es_num,Gc_es_den);
+                        
         % stability
         out.RE = simplify(myRouth(out.poli_coeffs));
         

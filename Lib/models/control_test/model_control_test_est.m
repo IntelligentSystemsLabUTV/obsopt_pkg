@@ -45,7 +45,7 @@ function x_dot = model_control_test_est(t,x,params,obs)
     
     %%% model dynamics %%%           
     % estimated plant dynamics - reference tracking
-    x_dot(1:2,:) = Ap*x(1:2,:) + Bp*(params.u(1,:));
+    x_dot(1:2,:) = Ap_t*x(1:2,:) + Bp_t*(params.u(1,:));
     % true plant dynamics - reference tracking
     x_dot(3:4,:) = Ap_t*x(3:4,:) + Bp_t*(params.u(1,:));
     % controller dynamics - reference tracking
