@@ -23,6 +23,8 @@ first_guess_flag = 1;
 Ts = 1e0;
 
 % set initial and final time instant
+% remember to set the final time and sampling time accordingly to the data
+% that you measured
 t0 = 0;
 tend = 6000;
 % uncomment to test the MHE with a single optimisation step
@@ -247,14 +249,6 @@ for i = 1:obs.setup.Niter
 
 end
 
-%%%% SNR %%%
-% the SNR is computed on the mesurements
-for traj = 1:obs.setup.Ntraj
-    for i=1:obs.setup.dim_out
-        obs.init.SNR(traj).val(i) = 10*log(sum(obs.init.Ytrue_full_story(traj).val(1,i,:).^2)/sum(obs.init.noise_story(traj).val(i,:).^2));
-    end
-end
-
 % overall computation time
 obs.init.total_time = toc(t0);
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -265,7 +259,7 @@ obs.init.total_time = toc(t0);
 
 % the whole process could be long, why not going for a nap? No worries, 
 % this "sounds" like a nice way to wake up. (Uncomment)
-load handel
-sound(y,Fs)
+% load handel
+% sound(y,Fs)
 end
 
