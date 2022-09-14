@@ -21,7 +21,7 @@ function x_dot = model_battery_tushar_reference(t,x,params,obs)
     % save input
     tdiff = obs.setup.time-t;   
     pos = find(abs(tdiff) == min(abs(tdiff)),1,'first'); 
-    pos = min(pos,size(obs.init.Y_full_story(obs.init.traj).val,3));
+    pos = max(1,min(pos,size(obs.init.Y_full_story(obs.init.traj).val,3)));
     obs.init.input_story(obs.init.traj).val(:,pos) = params.u;
 
     %%% model equations %%%

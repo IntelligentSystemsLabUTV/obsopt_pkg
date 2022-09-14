@@ -23,7 +23,7 @@ function u = control(t,drive,params)
     DC = 0.1;
 
     % check if the input is enabled
-    if params.input_enable3
+    if params.input_enable
         
         switch type                
 
