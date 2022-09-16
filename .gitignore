@@ -3,6 +3,8 @@ fig/
 Latex/
 results/
 workspace/
+config/
+x86/
 
 # files
 *.asv
