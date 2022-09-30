@@ -43,10 +43,10 @@ function x_dot = model_battery_tushar(t,x,params,obs)
 %     x_dot(5,:) = spline(params.input_soc, params.input_R1, x(1,:));
 %     x_dot(6,:) = spline(params.input_soc, params.input_C1, x(1,:));
 
-    x_dot(3,:) = 0*x(3,:) + params.alpha_Voc + params.beta_Voc*x(1,:) + params.gamma_Voc*(x(1,:).^2);
-    x_dot(4,:) = 0*x(4,:) + params.alpha_R0 + params.beta_R0*x(1,:) + params.gamma_R0*(x(1,:).^2);
-    x_dot(5,:) = 0*x(5,:) + params.alpha_R1 + params.beta_R1*x(1,:) + params.gamma_R1*(x(1,:).^2);
-    x_dot(6,:) = 0*x(6,:) + params.alpha_C1 + params.beta_C1*x(1,:) + params.gamma_C1*(x(1,:).^2);
+    x_dot(3,:) = 0*x(3,:) + params.alpha_Voc + params.beta_Voc*x(1,:) + params.gamma_Voc*(x(1,:).^2) + params.delta_Voc*(x(1,:).^3) + params.eps_Voc*(x(1,:).^4) + params.xi_Voc*(x(1,:).^5);
+    x_dot(4,:) = 0*x(4,:) + params.alpha_R0 + params.beta_R0*x(1,:) + params.gamma_R0*(x(1,:).^2) + params.delta_R0*(x(1,:).^3) + params.eps_R0*(x(1,:).^4) + params.xi_R0*(x(1,:).^5);
+    x_dot(5,:) = 0*x(5,:) + params.alpha_R1 + params.beta_R1*x(1,:) + params.gamma_R1*(x(1,:).^2) + params.delta_R1*(x(1,:).^3) + params.eps_R1*(x(1,:).^4) + params.xi_R1*(x(1,:).^5);
+    x_dot(6,:) = 0*x(6,:) + params.alpha_C1 + params.beta_C1*x(1,:) + params.gamma_C1*(x(1,:).^2) + params.delta_C1*(x(1,:).^3) + params.eps_C1*(x(1,:).^4) + params.xi_C1*(x(1,:).^5);
     
     
 
