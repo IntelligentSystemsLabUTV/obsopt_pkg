@@ -11,6 +11,7 @@ function params = params_battery_tushar
 
     % Loading input signals and parameter data
     input_data = load('data/ECM_parameters_updated.mat');
+    params.input_data = input_data;
     params.input_time = input_data.Time;
     params.input_current = input_data.Current;
     params.input_OCV = input_data.OCV;
