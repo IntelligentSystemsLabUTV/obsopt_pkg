@@ -37,7 +37,7 @@ function params = params_battery_tushar
     end
     
     % initial SOC
-    x10 = 0.4;
+    x10 = 0.8;
     x20 = 0.01;
 
     % system parameters

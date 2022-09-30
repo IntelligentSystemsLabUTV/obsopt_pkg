@@ -8,34 +8,32 @@ t_pos = 1;
 traj = 1;
 
 % set Npoint for cloud
-Npoint = 50;
+rng default
+Npoint = 100;
 
 % define noise
-perc = 0.01;
+perc = 1;
 sigma = 0*[0.05 0.2 0.2 0.2];
 
 % define param
 Nparam = 4;
-Npoly = 2;
+Npoly = 4;
 CT = 0;
 
 % opt vars
-opt_vars = [7:10,11:14];
+opt_vars = [7:10,11:14,15:18,19:22,23:26,27:30];
 compare_vars = 3:6;
-update_vars = [ 7 11;...
-                8 12;...
-                9 13;...
-                10 14];
-% update_vars = [ 7;...
-%                 8;...
-%                 9;...
-%                 10];
+update_vars = [ 7 11 15 19 23 27;...
+                8 12 16 20 24 28;...
+                9 13 17 21 25 29;...
+                10 14 18 22 26 30];
 
 % optimset
-obs.init.myoptioptions = optimset('MaxIter', 200, 'display','iter', 'MaxFunEvals',Inf,'TolFun',0,'TolX',0); 
+myoptioptions = optimset('MaxIter', 300, 'display','off', 'MaxFunEvals',Inf,'TolFun',0,'TolX',0); 
 
 % generate dataset
-x_out = gen_meas(obs,obs.init.X(traj).val(:,1),Npoint,perc,sigma);
+x_start = obs.init.X(traj).val(:,1);
+x_out = gen_meas(obs,x_start,Npoint,perc,sigma);
 
 % init est
 old_Xest = obs.init.X_est(traj).val(:,1);
@@ -62,19 +60,21 @@ for param = 1:Nparam
     x0_opt = x0(obs.setup.opt_vars);
 
     % solve the optimisation problem
-    tmp = fminsearch(@(x)cost_function(obs,x,x0_nonopt,x_out(obs.setup.compare_vars,:),1), x0_opt, obs.init.myoptioptions); 
+%     tmp = fminsearch(@(x)cost_function(obs,x,x0_nonopt,x_out(obs.setup.compare_vars,:),1), x0_opt, myoptioptions); 
+    tmp = polyfit(x_out(1,:),x_out(obs.setup.compare_vars,:),Npoly-1);
     
-    old_Xest(update_vars(param,:)) = tmp; 
+    old_Xest(update_vars(param,1:(Npoly))) = flip(tmp); 
 end
 
 % restore obs
 load obs_default
 
 % obs.init
-obs.init.cloud = x_out;
+obs.init.cloud_Y = x_out(3:6,:);
+obs.init.cloud_X = x_out(1,:);
 
 % update params - init
-update_vars_row = reshape(update_vars,1,size(update_vars,1)*size(update_vars,2));
+update_vars_row = reshape(update_vars(:,1:(Npoly)),1,size(update_vars(:,1:(Npoly)),1)*size(update_vars(:,1:(Npoly)),2));
 
 % if DT
 if ~CT
@@ -106,12 +106,8 @@ function x_out = gen_meas(obs_default,x,Npoint,perc,sigma)
     % create cloud
     for i=1:Npoint
         
-        % generate SOC
-        if mod(i,2)
-            x_out(1,i) =  x(1)*(1 + 0.5*perc*randn(1));
-        else
-            x_out(1,i) =  x(1)*(1 - 0.5*perc*randn(1));
-        end
+        % generate SOC        
+        x_out(1,i) =  unifrnd(max(0,x(1)-perc),min(1,x(1)+perc));
         
         % compute the real val
         ref(3) = spline(params.input_soc, params.input_OCV, x_out(1,i));
