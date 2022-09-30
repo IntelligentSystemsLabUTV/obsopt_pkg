@@ -1,15 +1,15 @@
 %% function 
-function [params_s, obs_s, time, SimParams, params, SIMstate, SIMinput, SIMmeasure] = InitMultiMHE
+function [params_s, obs_s, time, SimParams, params, SIMstate, SIMinput, SIMmeasure] = InitMultiMHE(tend,Ts)
 
     % MHE fast
     % set opt vars
     system("sed -i 's/params.opt_vars =.*/params.opt_vars = [1:2];/' Lib/models/battery/params_battery_tushar.m");
-    [obs_fast, params_fast, ~] = setup_model_fast;
+    [obs_fast, params_fast, ~] = setup_model_fast(tend,Ts);
 
     % MHE slow
     % set opt vars
     system("sed -i 's/params.opt_vars =.*/params.opt_vars = [1:2 8:10 12:14 16:18 20:22];/' Lib/models/battery/params_battery_tushar.m");
-    [obs_slow, params_slow, ~] = setup_model_slow;
+    [obs_slow, params_slow, ~] = setup_model_slow(tend,Ts);
     
     %%%% first guess %%%%
     first_guess_flag = 1;

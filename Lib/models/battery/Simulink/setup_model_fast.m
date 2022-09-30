@@ -1,12 +1,8 @@
 %% setup data for simulink model
-function [obs, params, SimParams] = setup_model_fast   
+function [obs, params, SimParams] = setup_model_fast(tend,Ts)
 
     % set initial and final time instant
     t0 = 0;
-    tend = 2000;
-    
-    % set sampling time
-    Ts = 1e0;
     
     %%%% params init function %%%%
     params_init = @params_battery_tushar;    
@@ -54,7 +50,7 @@ function [obs, params, SimParams] = setup_model_fast
       
     %%%%%%%%%% SIMULINK STUFF %%%%%%%%%
     % load OCV and R data (for ECM in simulink)
-    input_data = load('data/ECM_parameters_updated.mat');
+    input_data = params.input_data;
     params.input_time = input_data.Time;
     params.input_current = input_data.Current;
     params.input_OCV = reshape(input_data.OCV(2:end),length(input_data.OCV(2:end)),1);

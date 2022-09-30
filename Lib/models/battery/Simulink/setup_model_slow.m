@@ -1,12 +1,8 @@
 %% setup data for simulink model
-function [obs, params, SimParams] = setup_model_slow   
+function [obs, params, SimParams] = setup_model_slow(tend,Ts)
 
     % set initial and final time instant
     t0 = 0;
-    tend = 2000;
-    
-    % set sampling time
-    Ts = 1e0;
     
     %%%% params init function %%%%
     params_init = @params_battery_tushar;    
@@ -19,11 +15,11 @@ function [obs, params, SimParams] = setup_model_slow
     % measure = @measure_general;    
     
     % MHE
-    Nw = 20;
+    Nw = 10;
     Nts = 50;
     
     %%%% filters %%%%
-    system("sed -i 's/fil1 = .*/fil1 = 0;/' Lib/measure/filter_define.m");
+    system("sed -i 's/fil1 = .*/fil1 = 1;/' Lib/measure/filter_define.m");
     [filter, filterScale, ~] = filter_define(Ts,Nts);
     
     %%%% integration method %%%%
@@ -39,12 +35,12 @@ function [obs, params, SimParams] = setup_model_slow
         
     %%%% observer init %%%%    
     terminal_states = [1:2 8:10 12:14 16:18 20:22];
-    terminal_weights = 1*ones(size(terminal_states));
+    terminal_weights = 0.1*ones(size(terminal_states));
 %     terminal_weights(3:end) = 0.1;
     
     obs = obsopt('DataType', 'measured', 'optimise', 1 , 'GlobalSearch', 0, 'MultiStart', 0, 'J_normalise', 1, 'MaxOptTime', Inf, ... 
           'Nw', Nw, 'Nts', Nts, 'ode', ode, 'PE_maxiter', 0, 'WaitAllBuffer', 1, 'params',params, 'filters', filterScale,'filterTF', filter, ...
-          'Jdot_thresh',0.95,'MaxIter',20, 'Jterm_store', 1, 'AlwaysOpt', 1 , 'print', 0 , 'SafetyDensity', 10, 'AdaptiveHist', [5e-3, 1e-2, 5e-1], ...
+          'Jdot_thresh',0.95,'MaxIter',5, 'Jterm_store', 1, 'AlwaysOpt', 1 , 'print', 0 , 'SafetyDensity', 10, 'AdaptiveHist', [5e-3, 1e-2, 5e-1], ...
           'AdaptiveSampling',0, 'FlushBuffer', 1, 'opt', @fminsearch, 'terminal', 1, 'terminal_states', terminal_states, 'terminal_weights', terminal_weights, 'terminal_normalise', 1, ...
           'ConPos', [1], 'LBcon', [0], 'UBcon', [1], 'Bounds', 0);
       
@@ -53,7 +49,7 @@ function [obs, params, SimParams] = setup_model_slow
       
     %%%%%%%%%% SIMULINK STUFF %%%%%%%%%
     % load OCV and R data (for ECM in simulink)
-    input_data = load('data/ECM_parameters_updated.mat');
+    input_data = params.input_data;
     params.input_time = input_data.Time;
     params.input_current = input_data.Current;
     params.input_OCV = reshape(input_data.OCV(2:end),length(input_data.OCV(2:end)),1);

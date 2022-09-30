@@ -9,9 +9,11 @@ function [params_s,obs_s,SimParams,params] = simulation_multiMHE_realdata(model)
 
 fast = 0;
 slow = 1;
+tend = 4000;
+Ts = 1;
 
 %%%% Init Section %%%%
-[params_s, obs_s, time, SimParams, params, SIMstate, SIMinput, SIMmeasure] = InitMultiMHE;
+[params_s, obs_s, time, SimParams, params, SIMstate, SIMinput, SIMmeasure] = InitMultiMHE(tend,Ts);
 obs_fast = obs_s{1};
 obs_slow = obs_s{2};
 params_fast = params_s{1};
@@ -91,7 +93,7 @@ for i = 1:Niter
         %%%% FILTER MEASUREMENT %%%%                 
         % filter on the measurements    
         % reference filter (filterScale)
-        if 1
+        if 0
             try
                 u = [y(:,i);reshape(obs_fast.init.Y_full_story(traj).val(1,:,i),1,obs_fast.setup.dim_out)];
             catch
