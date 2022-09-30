@@ -629,6 +629,8 @@ classdef obsopt < handle
             % J_components is used to keep track of the different cost
             % function terms amplitude. Not implemented in V1.1
             obj.init.J_components = ones(obj.setup.dim_out,obj.setup.J_nterm);
+            obj.init.just_optimised = 0;
+            obj.init.FirstOpt = 0;
             
             % time instants in which the optimisation is run
             obj.init.temp_time = [];
@@ -1136,7 +1138,7 @@ classdef obsopt < handle
             % flag = all good, no sampling
             obj.init.PE_flag = obj.init.PE(traj).val(obj.init.ActualTimeIndex) <= obj.setup.dPE;
             %%%% observer %%%%
-            if  ( ~( ( (distance < obj.setup.Nts) || obj.init.hyst_flag || obj.init.PE_flag ) && (obj.init.distance_safe_flag) ) ) && (obj.setup.optimise)
+            if  ( ~( ( (distance < obj.setup.Nts) || obj.init.hyst_flag || obj.init.PE_flag ) && (obj.init.distance_safe_flag) ) )
 
                 if obj.setup.print
                     % Display iteration slengthtep
@@ -1178,7 +1180,7 @@ classdef obsopt < handle
                     flag = obj.setup.w;
                 end
                 % real
-                if cols_nonzeros >= flag
+                if cols_nonzeros >= flag                                        
 
                     if obj.setup.forward
 
@@ -1228,11 +1230,7 @@ classdef obsopt < handle
                         end
                         
                         
-                        obj.init.BackIterIndex = find(obj.setup.time==obj.init.BackTimeIndex);
-                        
-                        %%%% TESTING - RESET STATES %%%%
-%                         obj.init.X_est(obj.init.traj).val(obj.init.params.plot_vars,obj.init.BackIterIndex) = obj.init.X(obj.init.traj).val(obj.init.params.plot_vars,obj.init.BackIterIndex);
-%                         obj.init.X_est(obj.init.traj).val(3:4,obj.init.BackIterIndex) = [0;0];
+                        obj.init.BackIterIndex = find(obj.setup.time==obj.init.BackTimeIndex);                        
 
                         % set of initial conditions
                         for traj=1:obj.setup.Ntraj
@@ -1335,167 +1333,124 @@ classdef obsopt < handle
                             obj.init.ConstrNormalised = 1;
                         end
                         
-                        % save J before the optimisation to confront it later 
-                        [J_before, obj_tmp] = obj.setup.cost_run(obj.init.temp_x0_opt,obj.init.temp_x0_nonopt,obj.init.temp_x0_filters,obj.init.target);                        
-
-                        
-                        % Optimisation (only if distance_safe_flag == 1)
-                        opt_time = tic;                        
-                        
-                        %%%%% OPTIMISATION - NORMAL MODE %%%%%%
-                        if ~obj.setup.GlobalSearch
-                            if strcmp(func2str(obj.setup.fmin),'fmincon')    
-                                [NewXopt, J, obj.init.exitflag,output] = obj.setup.fmin(@(x)obj.setup.cost_run(x,obj.init.temp_x0_nonopt,obj.init.temp_x0_filters,obj.init.target,1),...
-                                                                         obj.init.temp_x0_opt, obj.setup.Acon, obj.setup.Bcon,obj.setup.Acon_eq, obj.setup.Bcon_eq, obj.setup.LBcon,...
-                                                                         obj.setup.UBcon, obj.setup.NONCOLcon, obj.init.myoptioptions);
-                            else
-                                [NewXopt, J, obj.init.exitflag,output] = obj.setup.fmin(@(x)obj.setup.cost_run(x,obj.init.temp_x0_nonopt,obj.init.temp_x0_filters,obj.init.target,1),...
-                                                                         obj.init.temp_x0_opt, obj.init.myoptioptions);
-                            end
+                        if (obj.setup.optimise)
                             
-                            % save numer of iterations
-                            obj.init.NiterFmin(obj.init.ActualTimeIndex) = output.iterations;
-                            obj.init.exitflag_story(obj.init.ActualTimeIndex) = obj.init.exitflag;
-                        else                            
-                            if strcmp(func2str(obj.setup.fmin),'patternsearch')
-                               [NewXopt, J, obj.init.exitflag,output] = obj.setup.fmin(@(x)obj.setup.cost_run(x,obj.init.temp_x0_nonopt,obj.init.temp_x0_filters,obj.init.target,1),...
-                                                                         obj.init.temp_x0_opt, obj.setup.Acon, obj.setup.Bcon,obj.setup.Acon_eq, obj.setup.Bcon_eq, obj.setup.LBcon,...
-                                                                         obj.setup.UBcon, obj.setup.NONCOLcon, obj.init.myoptioptions);
-                               obj.init.NiterFmin(obj.init.ActualTimeIndex) = output.iterations;
-                            else            
-                                % create problem
-                                problem = createOptimProblem(func2str(obj.setup.fmin),'objective',@(x)obj.setup.cost_run(x,obj.init.temp_x0_nonopt,obj.init.temp_x0_filters,obj.init.target,1),...
-                                                                            'x0', obj.init.temp_x0_opt, 'Aineq', obj.setup.Acon, 'bineq', obj.setup.Bcon, 'Aeq', obj.setup.Acon_eq, 'beq', obj.setup.Bcon_eq, ...
-                                                                            'lb', obj.setup.LBcon, 'ub', obj.setup.UBcon, 'nonlcon', obj.setup.NONCOLcon, 'options', obj.init.myoptioptions);
-                                if obj.setup.MultiStart
-                                    ms = MultiStart('FunctionTolerance',obj.init.TolFun, 'XTolerance', obj.init.TolX, 'UseParallel',true);
-                                    gs = GlobalSearch(ms);
+                            % flag for first opt
+                            obj.init.FirstOpt = 1;
+                            
+                            % save J before the optimisation to confront it later 
+                            [J_before, obj_tmp] = obj.setup.cost_run(obj.init.temp_x0_opt,obj.init.temp_x0_nonopt,obj.init.temp_x0_filters,obj.init.target);                        
+
+
+                            % Optimisation (only if distance_safe_flag == 1)
+                            opt_time = tic;                        
+
+                            %%%%% OPTIMISATION - NORMAL MODE %%%%%%
+                            if ~obj.setup.GlobalSearch
+                                if strcmp(func2str(obj.setup.fmin),'fmincon')    
+                                    [NewXopt, J, obj.init.exitflag,output] = obj.setup.fmin(@(x)obj.setup.cost_run(x,obj.init.temp_x0_nonopt,obj.init.temp_x0_filters,obj.init.target,1),...
+                                                                             obj.init.temp_x0_opt, obj.setup.Acon, obj.setup.Bcon,obj.setup.Acon_eq, obj.setup.Bcon_eq, obj.setup.LBcon,...
+                                                                             obj.setup.UBcon, obj.setup.NONCOLcon, obj.init.myoptioptions);
                                 else
-                                    gs = GlobalSearch;
+                                    [NewXopt, J, obj.init.exitflag,output] = obj.setup.fmin(@(x)obj.setup.cost_run(x,obj.init.temp_x0_nonopt,obj.init.temp_x0_filters,obj.init.target,1),...
+                                                                             obj.init.temp_x0_opt, obj.init.myoptioptions);
                                 end
 
-                                [NewXopt, J] = run(gs,problem);
-                            end
-                        end                                               
-                        
-                        % reconstruct NewXopt from opt/nonopt vars
-                        if obj.setup.MaxOptTimeFlag == 0
-                            NewXopt_tmp = [];
-                            for traj = 1:obj.setup.Ntraj
-                                obj.init.traj = traj;
-                                NewXopt_end = zeros(obj.setup.dim_state,1);
-                                NewXopt_end(obj.setup.opt_vars) = NewXopt;
-                                NewXopt_end(obj.setup.nonopt_vars) = obj.init.temp_x0_nonopt(traj).val;                          
-                                NewXopt_tmp(traj).val = NewXopt_end;                           
-                            end
+                                % save numer of iterations
+                                obj.init.NiterFmin(obj.init.ActualTimeIndex) = output.iterations;
+                                obj.init.exitflag_story(obj.init.ActualTimeIndex) = obj.init.exitflag;
+                            else                            
+                                if strcmp(func2str(obj.setup.fmin),'patternsearch')
+                                   [NewXopt, J, obj.init.exitflag,output] = obj.setup.fmin(@(x)obj.setup.cost_run(x,obj.init.temp_x0_nonopt,obj.init.temp_x0_filters,obj.init.target,1),...
+                                                                             obj.init.temp_x0_opt, obj.setup.Acon, obj.setup.Bcon,obj.setup.Acon_eq, obj.setup.Bcon_eq, obj.setup.LBcon,...
+                                                                             obj.setup.UBcon, obj.setup.NONCOLcon, obj.init.myoptioptions);
+                                   obj.init.NiterFmin(obj.init.ActualTimeIndex) = output.iterations;
+                                else            
+                                    % create problem
+                                    problem = createOptimProblem(func2str(obj.setup.fmin),'objective',@(x)obj.setup.cost_run(x,obj.init.temp_x0_nonopt,obj.init.temp_x0_filters,obj.init.target,1),...
+                                                                                'x0', obj.init.temp_x0_opt, 'Aineq', obj.setup.Acon, 'bineq', obj.setup.Bcon, 'Aeq', obj.setup.Acon_eq, 'beq', obj.setup.Bcon_eq, ...
+                                                                                'lb', obj.setup.LBcon, 'ub', obj.setup.UBcon, 'nonlcon', obj.setup.NONCOLcon, 'options', obj.init.myoptioptions);
+                                    if obj.setup.MultiStart
+                                        ms = MultiStart('FunctionTolerance',obj.init.TolFun, 'XTolerance', obj.init.TolX, 'UseParallel',true);
+                                        gs = GlobalSearch(ms);
+                                    else
+                                        gs = GlobalSearch;
+                                    end
 
-                            %%% TEST WITH X_FILTER AS OPT VAR
-                            if obj.setup.opt_filters
-                                NewXfilter(traj).val = NewXopt(obj.setup.opt_vars(end)+1:end);
-                            end
-                        else
-                            NewXopt_tmp.val(obj.setup.opt_vars,1) = obj.init.temp_x0.val(obj.setup.opt_vars);
-                            NewXopt_tmp.val(obj.setup.nonopt_vars,1) = obj.init.temp_x0.val(obj.setup.nonopt_vars);
-                        end
-                        
-                        % set new state
-                        NewXopt = NewXopt_tmp;                                                
+                                    [NewXopt, J] = run(gs,problem);
+                                end
+                            end                                               
 
-                        % opt counter
-                        if traj == 1
-                            obj.init.opt_counter = obj.init.opt_counter + 1;
-                        end
+                            % reconstruct NewXopt from opt/nonopt vars
+                            if obj.setup.MaxOptTimeFlag == 0
+                                NewXopt_tmp = [];
+                                for traj = 1:obj.setup.Ntraj
+                                    obj.init.traj = traj;
+                                    NewXopt_end = zeros(obj.setup.dim_state,1);
+                                    NewXopt_end(obj.setup.opt_vars) = NewXopt;
+                                    NewXopt_end(obj.setup.nonopt_vars) = obj.init.temp_x0_nonopt(traj).val;                          
+                                    NewXopt_tmp(traj).val = NewXopt_end;                           
+                                end
 
-                        % check J_dot condition
-                        J_diff = (J/J_before);
-
-                        if (obj.setup.AlwaysOpt) || ( (J_diff <= obj.setup.Jdot_thresh) || (distance > obj.init.safety_interval) )                                                        
-
-                            % on each trajectory
-                            for traj=1:obj.setup.Ntraj
-                                
-                                % set traj
-                                obj.init.traj = traj;
-                                
-                                % update state
-                                obj.init.X_est(traj).val(:,obj.init.BackIterIndex) = NewXopt(traj).val;
-                                
-                                % update filters
+                                %%% TEST WITH X_FILTER AS OPT VAR
                                 if obj.setup.opt_filters
-                                    filterstartpos = max(1,obj.init.BackIterIndex);
-                                    shift = 0;
-                                    for nfilt=1:obj.setup.Nfilt
-                                        for dim=1:obj.setup.dim_out
-                                            obj.init.X_filter_est(traj).val{nfilt,dim}(:,filterstartpos) = NewXfilter(traj).val(shift+1:shift+obj.setup.filterTF(nfilt).dim);
-                                            shift = shift + obj.setup.filterTF(nfilt).dim;
+                                    NewXfilter(traj).val = NewXopt(obj.setup.opt_vars(end)+1:end);
+                                end
+                            else
+                                NewXopt_tmp.val(obj.setup.opt_vars,1) = obj.init.temp_x0.val(obj.setup.opt_vars);
+                                NewXopt_tmp.val(obj.setup.nonopt_vars,1) = obj.init.temp_x0.val(obj.setup.nonopt_vars);
+                            end
+
+                            % set new state
+                            NewXopt = NewXopt_tmp;                                                
+
+                            % opt counter
+                            if traj == 1
+                                obj.init.opt_counter = obj.init.opt_counter + 1;
+                            end
+
+                            % check J_dot condition
+                            J_diff = (J/J_before);
+
+                            if (obj.setup.AlwaysOpt) || ( (J_diff <= obj.setup.Jdot_thresh) || (distance > obj.init.safety_interval) )                                                        
+
+                                % on each trajectory
+                                for traj=1:obj.setup.Ntraj
+
+                                    % set traj
+                                    obj.init.traj = traj;
+
+                                    % update state
+                                    obj.init.X_est(traj).val(:,obj.init.BackIterIndex) = NewXopt(traj).val;
+
+                                    % update filters
+                                    if obj.setup.opt_filters
+                                        filterstartpos = max(1,obj.init.BackIterIndex);
+                                        shift = 0;
+                                        for nfilt=1:obj.setup.Nfilt
+                                            for dim=1:obj.setup.dim_out
+                                                obj.init.X_filter_est(traj).val{nfilt,dim}(:,filterstartpos) = NewXfilter(traj).val(shift+1:shift+obj.setup.filterTF(nfilt).dim);
+                                                shift = shift + obj.setup.filterTF(nfilt).dim;
+                                            end
                                         end
                                     end
-                                end
-                                
-                                % store measure times
-                                obj.init.opt_chosen_time = [obj.init.opt_chosen_time obj.init.ActualTimeIndex];
-                                obj.init.just_optimised = 1;
 
-                                % counters
-                                obj.init.jump_flag = 0;
-                                obj.init.select_counter = obj.init.select_counter + 1;
+                                    % store measure times
+                                    obj.init.opt_chosen_time = [obj.init.opt_chosen_time obj.init.ActualTimeIndex];
+                                    obj.init.just_optimised = 1;
 
-                                x_propagate = NewXopt(traj).val;
-                                
-                                % update params
-                                obj.init.params = obj.setup.params.params_update(obj.init.params,x_propagate);
+                                    % counters
+                                    obj.init.jump_flag = 0;
+                                    obj.init.select_counter = obj.init.select_counter + 1;
 
-                                %%%%%%%%%%%%%%%%% FIRST MEASURE UPDATE %%%%%%%%
-                                % manage measurements
-                                back_time = obj.init.BackIterIndex;
+                                    x_propagate = NewXopt(traj).val;
 
-                                %%%% ESTIMATED measurements
-                                % measures       
-                                % NB: the output storage has to be done in
-                                % back_time+1 as the propagation has been
-                                % performed 
-                                Yhat = obj.setup.measure(x_propagate,obj.init.params,obj.setup.time(back_time));
-                                % get filters - yhat
-                                obj.init.Yhat_full_story(traj).val(1,:,back_time) = Yhat;  
-                                tspan_pos = [max(1,back_time-1), back_time];
-                                [dyhat, x_filter] = obj.measure_filter(obj.init.Yhat_full_story(traj).val,tspan_pos,obj.init.X_filter_est(obj.init.traj));                                
-                                yhat(traj).val = Yhat;
-                                for filt=1:obj.setup.Nfilt
-                                    for dim=1:obj.setup.dim_out
-                                        y_tmp(dim,1) = dyhat{filt,dim}.val(end);
-                                        obj.init.X_filter_est(traj).val{filt,dim}(:,unique(tspan_pos)) = x_filter{filt,dim}.val;
-                                    end
-                                    yhat(traj).val = [yhat(traj).val, y_tmp];
-                                end
-                                   
-                                
-                                for term=1:obj.setup.J_nterm
-                                    obj.init.Yhat_full_story(traj).val(term,:,back_time) = yhat(traj).val(:,term);
-                                end
-                                %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-
-                                %%%%%%%%%%% PROPAGATION %%%%%%%%%%%%%%%%%%%%%%%
-                                n_iter_propagate = obj.init.ActualTimeIndex-obj.init.BackIterIndex;
-
-                                for j =1:n_iter_propagate    
-                                    
                                     % update params
-%                                     obj.init.params = obj.setup.params.params_update(obj.init.params,x_propagate);
-                                    
-                                    % back time
-                                    back_time = obj.init.BackIterIndex+j;
-                                    tspan = obj.setup.time(back_time-1:back_time);
-                                    t = tspan(2);
-                                    
-                                    % how do you handle the input?
-                                    obj.init.params.ActualTimeIndex = back_time; % here you have the -1 because BackIterIndex is differently set up than in measure_function                                                                         
+                                    obj.init.params = obj.setup.params.params_update(obj.init.params,x_propagate);
 
-                                    % integrate
-                                    obj.init.t_ode_start = tic;                     
-                                    X = obj.setup.ode(@(t,x)obj.setup.model(t, x, obj.init.params, obj), tspan, x_propagate,obj.setup.odeset);                                    
-                                    x_propagate = X.y(:,end);                      
-                                    obj.init.X_est(traj).val(:,back_time) = x_propagate;
-                                    obj.init.t_ode(end+1) = toc(obj.init.t_ode_start);
+                                    %%%%%%%%%%%%%%%%% FIRST MEASURE UPDATE %%%%%%%%
+                                    % manage measurements
+                                    back_time = obj.init.BackIterIndex;
 
                                     %%%% ESTIMATED measurements
                                     % measures       
@@ -1504,7 +1459,7 @@ classdef obsopt < handle
                                     % performed 
                                     Yhat = obj.setup.measure(x_propagate,obj.init.params,obj.setup.time(back_time));
                                     % get filters - yhat
-                                    obj.init.Yhat_full_story(traj).val(1,:,back_time) = Yhat;            
+                                    obj.init.Yhat_full_story(traj).val(1,:,back_time) = Yhat;  
                                     tspan_pos = [max(1,back_time-1), back_time];
                                     [dyhat, x_filter] = obj.measure_filter(obj.init.Yhat_full_story(traj).val,tspan_pos,obj.init.X_filter_est(obj.init.traj));                                
                                     yhat(traj).val = Yhat;
@@ -1513,41 +1468,90 @@ classdef obsopt < handle
                                             y_tmp(dim,1) = dyhat{filt,dim}.val(end);
                                             obj.init.X_filter_est(traj).val{filt,dim}(:,unique(tspan_pos)) = x_filter{filt,dim}.val;
                                         end
-                                        yhat(traj).val = [yhat(traj).val, y_tmp]; 
-                                    end                                    
-                                    for term=1:obj.setup.J_nterm
-                                        obj.init.Yhat_full_story(traj).val(term,:,back_time) = yhat(traj).val(:,term);                                        
+                                        yhat(traj).val = [yhat(traj).val, y_tmp];
                                     end
+
+
+                                    for term=1:obj.setup.J_nterm
+                                        obj.init.Yhat_full_story(traj).val(term,:,back_time) = yhat(traj).val(:,term);
+                                    end
+                                    %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+                                    %%%%%%%%%%% PROPAGATION %%%%%%%%%%%%%%%%%%%%%%%
+                                    n_iter_propagate = obj.init.ActualTimeIndex-obj.init.BackIterIndex;
+
+                                    for j =1:n_iter_propagate    
+
+                                        % update params
+    %                                     obj.init.params = obj.setup.params.params_update(obj.init.params,x_propagate);
+
+                                        % back time
+                                        back_time = obj.init.BackIterIndex+j;
+                                        tspan = obj.setup.time(back_time-1:back_time);
+                                        t = tspan(2);
+
+                                        % how do you handle the input?
+                                        obj.init.params.ActualTimeIndex = back_time; % here you have the -1 because BackIterIndex is differently set up than in measure_function                                                                         
+
+                                        % integrate
+                                        obj.init.t_ode_start = tic;                     
+                                        X = obj.setup.ode(@(t,x)obj.setup.model(t, x, obj.init.params, obj), tspan, x_propagate,obj.setup.odeset);                                    
+                                        x_propagate = X.y(:,end);                      
+                                        obj.init.X_est(traj).val(:,back_time) = x_propagate;
+                                        obj.init.t_ode(end+1) = toc(obj.init.t_ode_start);
+
+                                        %%%% ESTIMATED measurements
+                                        % measures       
+                                        % NB: the output storage has to be done in
+                                        % back_time+1 as the propagation has been
+                                        % performed 
+                                        Yhat = obj.setup.measure(x_propagate,obj.init.params,obj.setup.time(back_time));
+                                        % get filters - yhat
+                                        obj.init.Yhat_full_story(traj).val(1,:,back_time) = Yhat;            
+                                        tspan_pos = [max(1,back_time-1), back_time];
+                                        [dyhat, x_filter] = obj.measure_filter(obj.init.Yhat_full_story(traj).val,tspan_pos,obj.init.X_filter_est(obj.init.traj));                                
+                                        yhat(traj).val = Yhat;
+                                        for filt=1:obj.setup.Nfilt
+                                            for dim=1:obj.setup.dim_out
+                                                y_tmp(dim,1) = dyhat{filt,dim}.val(end);
+                                                obj.init.X_filter_est(traj).val{filt,dim}(:,unique(tspan_pos)) = x_filter{filt,dim}.val;
+                                            end
+                                            yhat(traj).val = [yhat(traj).val, y_tmp]; 
+                                        end                                    
+                                        for term=1:obj.setup.J_nterm
+                                            obj.init.Yhat_full_story(traj).val(term,:,back_time) = yhat(traj).val(:,term);                                        
+                                        end
+                                    end
+                                    %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%    
+                                    obj.init.Jstory(1,end+1) = J;
+                                    if obj.setup.Jterm_store
+                                        obj.init.Jterm_story(:,end+1) = obj_tmp.init.Jterm_store;
+                                    end                              
                                 end
-                                %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%    
-                                obj.init.Jstory(1,end+1) = J;
-                                if obj.setup.Jterm_store
-                                    obj.init.Jterm_story(:,end+1) = obj_tmp.init.Jterm_store;
-                                end                              
+                            else
+                                % on each trajectory
+                                for traj=1:obj.setup.Ntraj
+                                    obj.init.traj = traj;
+                                    % keep the initial guess
+                                    obj.init.X_est(traj).val(obj.setup.opt_vars,obj.init.BackIterIndex) = obj.init.temp_x0_opt;
+                                end
+
+                                % restore params
+                                obj.init.params = obj.setup.params.params_update(obj.init.params,obj.init.temp_x0(traj).val);                                                        
                             end
-                        else
-                            % on each trajectory
-                            for traj=1:obj.setup.Ntraj
-                                obj.init.traj = traj;
-                                % keep the initial guess
-                                obj.init.X_est(traj).val(obj.setup.opt_vars,obj.init.BackIterIndex) = obj.init.temp_x0_opt;
-                            end
-                            
-                            % restore params
-                            obj.init.params = obj.setup.params.params_update(obj.init.params,obj.init.temp_x0(traj).val);
+
+                            % stop time counter
+                            obj.init.opt_time(end+1) = toc(opt_time);
+
                         end
-
-                        % stop time counter
-                        obj.init.opt_time(end+1) = toc(opt_time);
-
                     end
 
                 end
 
                 if obj.setup.print
                     clc;
-                end
-
+                end                
+            else
             end
 
             % on each trajectory
@@ -1625,47 +1629,19 @@ classdef obsopt < handle
             end
             
             %%%% plot state estimation error %%%
-            fig_count = fig_count+1;
-            figure(fig_count)
-            sgtitle('Estimation error - components')
-            
-            for i=1:length(obj.setup.plot_vars)
-                subplot(length(obj.setup.plot_vars),1,i);
-                hold on
-                grid on
-                box on
-                
-                % plot
-                est_error = obj.init.X(1).val(obj.setup.plot_vars(i),:) - obj.init.X_est(1).val(obj.setup.plot_vars(i),:);
-                
-                log_flag = 1;
-                if ~log_flag
-                    plot(obj.setup.time,est_error,'k','LineWidth',2);
-                else
-                    % log 
-%                     set(gca, 'XScale', 'log')
-                    set(gca, 'YScale', 'log')
-                    plot(obj.setup.time,abs(est_error),'k','LineWidth',2);
-                end
-                
-                xlabel('time [s]')
-                ylabel(['\delta x_',num2str(obj.setup.plot_vars(i))])
-            end
-            
-            %%%% plot parameters estimation error %%%
-            if ~isempty(obj.setup.plot_params)
+            if strcmp(obj.setup.DataType,'simulated')
                 fig_count = fig_count+1;
                 figure(fig_count)
-                sgtitle('Estimation error - parameters')
+                sgtitle('Estimation error - components')
 
-                for i=1:length(obj.setup.plot_params)
-                    subplot(length(obj.setup.plot_params),1,i);
+                for i=1:length(obj.setup.plot_vars)
+                    subplot(length(obj.setup.plot_vars),1,i);
                     hold on
                     grid on
                     box on
 
                     % plot
-                    est_error = obj.init.X(1).val(obj.setup.plot_params(i),:) - obj.init.X_est(1).val(obj.setup.plot_params(i),:);
+                    est_error = obj.init.X(1).val(obj.setup.plot_vars(i),:) - obj.init.X_est(1).val(obj.setup.plot_vars(i),:);
 
                     log_flag = 1;
                     if ~log_flag
@@ -1678,61 +1654,97 @@ classdef obsopt < handle
                     end
 
                     xlabel('time [s]')
-                    ylabel(['\delta x_',num2str(obj.setup.plot_params(i))])
+                    ylabel(['\delta x_',num2str(obj.setup.plot_vars(i))])
+                end
+            end
+            
+            %%%% plot parameters estimation error %%%
+            if strcmp(obj.setup.DataType,'simulated')
+                if ~isempty(obj.setup.plot_params)
+                    fig_count = fig_count+1;
+                    figure(fig_count)
+                    sgtitle('Estimation error - parameters')
+
+                    for i=1:length(obj.setup.plot_params)
+                        subplot(length(obj.setup.plot_params),1,i);
+                        hold on
+                        grid on
+                        box on
+
+                        % plot
+                        est_error = obj.init.X(1).val(obj.setup.plot_params(i),:) - obj.init.X_est(1).val(obj.setup.plot_params(i),:);
+
+                        log_flag = 1;
+                        if ~log_flag
+                            plot(obj.setup.time,est_error,'k','LineWidth',2);
+                        else
+                            % log 
+        %                     set(gca, 'XScale', 'log')
+                            set(gca, 'YScale', 'log')
+                            plot(obj.setup.time,abs(est_error),'k','LineWidth',2);
+                        end
+
+                        xlabel('time [s]')
+                        ylabel(['\delta x_',num2str(obj.setup.plot_params(i))])
+                    end
                 end
             end
             
             %%%% plot state estimation error - norm%%%
-            fig_count = fig_count+1;
-            figure(fig_count)
-            sgtitle('Estimation error state - norm')
-            hold on
-            grid on
-            box on
+            if strcmp(obj.setup.DataType,'simulated')
+                fig_count = fig_count+1;
+                figure(fig_count)
+                sgtitle('Estimation error state - norm')
+                hold on
+                grid on
+                box on
 
-            % plot
-            for iter=1:obj.setup.Niter
-                est_error_norm(iter) = norm(obj.init.X(1).val(obj.setup.plot_vars,iter) - obj.init.X_est(1).val(obj.setup.plot_vars,iter));
+                % plot
+                for iter=1:obj.setup.Niter
+                    est_error_norm(iter) = norm(obj.init.X(1).val(obj.setup.plot_vars,iter) - obj.init.X_est(1).val(obj.setup.plot_vars,iter));
+                end
+
+                log_flag = 1;
+                if ~log_flag
+                    plot(obj.setup.time,est_error_norm,'k','LineWidth',2);
+                else
+                    % log 
+    %                     set(gca, 'XScale', 'log')
+                    set(gca, 'YScale', 'log')
+                    plot(obj.setup.time,abs(est_error_norm),'k--','LineWidth',2);
+                end
+
+                xlabel('time [s]')
+                ylabel('\delta x_norm') 
             end
-
-            log_flag = 1;
-            if ~log_flag
-                plot(obj.setup.time,est_error_norm,'k','LineWidth',2);
-            else
-                % log 
-%                     set(gca, 'XScale', 'log')
-                set(gca, 'YScale', 'log')
-                plot(obj.setup.time,abs(est_error_norm),'k--','LineWidth',2);
-            end
-
-            xlabel('time [s]')
-            ylabel('\delta x_norm') 
             
             %%%% plot params estimation error - norm%%%
-            fig_count = fig_count+1;
-            figure(fig_count)
-            sgtitle('Estimation error params - norm')
-            hold on
-            grid on
-            box on
+            if strcmp(obj.setup.DataType,'simulated')
+                fig_count = fig_count+1;
+                figure(fig_count)
+                sgtitle('Estimation error params - norm')
+                hold on
+                grid on
+                box on
 
-            % plot
-            for iter=1:obj.setup.Niter
-                est_error_norm(iter) = norm(obj.init.X(1).val(obj.setup.plot_params,iter) - obj.init.X_est(1).val(obj.setup.plot_params,iter));
+                % plot
+                for iter=1:obj.setup.Niter
+                    est_error_norm(iter) = norm(obj.init.X(1).val(obj.setup.plot_params,iter) - obj.init.X_est(1).val(obj.setup.plot_params,iter));
+                end
+
+                log_flag = 1;
+                if ~log_flag
+                    plot(obj.setup.time,est_error_norm,'k','LineWidth',2);
+                else
+                    % log 
+    %                     set(gca, 'XScale', 'log')
+                    set(gca, 'YScale', 'log')
+                    plot(obj.setup.time,abs(est_error_norm),'k--','LineWidth',2);
+                end
+
+                xlabel('time [s]')
+                ylabel('\delta x_norm') 
             end
-
-            log_flag = 1;
-            if ~log_flag
-                plot(obj.setup.time,est_error_norm,'k','LineWidth',2);
-            else
-                % log 
-%                     set(gca, 'XScale', 'log')
-                set(gca, 'YScale', 'log')
-                plot(obj.setup.time,abs(est_error_norm),'k--','LineWidth',2);
-            end
-
-            xlabel('time [s]')
-            ylabel('\delta x_norm') 
             
             
             %%%% plot windowed data %%%%
@@ -1765,12 +1777,10 @@ classdef obsopt < handle
                     yhat = reshape(obj.init.Yhat_full_story(traj).val(1,k,:),size(obj.setup.time));
                     plot(obj.setup.time,yhat,'b--','LineWidth',1.5)
                     
-                    y_true = reshape(obj.init.Ytrue_full_story(traj).val(1,k,:),size(obj.setup.time));
-                    plot(obj.setup.time,y_true,'k--','LineWidth',1.5)
-                    
-                    % plot down sampling
-%                     data = reshape(obj.init.Yhat_full_story(traj).val(1,k,obj.init.temp_time),1,length(WindowTime));
-%                     plot(WindowTime,data,'s','MarkerSize',5);
+                    if strcmp(obj.setup.DataType,'simulated')
+                        y_true = reshape(obj.init.Ytrue_full_story(traj).val(1,k,:),size(obj.setup.time));
+                        plot(obj.setup.time,y_true,'k--','LineWidth',1.5)
+                    end                    
 
                     % plot target values    
                     try
@@ -1782,8 +1792,11 @@ classdef obsopt < handle
 
                     ylabel(strcat('y_',num2str(k)));
                     xlabel('simulation time [s]');
-%                     legend('true','estimation','target')
-                    legend('trajectory','measures')
+                    if strcmp(obj.setup.DataType,'simulated')
+                        legend('meas','estimation','target','sampled')
+                    else
+                        legend('meas','est','sampled')
+                    end
                 end
             end
             linkaxes(ax,'x');
@@ -1809,10 +1822,14 @@ classdef obsopt < handle
                 for traj=1:obj.setup.Ntraj
                     for dim=1:obj.setup.dim_out
                         y_plot = obj.setup.J_temp_scale(k)*reshape(obj.init.Y_full_story(traj).val(k,dim,:),size(obj.setup.time));
-                        ytrue_plot = obj.setup.J_temp_scale(k)*reshape(obj.init.Ytrue_full_story(traj).val(k,dim,:),size(obj.setup.time));
+                        if strcmp(obj.setup.DataType,'simulated')
+                            ytrue_plot = obj.setup.J_temp_scale(k)*reshape(obj.init.Ytrue_full_story(traj).val(k,dim,:),size(obj.setup.time));
+                        end
                         yhat_plot = obj.setup.J_temp_scale(k)*reshape(obj.init.Yhat_full_story(traj).val(k,dim,:),size(obj.setup.time));
                         if 1
-%                             plot(obj.setup.time,y_plot,'b--');
+                            if strcmp(obj.setup.DataType,'simulated')
+                                plot(obj.setup.time,y_plot,'b--');
+                            end
                             plot(obj.setup.time,yhat_plot,'r--','Linewidth',1.5);
                             plot(obj.setup.time,y_plot,'k--','Linewidth',1.5);                            
                         else
@@ -1821,7 +1838,12 @@ classdef obsopt < handle
                         end
                     end
                     
-                    legend('estimated','measured')
+                    if strcmp(obj.setup.DataType,'simulated')
+                        legend('meas','estimation','target')
+                    else
+                        legend('meas','est')
+                    end
+                    
                     ylabel(strcat('y_{filter}^',num2str(k)));
                     xlabel('simulation time [s]');
                 end            

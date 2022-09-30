@@ -10,11 +10,11 @@
 function params = params_battery_tushar
 
     % Loading input signals and parameter data
-    input_data = load('data/ECM_parameters.mat');
+    input_data = load('data/ECM_parameters_updated.mat');
     params.input_time = input_data.Time;
     params.input_current = input_data.Current;
     params.input_OCV = input_data.OCV;
-    params.input_soc = input_data.SOC;
+    params.input_soc = input_data.SOC';
     params.input_R0 = input_data.R0;
     params.input_R1 = input_data.R1;
     params.input_C1 = input_data.C1;
@@ -37,20 +37,21 @@ function params = params_battery_tushar
     end
     
     % initial SOC
-    x10 = 0.9;
+    x10 = 0.4;
     x20 = 0.01;
 
     % system parameters
     % battery EMF
-    params.Voc = 4.1924;
+    params.Voc = 3.5;
     % ohmic internal resistance
-    params.R0 = 0.0116;
+    params.R0 = 0.0125;
     % polarization resistance
-    params.R1 = 0.0028114;
+    params.R1 = 0.040;
     % polarization capacity
-    params.C1 = 9118;
+    params.C1 = 500;
     % Battery Capacity (converting Ampere-hour to Ampere-second)
-    params.C_n = 28 * 3600; 
+    params.C_n_h = 4.1;
+    params.C_n = params.C_n_h * 3600;     
     % Battery charging-discharging efficiency (for Li-ion=100%)
     params.eta = 1;  
     
@@ -81,20 +82,38 @@ function params = params_battery_tushar
     params.gamma_R1 = 0*1e-1;
     params.gamma_C1 = 0*1e-1;
     
+    params.delta_Voc = 0*1e-1;
+    params.delta_R0 = 0*1e-1;
+    params.delta_R1 = 0*1e-1;
+    params.delta_C1 = 0*1e-1;
+    
+    params.eps_Voc = 0*1e-1;
+    params.eps_R0 = 0*1e-1;
+    params.eps_R1 = 0*1e-1;
+    params.eps_C1 = 0*1e-1;
+    
+    params.xi_Voc = 0*1e-1;
+    params.xi_R0 = 0*1e-1;
+    params.xi_R1 = 0*1e-1;
+    params.xi_C1 = 0*1e-1;
+    
     params.eps = 1;
     
     % number of reference trajectories (under development)
     params.Ntraj = 1;
     
     % state dimension
-    params.dim_state = 18;
+    params.dim_state = 30;
     
     % initial condition
     params.X(1).val(:,1) = [x10; x20; ...
                             params.Voc; params.R0; params.R1; params.C1; ...
                             params.alpha_Voc; params.alpha_R0; params.alpha_R1; params.alpha_C1; ...
                             params.beta_Voc; params.beta_R0; params.beta_R1; params.beta_C1; ...
-                            params.gamma_Voc; params.gamma_R0; params.gamma_R1; params.gamma_C1];
+                            params.gamma_Voc; params.gamma_R0; params.gamma_R1; params.gamma_C1; ...
+                            params.delta_Voc; params.delta_R0; params.delta_R1; params.delta_C1; ...
+                            params.eps_Voc; params.eps_R0; params.eps_R1; params.eps_C1; ...
+                            params.xi_Voc; params.xi_R0; params.xi_R1; params.xi_C1];
     
     % same initial condition for all the trajectories (under development)
     for traj=2:params.Ntraj
@@ -102,10 +121,10 @@ function params = params_battery_tushar
     end
     
     % position in the state vector of the estimated parameters
-    params.estimated_params = [7:18];
+    params.estimated_params = [7:30];
     
     % which vars am I optimising
-    params.opt_vars = [1:2 8:10];
+    params.opt_vars = [1:2 8:10 12:14 16:18 20:22];
     
     % set the not optimised vars
     tmp = 1:length(params.X(1).val(:,1));

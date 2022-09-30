@@ -33,5 +33,20 @@ function params_out = params_update_battery_tushar(params,x,t)
     params_out.gamma_R1 = x(17,:);
     params_out.gamma_C1 = x(18,:);
     
+    params_out.delta_Voc = x(19,:);
+    params_out.delta_R0 = x(20,:);
+    params_out.delta_R1 = x(21,:);
+    params_out.delta_C1 = x(22,:);
+    
+    params_out.eps_Voc = x(23,:);
+    params_out.eps_R0 = x(24,:);
+    params_out.eps_R1 = x(25,:);
+    params_out.eps_C1 = x(26,:);
+    
+    params_out.xi_Voc = x(27,:);
+    params_out.xi_R0 = x(28,:);
+    params_out.xi_R1 = x(29,:);
+    params_out.xi_C1 = x(30,:);
+    
     
 end

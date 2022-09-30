@@ -23,7 +23,9 @@ tspan = varargin{2};
 x0 = varargin{3};
 
 % integrations options
-opts = varargin{4};
+if nargin > 3
+    opts = varargin{4};
+end
 
 % number of state's components
 N = length(x0);           
