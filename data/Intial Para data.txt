@@ -1,0 +1,13 @@
+    % system parameters
+    % battery EMF
+    params.Voc = 3.5;
+    % ohmic internal resistance
+    params.R0 = .0125;
+    % polarization resistance
+    params.R1 = .040;
+    % polarization capacity
+    params.C1 = 500;
+    % Battery Capacity (converting Ampere-hour to Ampere-second)
+    params.C_n = 4.1 * 3600; 
+    % Battery charging-discharging efficiency (for Li-ion=100%)
+    params.eta = 1;

@@ -5,11 +5,17 @@ results/
 workspace/
 config/
 x86/
+doc/
+slprj/
 
 # files
 *.asv
 *.save
 .gitignore
+*.autosave
+*.original
+*.slxc
+*.zip
 
 # exceptions
 !results/simulations/battery/report
