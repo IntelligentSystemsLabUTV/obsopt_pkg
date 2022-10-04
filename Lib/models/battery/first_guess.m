@@ -8,7 +8,6 @@ t_pos = 1;
 traj = 1;
 
 % set Npoint for cloud
-rng default
 Npoint = 100;
 
 % define noise
@@ -98,31 +97,36 @@ delete('obs_default.mat')
 function x_out = gen_meas(obs_default,x,Npoint,perc,sigma)    
 
     % params
-    params = obs_default.init.params;
+    params = obs_default.init.params;       
+    
+    NSeg = length(params.input_soc)-1;
+    NPointsSeg = floor(Npoint/NSeg);
     
     % initialize state
-    x_out = zeros(length(x),Npoint);
+    x_out = zeros(length(x),NSeg*NPointsSeg);
     
     % create cloud
-    for i=1:Npoint
+    for i=1:NSeg
+        for j=1:NPointsSeg
+            % generate SOC        
+            x_out(1,(i-1)*NPointsSeg+j) =  unifrnd(params.input_soc(i),params.input_soc(i+1));
+            
+            % generate points (noiseless)
+            ref(3) = interp1(params.input_soc(i:i+1), params.input_OCV(i:i+1), x_out(1,(i-1)*NPointsSeg+j));
+            ref(4) = interp1(params.input_soc(i:i+1), params.input_R0(i:i+1), x_out(1,(i-1)*NPointsSeg+j));
+            ref(5) = interp1(params.input_soc(i:i+1), params.input_R1(i:i+1), x_out(1,(i-1)*NPointsSeg+j));
+            ref(6) = interp1(params.input_soc(i:i+1), params.input_C1(i:i+1), x_out(1,(i-1)*NPointsSeg+j));
+            
+            x_out(3,(i-1)*NPointsSeg+j) = ref(3)*(1+sigma(1)*randn);
+            x_out(4,(i-1)*NPointsSeg+j) = ref(4)*(1+sigma(2)*randn);
+            x_out(5,(i-1)*NPointsSeg+j) = ref(5)*(1+sigma(3)*randn);
+            x_out(6,(i-1)*NPointsSeg+j) = ref(6)*(1+sigma(4)*randn);
         
-        % generate SOC        
-        x_out(1,i) =  unifrnd(max(0,x(1)-perc),min(1,x(1)+perc));
+        end
+    end                                
         
-        % compute the real val
-        ref(3) = spline(params.input_soc, params.input_OCV, x_out(1,i));
-        ref(4) = spline(params.input_soc, params.input_R0, x_out(1,i));
-        ref(5) = spline(params.input_soc, params.input_R1, x_out(1,i));
-        ref(6) = spline(params.input_soc, params.input_C1, x_out(1,i));
         
-        % compute and perturb params
-        x_out(3,i) = spline(params.input_soc, params.input_OCV, x_out(1,i)) + sigma(1)*ref(3)*randn(1);
-        x_out(4,i) = spline(params.input_soc, params.input_R0, x_out(1,i)) + sigma(2)*ref(4)*randn(1);
-        x_out(5,i) = spline(params.input_soc, params.input_R1, x_out(1,i)) + sigma(3)*ref(5)*randn(1);
-        x_out(6,i) = spline(params.input_soc, params.input_C1, x_out(1,i)) + sigma(4)*ref(6)*randn(1);
        
-    end
-
 end
 
 %%
