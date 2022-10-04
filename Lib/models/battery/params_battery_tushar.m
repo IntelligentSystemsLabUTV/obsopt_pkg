@@ -18,7 +18,14 @@ function params = params_battery_tushar
     params.input_soc = input_data.SOC';
     params.input_R0 = input_data.R0;
     params.input_R1 = input_data.R1;
-    params.input_C1 = input_data.C1;
+    params.input_C1 = input_data.C1;        
+    
+    % model inconsistency
+    params.deltaModel = 0*0.05;
+    params.input_data.OCV_nominal = params.input_OCV*(1+params.deltaModel);
+    params.input_data.R0_nominal = params.input_R0*(1+params.deltaModel);
+    params.input_data.R1_nominal = params.input_R1*(1+params.deltaModel);
+    params.input_data.C1_nominal = params.input_C1*(1+params.deltaModel);
 
     % generate modular HPPC
     params.input_current_Ts = 1;
@@ -51,8 +58,11 @@ function params = params_battery_tushar
     % polarization capacity
     params.C1 = 500;
     % Battery Capacity (converting Ampere-hour to Ampere-second)
-    params.C_n_h = 4.1;
+    params.InputAmplitude = 1;
+    params.C_n_h = 4.1*params.InputAmplitude;
     params.C_n = params.C_n_h * 3600;     
+    params.C_n_h_nominal = params.C_n_h*(1+params.deltaModel);
+    params.C_n_nominal = params.C_n_h_nominal * 3600;     
     % Battery charging-discharging efficiency (for Li-ion=100%)
     params.eta = 1;  
     
@@ -98,7 +108,7 @@ function params = params_battery_tushar
     params.xi_R1 = 0*1e-1;
     params.xi_C1 = 0*1e-1;
     
-    params.eps = 1;
+    params.eps = 1;        
     
     % number of reference trajectories (under development)
     params.Ntraj = 1;
@@ -137,8 +147,8 @@ function params = params_battery_tushar
     
     % plot vars (used to plot the state estimation. When the parameters are
     % too many, consider to use only the true state components)
-    params.plot_vars = 1:6;
-    params.plot_params = [7:14];
+    params.plot_vars = 1:2;
+    params.plot_params = [];%[7:14];
     params.multi_traj_var = params.nonopt_vars;
     
     % same initial condition for all the trajectories (under development)
