@@ -17,7 +17,7 @@ function plot_interp(obs,str,pos,params,wholeSim,fig)
 
     % plot
     figure(fig)
-    plot(obs.init.params.input_soc,str,'LineWidth',2)
+    plot(obs.init.params.input_soc,str,'p:','LineWidth',2)
     hold on
     
     if ~wholeSim

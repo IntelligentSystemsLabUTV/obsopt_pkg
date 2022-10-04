@@ -33,26 +33,30 @@ function plot_poly_model(obs_fast,init_flag,paramCloud)
         figure(1)
         grid on
         hold on
-        plot(obs_fast.init.params.input_soc,obs_fast.setup.params.input_OCV,'LineWidth',2)
-        plot(obs_fast.init.X_est.val(1,:),obs_fast.init.X_est_runtime.val(3,:),'ro');
+        plot(obs_fast.init.params.input_soc,obs_fast.setup.params.input_data.OCV,'LineWidth',2)
+        plot(obs_fast.init.params.input_soc,obs_fast.setup.params.input_data.OCV_nominal,'LineWidth',2)
+        plot(obs_fast.init.X_est.val(1,:),obs_fast.init.X_est.val(3,:),'co');
         
         figure(2)
         grid on
         hold on
-        plot(obs_fast.init.params.input_soc,obs_fast.setup.params.input_R0,'LineWidth',2)
-        plot(obs_fast.init.X_est.val(1,:),obs_fast.init.X_est_runtime.val(4,:),'ro');
+        plot(obs_fast.init.params.input_soc,obs_fast.setup.params.input_data.R0,'LineWidth',2)
+        plot(obs_fast.init.params.input_soc,obs_fast.setup.params.input_data.R0_nominal,'LineWidth',2)
+        plot(obs_fast.init.X_est.val(1,:),obs_fast.init.X_est.val(4,:),'co');
         
         figure(3)
         grid on
         hold on
-        plot(obs_fast.init.params.input_soc,obs_fast.setup.params.input_R1,'LineWidth',2)
-        plot(obs_fast.init.X_est.val(1,:),obs_fast.init.X_est_runtime.val(5,:),'ro');
+        plot(obs_fast.init.params.input_soc,obs_fast.setup.params.input_data.R1,'LineWidth',2)
+        plot(obs_fast.init.params.input_soc,obs_fast.setup.params.input_data.R1_nominal,'LineWidth',2)
+        plot(obs_fast.init.X_est.val(1,:),obs_fast.init.X_est.val(5,:),'co');
         
         figure(4)
         grid on
         hold on
-        plot(obs_fast.init.params.input_soc,obs_fast.setup.params.input_C1,'LineWidth',2)
-        plot(obs_fast.init.X_est.val(1,:),obs_fast.init.X_est_runtime.val(6,:),'ro');
+        plot(obs_fast.init.params.input_soc,obs_fast.setup.params.input_data.C1,'LineWidth',2)
+        plot(obs_fast.init.params.input_soc,obs_fast.setup.params.input_data.C1_nominal,'LineWidth',2)
+        plot(obs_fast.init.X_est.val(1,:),obs_fast.init.X_est.val(6,:),'co');
     end
    
 
