@@ -331,7 +331,7 @@ classdef obsopt < handle
             catch
                 test = 'null';
             end
-            if strcmp(test,'fmincon') || any(strcmp(varargin,'Bounds'))
+            if strcmp(test,'fmincon') || strcmp(test,'fminsearchbnd') || any(strcmp(varargin,'Bounds'))
                 if any(strcmp(varargin,'Acon'))
                     pos = find(strcmp(varargin,'Acon'));
                     obj.setup.Acon = varargin{pos+1};
@@ -357,18 +357,18 @@ classdef obsopt < handle
                     obj.setup.Bcon_eq = [];                
                 end
                 if any(strcmp(varargin,'LBcon'))
-                    obj.setup.LBcon = -Inf*ones(1,obj.setup.dim_state);
+                    obj.setup.LBcon = -Inf*ones(1,length(obj.setup.opt_vars));
                     pos = find(strcmp(varargin,'LBcon'));
                     obj.setup.LBcon(obj.setup.ConPos) = varargin{pos+1};
                 else
-                    obj.setup.LBcon = zeros(1,obj.setup.dim_state);                
+                    obj.setup.LBcon = zeros(1,length(obj.setup.opt_vars));                
                 end
                 if any(strcmp(varargin,'UBcon'))
-                    obj.setup.UBcon = Inf*ones(1,obj.setup.dim_state);
+                    obj.setup.UBcon = Inf*ones(1,length(obj.setup.opt_vars));
                     pos = find(strcmp(varargin,'UBcon'));
                     obj.setup.UBcon(obj.setup.ConPos) = varargin{pos+1};
                 else
-                    obj.setup.UBcon = zeros(1,obj.setup.dim_state);          
+                    obj.setup.UBcon = zeros(1,length(obj.setup.opt_vars));          
                 end
                 if any(strcmp(varargin,'NONCOLcon'))
                     pos = find(strcmp(varargin,'NONCOLcon'));
@@ -684,9 +684,10 @@ classdef obsopt < handle
                                                       'FiniteDifferenceStepSize', obj.init.DiffMinChange, 'FiniteDifferenceType','central');  
             elseif strcmp(func2str(obj.setup.fmin),'fminsearch')
                 obj.init.myoptioptions = optimset('MaxIter', obj.setup.max_iter, 'display',obj.init.display, ...
-                                                  'MaxFunEvals',Inf,...
-                                                  'OutputFcn',@obj.outfun,'TolFun',obj.init.TolFun,'TolX',obj.init.TolX); 
-                                              
+                                                  'MaxFunEvals',Inf,'OutputFcn',@obj.outfun,'TolFun',obj.init.TolFun,'TolX',obj.init.TolX); 
+            elseif strcmp(func2str(obj.setup.fmin),'fminsearchbnd')
+                obj.init.myoptioptions = optimset('MaxIter', obj.setup.max_iter, 'display',obj.init.display, ...
+                                                  'MaxFunEvals',Inf,'OutputFcn',@obj.outfun,'TolFun',obj.init.TolFun,'TolX',obj.init.TolX);                                               
             elseif strcmp(func2str(obj.setup.fmin),'patternsearch')
                 obj.init.myoptioptions = optimoptions('patternsearch', 'MaxIter', obj.setup.max_iter, 'display',obj.init.display, ...
                                                       'Cache', 'on', 'UseParallel', true, 'StepTolerance', 0,'MaxFunEvals',Inf); 
@@ -827,11 +828,12 @@ classdef obsopt < handle
                     break
                 end
                 
-                Inf_Flag = find(isinf(X.y));
-                if Inf_Flag
+                Inf_Flag = isempty(isinf(X.y));
+                Huge_Flag = isempty(X.y>1e10);
+                if Inf_Flag || Huge_Flag
                     J_final = Inf;
                     break
-                end
+                end                
                 
                 %%% get measure  %%
                 Yhat = zeros(obj.setup.Nfilt+1,obj.setup.dim_out,size(X.y,2));
@@ -855,8 +857,13 @@ classdef obsopt < handle
                            startpos = startpos + obj.setup.filterTF(filt).dim;
                        end
                     end
-                                        
-                    [Y, ~] = obj.measure_filter(Yhat(:,:,tspan_filt),tspan_filt,x0_filter); 
+                             
+                    try
+                        [Y, ~] = obj.measure_filter(Yhat(:,:,tspan_filt),tspan_filt,x0_filter);                         
+                    catch                        
+                        J_final = NaN;
+                        break
+                    end                    
                     
                     for filt=1:obj.setup.Nfilt
                         for dim=1:obj.setup.dim_out
@@ -1088,7 +1095,7 @@ classdef obsopt < handle
             for traj=1:obj.setup.Ntraj
                 obj.init.traj = traj;
                 % get filters - y
-                obj.init.Y_full_story(traj).val(1,:,obj.init.ActualTimeIndex) = y(traj).val; 
+                obj.init.Y_full_story(traj).val(1,:,obj.init.ActualTimeIndex) = y(traj).val;                 
                 tspan_pos = [max(1,obj.init.ActualTimeIndex-1), obj.init.ActualTimeIndex];
                 [dy, x_filter] = obj.measure_filter(obj.init.Y_full_story(traj).val,tspan_pos,obj.init.X_filter(obj.init.traj));                
                 for filt=1:obj.setup.Nfilt
@@ -1098,7 +1105,6 @@ classdef obsopt < handle
                     end   
                     y(traj).val = [y(traj).val, y_tmp];
                 end                
-                
                 % get filters - yhat
                 obj.init.Yhat_full_story(traj).val(1,:,obj.init.ActualTimeIndex) = yhat(traj).val;
                 tspan_pos = [max(1,obj.init.ActualTimeIndex-1), obj.init.ActualTimeIndex];
@@ -1116,11 +1122,11 @@ classdef obsopt < handle
             for term=1:obj.setup.J_nterm
                 for traj=1:obj.setup.Ntraj
                     obj.init.traj = traj;
-                    obj.init.Y_full_story(traj).val(term,:,obj.init.ActualTimeIndex) = y(traj).val(:,term);
+                    obj.init.Y_full_story(traj).val(term,:,obj.init.ActualTimeIndex) = y(traj).val(:,term);                    
                     obj.init.Yhat_full_story(traj).val(term,:,obj.init.ActualTimeIndex) = yhat(traj).val(:,term);
                     obj.init.Yhat_full_story_runtime(traj).val(term,:,obj.init.ActualTimeIndex) = yhat(traj).val(:,term);
                 end
-            end
+            end                        
 
             % fisrt bunch of data - read Y every Nts and check if the signal is
             distance = obj.init.ActualTimeIndex-obj.init.Y_space(end);
@@ -1347,10 +1353,13 @@ classdef obsopt < handle
 
                             %%%%% OPTIMISATION - NORMAL MODE %%%%%%
                             if ~obj.setup.GlobalSearch
-                                if strcmp(func2str(obj.setup.fmin),'fmincon')    
+                                if strcmp(func2str(obj.setup.fmin),'fmincon')
                                     [NewXopt, J, obj.init.exitflag,output] = obj.setup.fmin(@(x)obj.setup.cost_run(x,obj.init.temp_x0_nonopt,obj.init.temp_x0_filters,obj.init.target,1),...
                                                                              obj.init.temp_x0_opt, obj.setup.Acon, obj.setup.Bcon,obj.setup.Acon_eq, obj.setup.Bcon_eq, obj.setup.LBcon,...
                                                                              obj.setup.UBcon, obj.setup.NONCOLcon, obj.init.myoptioptions);
+                                elseif strcmp(func2str(obj.setup.fmin),'fminsearchbnd')
+                                    [NewXopt, J, obj.init.exitflag,output] = obj.setup.fmin(@(x)obj.setup.cost_run(x,obj.init.temp_x0_nonopt,obj.init.temp_x0_filters,obj.init.target,1),...
+                                                                             obj.init.temp_x0_opt, obj.setup.LBcon, obj.setup.UBcon, obj.init.myoptioptions);
                                 else
                                     [NewXopt, J, obj.init.exitflag,output] = obj.setup.fmin(@(x)obj.setup.cost_run(x,obj.init.temp_x0_nonopt,obj.init.temp_x0_filters,obj.init.target,1),...
                                                                              obj.init.temp_x0_opt, obj.init.myoptioptions);
@@ -1613,7 +1622,7 @@ classdef obsopt < handle
                         if strcat(obj.setup.DataType,'simulated')
                             plot(obj.setup.time,obj.init.X(traj).val(obj.setup.plot_params(i),:),'b--');
                         end
-                        plot(obj.setup.time,obj.init.X_est_runtime(traj).val(obj.setup.plot_params(i),:),'r--');                                      
+                        plot(obj.setup.time,obj.init.X_est(traj).val(obj.setup.plot_params(i),:),'r--');                                      
 
                         if strcat(obj.setup.DataType,'simulated')
                             legend('True','Est')
