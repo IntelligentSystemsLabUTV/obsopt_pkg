@@ -5,12 +5,14 @@
 % description: function to setup and use the MHE observer on general model
 % INPUT: none
 % OUTPUT: params,obs
-function [params_s,obs_s,SimParams,params] = simulation_multiMHE_realdata(model)
+function [params_s,obs_s,SimParams,params,out] = simulation_multiMHE_realdata(model)
 
-fast = 0;
+rng default
+
+fast = 1;
 slow = 1;
-tend = 4000;
-Ts = 1;
+tend = 15000;
+Ts = 5;
 
 %%%% Init Section %%%%
 [params_s, obs_s, time, SimParams, params, SIMstate, SIMinput, SIMmeasure] = InitMultiMHE(tend,Ts);
@@ -28,7 +30,7 @@ obs_slow.init.x_filter = reference.x0;
 % SIMULINK
 options = simset('SrcWorkspace','current');
 out = sim(model,params.Tend,options);
-data = out.simout.Data';
+data = out.simout.ECM_Vb_noise.Data';
 
 
 %% %%%% SIMULATION %%%%
@@ -41,6 +43,16 @@ Ntraj = obs_fast.setup.Ntraj;
 %%% THIS SHOULD REMAIN IN THE CODE %%%
 obs_fast.init.Y_full_story(1).val(1,:,1:size(y,2)) = y;   
 obs_slow.init.Y_full_story(1).val(1,:,1:size(y,2)) = y;   
+obs_fast.init.Ytrue_full_story(1).val(1,:,1:size(y,2)) = out.simout.ECM_Vb.Data;   
+obs_slow.init.Ytrue_full_story(1).val(1,:,1:size(y,2)) = out.simout.ECM_Vb.Data;   
+obs_fast.init.input_story.val(1,1:size(y,2)) = out.simout.u.Data;   
+obs_slow.init.input_story.val(1,1:size(y,2)) = out.simout.u.Data;   
+obs_fast.init.X(1).val(1,1:size(y,2)) = out.simout.ECM_soc.Data;   
+obs_slow.init.X(1).val(1,1:size(y,2)) = out.simout.ECM_soc.Data;   
+
+% init estimation data
+% obs_fast.init.X_est(1).val(1:2,1) = obs_fast.init.X(1).val(1:2,1).*(0.8 + 0.1*randn(2,1));
+% obs_slow.init.X_est(1).val(1:2,1) = obs_fast.init.X_est(1).val(1:2,1);
 
 % start time counter
 t0 = tic;
@@ -93,7 +105,7 @@ for i = 1:Niter
         %%%% FILTER MEASUREMENT %%%%                 
         % filter on the measurements    
         % reference filter (filterScale)
-        if 0
+        if 1
             try
                 u = [y(:,i);reshape(obs_fast.init.Y_full_story(traj).val(1,:,i),1,obs_fast.setup.dim_out)];
             catch
@@ -117,12 +129,7 @@ for i = 1:Niter
             obs_fast.init.params = obs_fast.setup.params.params_update(obs_slow.init.params,obs_fast.init.X_est(1).val(:,end));
             pos_index = nonzeros(obs_fast.init.Y_space);
             obs_fast.init.X_est.val(obs_fast.setup.update_vars,pos_index(1):pos_index(end)) = obs_slow.init.X_est.val(obs_fast.setup.update_vars,pos_index(1):pos_index(end));
-        end
-        if obs_slow.init.FirstOpt || ~slow
-            obs_fast.setup.optimise = 1;
-        else
-            obs_fast.setup.optimise = 0;
-        end
+        end        
         tfast = tic;
         obs_fast = obs_fast.observer(obs_fast.init.X_est,y_meas);            
         obs_fast.init.iter_time(obs_fast.init.ActualTimeIndex) = toc(tfast);
@@ -143,6 +150,11 @@ obs_slow.init.total_time = obs_fast.init.total_time;
 params_s = {params_fast, params_slow};
 obs_s = {obs_fast, obs_slow};
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+% save to simulink
+% [SIMstate, SIMinput, SIMmeasure] = SaveToSimulink(obs_s{2},1);
+% out = sim(model,params.Tend,options);
+% obs_s{1}.init.Y_full_story
 
 %% %%%%%%%%%%%%%%%%%%%%%%%%%%%% PLOTS %%%%%%%%%%%%%%%%%%%%%
 % obs self plots

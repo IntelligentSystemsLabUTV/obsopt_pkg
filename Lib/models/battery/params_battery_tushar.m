@@ -21,7 +21,7 @@ function params = params_battery_tushar
     params.input_C1 = input_data.C1;        
     
     % model inconsistency
-    params.deltaModel = 0*0.05;
+    params.deltaModel = 1*0.05;
     params.input_data.OCV_nominal = params.input_OCV*(1+params.deltaModel);
     params.input_data.R0_nominal = params.input_R0*(1+params.deltaModel);
     params.input_data.R1_nominal = params.input_R1*(1+params.deltaModel);
