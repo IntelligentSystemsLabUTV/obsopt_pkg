@@ -5,4 +5,5 @@ results/
 workspace/
 
 *asv
-.gitignore
+*.gitignore
+*.mat
