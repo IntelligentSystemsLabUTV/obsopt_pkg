@@ -11,11 +11,18 @@
 % params: structure with all the necessary parameter to the model
 function params = model_init(varargin)
 
+    if any(strcmp(varargin,'params_init_vars'))
+        pos = find(strcmp(varargin,'params_init_vars'));
+        vars = varargin{pos+1};
+    else
+        vars = [];
+    end
+
     % get params_init.m script
     if any(strcmp(varargin,'params_init'))
         pos = find(strcmp(varargin,'params_init'));
         params_init = varargin{pos+1};
-        params = params_init();
+        params = params_init(vars);
     else
         params.X = 5;
     end
@@ -77,18 +84,7 @@ function params = model_init(varargin)
         params.StateDim = varargin{pos+1};
     else
         params.StateDim = params.dim_state;
-    end
-    
-    % get set of observed states. Default is 1
-    if any(strcmp(varargin,'ObservedState'))
-        pos = find(strcmp(varargin,'ObservedState'));
-        params.observed_state = varargin{pos+1};
-    else
-        params.observed_state = 1;
-    end
-    
-    % set the output dimensions from the observed state
-    params.OutDim = length(params.observed_state);
+    end            
     
     % get model if exists. Default is a 1 dimension asymptotically stable
     % system.

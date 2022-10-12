@@ -69,6 +69,7 @@ classdef obsopt < handle
                 
                 % output dimension
                 obj.setup.dim_out = params.OutDim;
+                obj.setup.dim_out_compare = params.OutDim_compare;
             
                 % state dimension
                 obj.setup.dim_state = params.StateDim;
@@ -76,10 +77,7 @@ classdef obsopt < handle
                 % noise info
                 obj.setup.noise = params.noise;
                 obj.setup.noise_mu = params.noise_mu;
-                obj.setup.noise_std = params.noise_std;
-                
-                % observed state
-                obj.setup.observed_state = params.observed_state;
+                obj.setup.noise_std = params.noise_std;                
                 
                 % get state init
                 obj.setup.X = params.X;
@@ -607,8 +605,12 @@ classdef obsopt < handle
                 % buffer for Y during drive computation (control design)
                 obj.init.Y_buffer_control(i).val = [];
                 obj.init.drive_out(i).val = [];
-                obj.init.input_story(i).val = [];
+                obj.init.input_story(i).val(:,1) = zeros(obj.setup.params.dim_input,1);
+                obj.init.input_story_ref(i).val = zeros(obj.setup.params.dim_input,1);
             end
+            
+            % input dimension
+            obj.setup.dim_input = obj.setup.params.dim_input;
 
             % buffer adaptive sampling: these buffers keep track of the
             % time instants in which the measured data have been stored. 
@@ -837,7 +839,7 @@ classdef obsopt < handle
                 
                 %%% get measure  %%
                 Yhat = zeros(obj.setup.Nfilt+1,obj.setup.dim_out,size(X.y,2));
-                Yhat(1,:,:) = obj.setup.measure(X.y,obj.init.params,tspan);                                
+                Yhat(1,:,:) = obj.setup.measure(X.y,obj.init.params,tspan,obj.init.input_story(traj).val(:,tspan_pos(1):tspan_pos(end)));
                 
                 %%% compute filters %%%
                 if obj.setup.Nfilt > 0                     
@@ -892,9 +894,9 @@ classdef obsopt < handle
 
                 % scaling
                 J_scaled = zeros(size(J));
-                for dim=1:obj.setup.dim_out                            
-                    J_scaled(:,dim) = transpose(obj.init.scale_factor_scaled(dim,1:obj.setup.J_nterm)).*J(:,dim);
-                    Jtot = Jtot + sum(J_scaled(:,dim)); 
+                for dim=1:length(obj.setup.dim_out_compare)
+                    J_scaled(:,obj.setup.dim_out_compare(dim)) = transpose(obj.init.scale_factor_scaled(obj.setup.dim_out_compare(dim),1:obj.setup.J_nterm)).*J(:,obj.setup.dim_out_compare(dim));
+                    Jtot = Jtot + sum(J_scaled(:,obj.setup.dim_out_compare(dim))); 
                 end
 
                 % store terms
@@ -1089,9 +1091,10 @@ classdef obsopt < handle
                 % save runtime state
                 obj.init.X_est_runtime(traj).val(:,obj.init.ActualTimeIndex) = obj.init.X_est(traj).val(:,obj.init.ActualTimeIndex);
                 % get ESTIMATED measure from ESTIMATED state (xhat)
-                yhat(traj).val = obj.setup.measure(xhat(traj).val,obj.init.params,obj.setup.time(obj.init.ActualTimeIndex));
+                yhat(traj).val = obj.setup.measure(xhat(traj).val,obj.init.params,obj.setup.time(obj.init.ActualTimeIndex),obj.init.input_story(traj).val(:,max(1,obj.init.ActualTimeIndex-1)));
             end
             
+            def_traj = ones(obj.setup.Ntraj,1);
             for traj=1:obj.setup.Ntraj
                 obj.init.traj = traj;
                 % get filters - y
@@ -1286,14 +1289,15 @@ classdef obsopt < handle
                         if (obj.setup.J_normalise) && (~obj.init.normalised) 
                             range = 1:obj.init.ActualTimeIndex;
                             for filt=1:obj.setup.J_nterm
-                                for dim=1:obj.setup.dim_out
-                                    E = (obj.init.Yhat_full_story(traj).val(filt,dim,range) - obj.init.Y_full_story(traj).val(filt,dim,range)).^2;
+                                for dim=1:length(obj.setup.dim_out_compare)
+                                    E = (obj.init.Yhat_full_story(traj).val(filt,obj.setup.dim_out_compare(dim),range) - ...
+                                        obj.init.Y_full_story(traj).val(filt,obj.setup.dim_out_compare(dim),range)).^2;
                                     E = reshape(E,1,size(E,3));
                                     Emax = max(E);
-                                    if Emax == 0
+                                    if Emax == 0 || (abs(Emax) < 1e-15)
                                         Emax = 1;
                                     end
-                                    obj.init.scale_factor_scaled(dim,filt) = obj.init.scale_factor(dim,filt)/Emax;
+                                    obj.init.scale_factor_scaled(obj.setup.dim_out_compare(dim),filt) = obj.init.scale_factor(obj.setup.dim_out_compare(dim),filt)/Emax;
                                 end
                             end        
                             if (obj.setup.J_term_terminal) && (obj.setup.terminal_normalise)
@@ -1330,14 +1334,7 @@ classdef obsopt < handle
                         
                         % check fmin time (boundaries)
                         obj.setup.opt_temp_time = tic;
-                        obj.setup.MaxOptTimeFlag = 0;
-                        
-                        % reshape LBcon and UBcon
-                        if (~obj.init.ConstrNormalised) && (strcmp(func2str(obj.setup.fmin),'fmincon') || strcmp(func2str(obj.setup.fmin),'patternsearch') || obj.setup.bounds)
-                            obj.setup.LBcon(obj.setup.nonopt_vars) = [];
-                            obj.setup.UBcon(obj.setup.nonopt_vars) = [];
-                            obj.init.ConstrNormalised = 1;
-                        end
+                        obj.setup.MaxOptTimeFlag = 0;                                                
                         
                         if (obj.setup.optimise)
                             
@@ -1466,7 +1463,7 @@ classdef obsopt < handle
                                     % NB: the output storage has to be done in
                                     % back_time+1 as the propagation has been
                                     % performed 
-                                    Yhat = obj.setup.measure(x_propagate,obj.init.params,obj.setup.time(back_time));
+                                    Yhat = obj.setup.measure(x_propagate,obj.init.params,obj.setup.time(back_time),obj.init.input_story(traj).val(:,back_time));
                                     % get filters - yhat
                                     obj.init.Yhat_full_story(traj).val(1,:,back_time) = Yhat;  
                                     tspan_pos = [max(1,back_time-1), back_time];
@@ -1514,7 +1511,7 @@ classdef obsopt < handle
                                         % NB: the output storage has to be done in
                                         % back_time+1 as the propagation has been
                                         % performed 
-                                        Yhat = obj.setup.measure(x_propagate,obj.init.params,obj.setup.time(back_time));
+                                        Yhat = obj.setup.measure(x_propagate,obj.init.params,obj.setup.time(back_time),obj.init.input_story(traj).val(:,back_time));
                                         % get filters - yhat
                                         obj.init.Yhat_full_story(traj).val(1,:,back_time) = Yhat;            
                                         tspan_pos = [max(1,back_time-1), back_time];
@@ -1561,15 +1558,7 @@ classdef obsopt < handle
                     clc;
                 end                
             else
-            end
-
-            % on each trajectory
-            for traj=1:obj.setup.Ntraj
-                obj.init.traj = traj;
-                % save measures
-                obj.init.Y_est(traj).val = obj.init.X_est(traj).val(obj.setup.observed_state,:);
-                obj.init.Y_est_runtime(traj).val = obj.init.X_est_runtime(traj).val(obj.setup.observed_state,:);
-            end
+            end           
         end        
         
         % plot results for control design
