@@ -38,8 +38,36 @@
         %%%% plot state estimation %%%
         fig_count = fig_count+1;
         figure(fig_count)
-        sgtitle('Optimizer and annihilator')
-        range = (obj.setup.params.dim_state_r+obj.setup.params.dim_state_c+1):(obj.setup.params.dim_state_r+obj.setup.params.dim_state_c+obj.setup.params.dim_state_op+obj.setup.params.dim_state_an);
+        sgtitle('Optimizer')
+        range = (obj.setup.params.dim_state_r+obj.setup.params.dim_state_c+1):(obj.setup.params.dim_state_r+obj.setup.params.dim_state_c+obj.setup.params.dim_state_op);
+        for i=range
+            subplot(length(range),1,i-range(1)+1);
+            hold on
+            grid on
+            box on
+
+            for traj=1:obj.setup.Ntraj
+                if strcat(obj.setup.DataType,'simulated')
+                    plot(obj.setup.time,obj.init.X(traj).val(obj.setup.plot_vars(i),:),'b--');
+                end
+                plot(obj.setup.time,obj.init.X_est(traj).val(obj.setup.plot_vars(i),:),'r--');                                      
+
+                if strcat(obj.setup.DataType,'simulated')
+                    legend('True','Est')
+                else
+                    legend('Stored','Est','Runtime')
+                end
+            end
+
+            % labels
+            xlabel(['time [s]'])
+            ylabel(['x_',num2str(obj.setup.plot_vars(i))])
+        end
+
+        fig_count = fig_count+1;
+        figure(fig_count)
+        sgtitle('Annihilator')
+        range = (obj.setup.params.dim_state_r+obj.setup.params.dim_state_c+obj.setup.params.dim_state_op+1):(obj.setup.params.dim_state_r+obj.setup.params.dim_state_c+obj.setup.params.dim_state_op+obj.setup.params.dim_state_an);
         for i=range
             subplot(length(range),1,i-range(1)+1);
             hold on
