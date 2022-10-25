@@ -5,21 +5,21 @@
 % description: function to setup and use the MHE observer on general model
 % INPUT: none
 % OUTPUT: params,obs
-function [params,obs] = simulation_TCV
+function [obs, params] = simulation_TCV
 
 %%%% Init Section %%%%
 % uncomment to close previously opened figures
 % close all
 
-rng('default');
-% rng(1);
+% rng('default');
+rng(1);
     
 % init observer buffer (see https://doi.org/10.48550/arXiv.2204.09359)
-Nw =120;
-Nts = 5;
+Nw = 120;
+Nts = 50;
 
 % set sampling time
-Ts = 5e-2;
+Ts = 0.5e-2;
 
 % set initial and final time instant
 t0 = 0;
@@ -28,7 +28,7 @@ t0 = 0;
 % [Y,T] = step(sys_P);
 % tend = T(end);
 tend = (Nw*Nts)*Ts;
-% tend = 5;
+%tend = 30.1;
 
 %%%% params init function %%%%
 % function: this function shall be in the following form:
@@ -112,7 +112,7 @@ measure_reference = @measure_TCV_reference;
 
 %%%% integration method %%%%
 % ode45-like integration method. For discrete time systems use @odeDD
-ode = @oderk4_fast;
+ode = @odeEuler;
 
 
 %%%% input law %%%
@@ -147,15 +147,15 @@ params = model_init('Ts',Ts,'T0',[t0, tend],'noise',0, 'params_update', params_u
 %%%% observer init %%%%
 % defien arrival cost
 terminal_states = params.opt_vars;
-terminal_weights = 1e1*ones(size(terminal_states));
-terminal_weights(3:end) = 1e-1;
+terminal_weights = 1e-2*ones(size(terminal_states));
+% terminal_weights(3:end) = 1e-1;
 
 % create observer class instance. For more information on the setup
 % options check directly the class constructor in obsopt.m
-obs = obsopt('DataType', 'simulated', 'optimise', 0 , 'GlobalSearch', 0, 'MultiStart', 0, 'J_normalise', 1, 'MaxOptTime', Inf, ... 
+obs = obsopt('DataType', 'simulated', 'optimise', 0, 'GlobalSearch', 0, 'MultiStart', 0, 'J_normalise', 1, 'MaxOptTime', Inf, ... 
           'Nw', Nw, 'Nts', Nts, 'ode', ode, 'PE_maxiter', 0, 'WaitAllBuffer', 1, 'params',params, 'filters', filterScale,'filterTF', filter, ...
           'model_reference',model_reference, 'measure_reference',measure_reference, ...
-          'Jdot_thresh',0.95,'MaxIter',100, 'Jterm_store', 1, 'AlwaysOpt', 1 , 'print', 1 , 'SafetyDensity', 2, 'AdaptiveHist', [5e-3, 2.5e-2, 1e0], ...
+          'Jdot_thresh',0.95,'MaxIter', 500, 'Jterm_store', 1, 'AlwaysOpt', 1 , 'print', 1 , 'SafetyDensity', 2, 'AdaptiveHist', [5e-3, 2.5e-2, 1e0], ...
           'AdaptiveSampling',0, 'FlushBuffer', 1, 'opt', @fminsearch, 'terminal', 0, 'terminal_states', terminal_states, 'terminal_weights', terminal_weights, 'terminal_normalise', 1, ...
           'ConPos', [], 'LBcon', [], 'UBcon', [], 'Bounds', 0);
 

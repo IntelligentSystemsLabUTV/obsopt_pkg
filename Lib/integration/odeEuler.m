@@ -40,7 +40,10 @@ for i = 1:M-1
     x = X(:,i);
     
     % Runge Kutta 4
-    K1(:,i) = feval(ode,t0,x);            
+    K1(:,i) = feval(ode,t0,x);  
+
+    %%% just to update the drive correctly %%%
+    %tmp = feval(ode,t0,x);
     
     % Solution at ti+1
     X(:,i+1) = x + dt*K1(:,i);

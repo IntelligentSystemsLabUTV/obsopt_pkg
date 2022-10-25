@@ -62,6 +62,7 @@ min_eigen = min(real(sys_eigen(real(sys_eigen) < 0)));
 scale = 1;
 poles = linspace(10 * min_eigen, 100 * min_eigen, n+1)/scale;
 den_An = poly(poles);
+den_An = den_An ./ den_An(end);
 % Compute the annihilator transfer function
 W_An = tf(num_An, den_An);
 % Compute the annihilator state-space model

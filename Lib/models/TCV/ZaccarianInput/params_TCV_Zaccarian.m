@@ -1,4 +1,4 @@
-    %% PARAMS_OSCILLATOR_VDP
+%% PARAMS_OSCILLATOR_VDP
 % file: params_control_test.m
 % author: Federico Oliva
 % date: 22/06/2022
@@ -30,15 +30,13 @@ function params = params_TCV_Zaccarian(varargin)
     params.p = size(params.C_def,1);
     
     % companion form
-    for i=1:params.m
-        tmp = canon(params.sys_P_def(1,i),"companion");
-        params.A = tmp.A';
-        params.B(:,i) = tmp.C';
-        params.C = tmp.B';
-        params.D(:,i) = tmp.D';
-    end    
-    params.sys_P = ss(params.A,params.B,params.C,params.D);
-        
+    params.A = [-0.607, 1;
+                      -0.03155, 0];
+    params.B = [0.39 0.354 0.65;
+                      -0.3007 -0.04967 -0.207];
+    params.C = [1 0];
+    params.D = [0 0 0]; 
+    params.sys_P = ss(params.A, params.B, params.C, params.D);       
 
     % generate subsystem bar
     params.q_pos = 1;    
@@ -134,14 +132,14 @@ function params = params_TCV_Zaccarian(varargin)
         params.NumPsi = length(params.den_An);            
         params.Psi = params.den_An';
         % custom
-        params.Psi = [1.0370e+00 5.8333e+01 2.2325e+03 1.4140e+04]';        
+        % params.Psi = [1.7748e-01 4.1587e+00 1.4709e+04 1.2118e+05]';        
                 
         params.Anstar = dcgain(params.sys_An);        
         params.dim_state_op = size(params.Anstar,2);
         
         % Sigma op
         params.R = [1 1 1].*eye(params.dim_input);
-        params.gamma = 1e8*ones(params.dim_state_op,1);
+        params.gamma = 1*ones(params.dim_state_op,1);
         params.NumGamma = params.dim_state_op;
         params.Gamma = diag(params.gamma);
         params.A_op = -params.Gamma*params.Anstar'*params.R*params.Anstar;
@@ -164,7 +162,7 @@ function params = params_TCV_Zaccarian(varargin)
     params.estimated_params = [params.dim_state_r + params.dim_state_c + params.dim_state_op + params.dim_state_an + params.n + 1:params.dim_state];
     
     % which vars am I optimising
-    params.opt_vars = [params.dim_state_r + params.dim_state_c + params.dim_state_op + params.dim_state_an + params.n + 1:params.dim_state-params.NumGamma];
+    params.opt_vars = [params.dim_state_r + params.dim_state_c + params.dim_state_op + params.dim_state_an + params.n + 1:params.dim_state-params.NumGamma - 1];
     
     % set the not optimised vars
     tmp = 1:length(params.X(1).val(:,1));
@@ -184,7 +182,7 @@ function params = params_TCV_Zaccarian(varargin)
     params.plot_params = (params.n + params.dim_state_c + params.dim_state_r + params.dim_state_op + params.dim_state_an + 1):params.dim_state;   
     
     % number of reference trajectories (under development)
-    params.Ntraj = 2;
+    params.Ntraj = 30;
     
     % perturbed models
     params.sys_pert(1).A = params.A;
@@ -196,8 +194,8 @@ function params = params_TCV_Zaccarian(varargin)
     % pert perc
     params.pert_perc = 0.05;
     for i=2:params.Ntraj
-        params.sys_pert(i).A = [params.A(1:end-1,:); params.A(end,:).*(1+params.pert_perc*randn(1,params.n))];
-        params.sys_pert(i).B = params.B.*(1+params.pert_perc*randn(params.n,params.m));
+        params.sys_pert(i).A = [[params.A(1:end-1,1).*(1+params.pert_perc*randn(params.n-1,1)); params.A(end,1)] params.A(:,2:end)];
+        params.sys_pert(i).B = [params.B(1:end-1,:).*(1+params.pert_perc*randn(params.n-1,params.m)); params.B(end, :)];
         params.sys_pert(i).C = params.C;
         params.sys_pert(i).D = params.D;
         params.sys_pert(i).sys = ss(params.sys_pert(i).A,params.sys_pert(i).B,params.sys_pert(i).C,params.sys_pert(i).D);

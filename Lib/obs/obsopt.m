@@ -839,7 +839,7 @@ classdef obsopt < handle
                 
                 %%% get measure  %%
                 Yhat = zeros(obj.setup.Nfilt+1,obj.setup.dim_out,size(X.y,2));
-                Yhat(1,:,:) = obj.setup.measure(X.y,obj.init.params,tspan,obj.init.input_story(traj).val(:,tspan_pos(1):tspan_pos(end)));
+                Yhat(1,:,:) = obj.setup.measure(X.y,obj.init.params,tspan,obj.init.input_story(traj).val(:,(tspan_pos(1):tspan_pos(end))-1));
                 
                 %%% compute filters %%%
                 if obj.setup.Nfilt > 0                     
@@ -1492,7 +1492,7 @@ classdef obsopt < handle
     %                                     obj.init.params = obj.setup.params.params_update(obj.init.params,x_propagate);
 
                                         % back time
-                                        back_time = obj.init.BackIterIndex+j;
+                                        back_time = obj.init.BackIterIndex+j-1;
                                         tspan = obj.setup.time(back_time-1:back_time);
                                         t = tspan(2);
 
