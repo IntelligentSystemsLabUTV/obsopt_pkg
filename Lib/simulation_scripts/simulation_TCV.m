@@ -15,11 +15,11 @@ function [obs, params] = simulation_TCV
 rng(1);
     
 % init observer buffer (see https://doi.org/10.48550/arXiv.2204.09359)
-Nw = 120;
-Nts = 50;
+Nw = 60;
+Nts = 5;
 
 % set sampling time
-Ts = 0.5e-2;
+Ts = 1e-1;
 
 % set initial and final time instant
 t0 = 0;
@@ -27,8 +27,8 @@ t0 = 0;
 % uncomment to test the MHE with a single optimisation step
 % [Y,T] = step(sys_P);
 % tend = T(end);
-tend = (Nw*Nts)*Ts;
-%tend = 30.1;
+% tend = (Nw*Nts)*Ts;
+tend = 30;
 
 %%%% params init function %%%%
 % function: this function shall be in the following form:
@@ -64,7 +64,7 @@ params_update = @params_update_TCV_Zaccarian;
 % obs: instance of the obsopt observer class
 % OUTPUT:
 % xdot:output of the state space model
-model = @model_TCV_Zaccarian;
+model = @model_TCV_Zaccarian_Lsim;
 
 %%%% model reference function %%%%
 % remark: !DEVEL! this function is used to generate the reference
@@ -79,8 +79,8 @@ model = @model_TCV_Zaccarian;
 % obs: instance of the obsopt observer class
 % OUTPUT:
 % xdot:output of the state space model
-% model_reference = @model_reference;
-model_reference = @model_TCV_reference_Zaccarian_outAll;
+% model_reference = model;
+model_reference = @model_TCV_reference_Zaccarian_outAll_Lsim;
 
 %%%% measure function %%%%
 % function: this file shall be in the following form:   
@@ -112,7 +112,7 @@ measure_reference = @measure_TCV_reference;
 
 %%%% integration method %%%%
 % ode45-like integration method. For discrete time systems use @odeDD
-ode = @odeEuler;
+ode = @odeLsim;
 
 
 %%%% input law %%%
@@ -152,10 +152,10 @@ terminal_weights = 1e-2*ones(size(terminal_states));
 
 % create observer class instance. For more information on the setup
 % options check directly the class constructor in obsopt.m
-obs = obsopt('DataType', 'simulated', 'optimise', 0, 'GlobalSearch', 0, 'MultiStart', 0, 'J_normalise', 1, 'MaxOptTime', Inf, ... 
+obs = obsopt('DataType', 'simulated', 'optimise', 1, 'GlobalSearch', 0, 'MultiStart', 0, 'J_normalise', 1, 'MaxOptTime', Inf, ... 
           'Nw', Nw, 'Nts', Nts, 'ode', ode, 'PE_maxiter', 0, 'WaitAllBuffer', 1, 'params',params, 'filters', filterScale,'filterTF', filter, ...
           'model_reference',model_reference, 'measure_reference',measure_reference, ...
-          'Jdot_thresh',0.95,'MaxIter', 500, 'Jterm_store', 1, 'AlwaysOpt', 1 , 'print', 1 , 'SafetyDensity', 2, 'AdaptiveHist', [5e-3, 2.5e-2, 1e0], ...
+          'Jdot_thresh',0.95,'MaxIter', 100, 'Jterm_store', 1, 'AlwaysOpt', 1 , 'print', 1 , 'SafetyDensity', 2, 'AdaptiveHist', [5e-3, 2.5e-2, 1e0], ...
           'AdaptiveSampling',0, 'FlushBuffer', 1, 'opt', @fminsearch, 'terminal', 0, 'terminal_states', terminal_states, 'terminal_weights', terminal_weights, 'terminal_normalise', 1, ...
           'ConPos', [], 'LBcon', [], 'UBcon', [], 'Bounds', 0);
 
@@ -188,6 +188,8 @@ for i = 1:obs.setup.Niter
         
         % update traj
         obs.init.traj = traj;
+        obs.init.params.traj = traj;
+        obs.setup.params.traj = traj;
                  
         % propagate only if the time gets over the initial time instant
         if(obs.init.ActualTimeIndex > 1)

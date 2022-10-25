@@ -20,8 +20,8 @@ function u = control_TCV(t,drive,params,obs)
 %         for i=1:params.m
 %             tmpstr =  ['u(', num2str(i) ',:) = ', num2str(i), '*sin(', num2str(i), '*t);'];
 %             eval(tmpstr); 
-%         end        
-        
+%         end            
+        u(:,1) = ones(1,length(t));
     else
         u = zeros(params.dim_input,1);
     end

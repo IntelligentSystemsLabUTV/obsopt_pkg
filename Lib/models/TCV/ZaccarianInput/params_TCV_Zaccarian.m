@@ -47,8 +47,12 @@ function params = params_TCV_Zaccarian(varargin)
     params.dim_state_r = size(params.C,1);
     params.Ar = zeros(params.dim_state_r);
     params.Br = 0;
-    params.Cr = eye(params.dim_state_r);
-    params.Dr = 0;    
+    params.Cr = zeros(params.dim_state_r);
+    params.Dr = 1;   
+    params.sys_R = ss(params.Ar,params.Br,params.Cr,params.Dr);    
+    params.sys_R.InputName = 'ref';
+    params.sys_R.OutputName = 'r';
+    params.sys_Sum = sumblk('e = r - y',params.q);
                     
     % input stuff
     params.dim_input = params.m;    
@@ -66,7 +70,12 @@ function params = params_TCV_Zaccarian(varargin)
                  0 0 0 0];
     params.Dcr = [0; 0; 0];
     params.Dc = -params.Dcr;
-    params.sys_C = ss(params.Ac,[params.Bc params.Bcr],params.Cc,[params.Dc params.Dcr]);                                
+    params.sys_C = ss(params.Ac,[params.Bc params.Bcr],params.Cc,[params.Dc params.Dcr]); 
+    
+    % only one input
+    params.sys_C_err = ss(params.Ac,params.Bcr,params.Cc,params.Dcr);   
+    params.sys_C_err.InputName = 'e';
+    params.sys_C_err.OutputName = 'yc';
     
     % optimizer (Sigma_op) 
     if params.case == 1
@@ -148,7 +157,12 @@ function params = params_TCV_Zaccarian(varargin)
         params.D_op = zeros(params.dim_state_op,params.m);
         params.sys_op = ss(params.A_op,params.B_op,params.C_op,params.D_op);                
         
-    end
+    end    
+    
+    params.sys_An.InputName = 'v';
+    params.sys_An.OutputName = 'ya';
+    params.sys_op.InputName = 'yc';
+    params.sys_op.OutputName = 'v';
     
                             
     % state dimension
@@ -156,7 +170,7 @@ function params = params_TCV_Zaccarian(varargin)
     
     % initial condition
     % [x, xc, xop, xan, psi]
-    params.X(1).val(:,1) = [ones(params.dim_state_r,1); zeros(params.dim_state_c,1); zeros(params.dim_state_op,1); zeros(params.dim_state_an,1); 0*ones(params.n,1); params.Psi; params.gamma];
+    params.X(1).val(:,1) = [zeros(params.dim_state_r,1); zeros(params.dim_state_c,1); zeros(params.dim_state_op,1); zeros(params.dim_state_an,1); 0*ones(params.n,1); params.Psi; params.gamma];
     
     % position in the state vector of the estimated parameters
     params.estimated_params = [params.dim_state_r + params.dim_state_c + params.dim_state_op + params.dim_state_an + params.n + 1:params.dim_state];
@@ -182,14 +196,16 @@ function params = params_TCV_Zaccarian(varargin)
     params.plot_params = (params.n + params.dim_state_c + params.dim_state_r + params.dim_state_op + params.dim_state_an + 1):params.dim_state;   
     
     % number of reference trajectories (under development)
-    params.Ntraj = 30;
+    params.Ntraj = 15;
+    params.traj = 1;
+    params.optimising = 0;
     
     % perturbed models
     params.sys_pert(1).A = params.A;
     params.sys_pert(1).B = params.B;
     params.sys_pert(1).C = params.C;
     params.sys_pert(1).D = params.D;
-    params.sys_pert(1).sys = params.sys_P;
+    params.sys_pert(1).sys_P = params.sys_P;
     
     % pert perc
     params.pert_perc = 0.05;
@@ -198,8 +214,27 @@ function params = params_TCV_Zaccarian(varargin)
         params.sys_pert(i).B = [params.B(1:end-1,:).*(1+params.pert_perc*randn(params.n-1,params.m)); params.B(end, :)];
         params.sys_pert(i).C = params.C;
         params.sys_pert(i).D = params.D;
-        params.sys_pert(i).sys = ss(params.sys_pert(i).A,params.sys_pert(i).B,params.sys_pert(i).C,params.sys_pert(i).D);
+        params.sys_pert(i).sys_P = ss(params.sys_pert(i).A,params.sys_pert(i).B,params.sys_pert(i).C,params.sys_pert(i).D);
         
         params.X(i).val(:,1) = params.X(i-1).val(:,1);
+    end
+    
+    %%% closed loop system %%%
+    for i=1:params.Ntraj
+        %%% no allocation closed loop %%%
+        % plant and controller        
+        params.sys_pert(i).sys_P.InputName = 'u';
+        params.sys_pert(i).sys_P.OutputName = 'y';        
+        params.sys_SumAll = sumblk('u = yc',params.m);        
+        params.sys_pert(i).sys_CLu = connect(params.sys_Sum,params.sys_C_err,params.sys_SumAll,params.sys_pert(i).sys_P,'r','u');
+        params.sys_pert(i).sys_CL = connect(params.sys_Sum,params.sys_C_err,params.sys_SumAll,params.sys_pert(i).sys_P,'r','y');         
+        
+        params.sys_SumAll = sumblk('u = yc + ya',params.m);  
+        params.sys_pert(i).sys_CL_Allu = connect(params.sys_Sum,params.sys_C_err,params.sys_op,params.sys_An,params.sys_SumAll,params.sys_pert(i).sys_P,'r','u');
+        params.sys_pert(i).sys_CL_All = connect(params.sys_Sum,params.sys_C_err,params.sys_op,params.sys_An,params.sys_SumAll,params.sys_pert(i).sys_P,'r','y');
+        params.Perm = 1:20;
+        params.sys_pert(i).sys_CL_Allu = xperm(params.sys_pert(i).sys_CL_Allu,params.Perm);
+        params.sys_pert(i).sys_CL_All = xperm(params.sys_pert(i).sys_CL_All,params.Perm);
+        
     end
 end

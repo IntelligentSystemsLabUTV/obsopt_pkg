@@ -760,13 +760,17 @@ classdef obsopt < handle
         % cost function: objective to be minimised by the MHE observer
         function [J_final,obj] = cost_function(obj,varargin) 
             
-            obj.init.t_J_start = tic;  
+            obj.init.t_J_start = tic;              
             
             % above ntraj init
             J_final = 0;
                 
             for traj = 1:obj.setup.Ntraj
+                
+                obj.init.params.optimising = 1;
+                
                 obj.init.traj = traj;
+                obj.init.params.traj = traj;
                 
                 % cost function init
                 Jtot = 0;
@@ -822,6 +826,8 @@ classdef obsopt < handle
                 else
                     X.y = x_start;
                 end
+                
+                obj.init.params.optimising = 0;
                 
                 % check for NaN or Inf
                 NaN_Flag = find(isnan(X.y));

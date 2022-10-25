@@ -27,6 +27,8 @@ function params_out = params_update_TCV_Zaccarian(params,x)
     params_out.B_an = params_out.sys_An.B;
     params_out.C_an = params_out.sys_An.C;
     params_out.D_an = params_out.sys_An.D;
+    params_out.sys_An.InputName = 'v';
+    params_out.sys_An.OutputName = 'ya';    
         
     % update gamma
     params_out.gamma = x(end+1-params.NumGamma:end);
@@ -35,6 +37,17 @@ function params_out = params_update_TCV_Zaccarian(params,x)
     % update dyn allocator
     params_out.A_op = -params_out.Gamma*params_out.Anstar'*params.R*params_out.Anstar;
     params_out.B_op = -params_out.Gamma*params_out.Anstar'*params.R;
+    params_out.sys_op = ss(params.A_op,params.B_op,params.C_op,params.D_op);
+    params_out.sys_op.InputName = 'yc';
+    params_out.sys_op.OutputName = 'v';
+    
+    % update CL sys
+    i = params.traj;    
+    params_out.sys_SumAll = sumblk('u = yc + ya',params.m);  
+    params_out.sys_pert(i).sys_CL_Allu = connect(params.sys_Sum,params.sys_C_err,params_out.sys_op,params_out.sys_An,params.sys_SumAll,params.sys_pert(i).sys_P,'r','u');
+    params_out.sys_pert(i).sys_CL_All = connect(params.sys_Sum,params.sys_C_err,params_out.sys_op,params_out.sys_An,params.sys_SumAll,params.sys_pert(i).sys_P,'r','y');    
+    params_out.sys_pert(i).sys_CL_Allu = xperm(params_out.sys_pert(i).sys_CL_Allu,params.Perm);
+    params_out.sys_pert(i).sys_CL_All = xperm(params_out.sys_pert(i).sys_CL_All,params.Perm);
 
 
 end
