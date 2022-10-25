@@ -845,7 +845,7 @@ classdef obsopt < handle
                 
                 %%% get measure  %%
                 Yhat = zeros(obj.setup.Nfilt+1,obj.setup.dim_out,size(X.y,2));
-                Yhat(1,:,:) = obj.setup.measure(X.y,obj.init.params,tspan,obj.init.input_story(traj).val(:,(tspan_pos(1):tspan_pos(end))-1));
+                Yhat(1,:,:) = obj.setup.measure(X.y,obj.init.params,tspan,obj.init.input_story(traj).val(:,(tspan_pos(1):tspan_pos(end))));
                 
                 %%% compute filters %%%
                 if obj.setup.Nfilt > 0                     
@@ -1491,26 +1491,50 @@ classdef obsopt < handle
 
                                     %%%%%%%%%%% PROPAGATION %%%%%%%%%%%%%%%%%%%%%%%
                                     n_iter_propagate = obj.init.ActualTimeIndex-obj.init.BackIterIndex;
+                                    
+                                    if ~strcmp(func2str(obj.setup.ode),'odeLsim')
+                                        
+                                        for j=1:n_iter_propagate
+                                            
+                                            % back time
+                                            back_time = obj.init.BackIterIndex+j-1;
+                                            tspan = obj.setup.time(back_time-1:back_time);                                            
 
-                                    for j =1:n_iter_propagate    
+                                            % how do you handle the input?
+                                            obj.init.params.ActualTimeIndex = back_time; % here you have the -1 because BackIterIndex is differently set up than in measure_function                                                                         
 
-                                        % update params
-    %                                     obj.init.params = obj.setup.params.params_update(obj.init.params,x_propagate);
-
-                                        % back time
-                                        back_time = obj.init.BackIterIndex+j-1;
-                                        tspan = obj.setup.time(back_time-1:back_time);
-                                        t = tspan(2);
-
-                                        % how do you handle the input?
-                                        obj.init.params.ActualTimeIndex = back_time; % here you have the -1 because BackIterIndex is differently set up than in measure_function                                                                         
-
+                                            % integrate
+                                            obj.init.t_ode_start = tic;                     
+                                            X = obj.setup.ode(@(t,x)obj.setup.model(t, x, obj.init.params, obj), tspan, x_propagate,obj.setup.odeset);                                    
+                                            x_propagate = X.y(:,end);                      
+                                            obj.init.X_est(traj).val(:,back_time) = x_propagate;
+                                            obj.init.t_ode(end+1) = toc(obj.init.t_ode_start);
+                                            
+                                        end
+                                        
+                                    else
+                                        
+                                        tspan = obj.setup.time(back_time:obj.init.ActualTimeIndex);
                                         % integrate
                                         obj.init.t_ode_start = tic;                     
                                         X = obj.setup.ode(@(t,x)obj.setup.model(t, x, obj.init.params, obj), tspan, x_propagate,obj.setup.odeset);                                    
                                         x_propagate = X.y(:,end);                      
-                                        obj.init.X_est(traj).val(:,back_time) = x_propagate;
+                                        obj.init.X_est(traj).val(:,back_time:obj.init.ActualTimeIndex) = X.y;
                                         obj.init.t_ode(end+1) = toc(obj.init.t_ode_start);
+                                        
+                                    end
+
+                                    for j =1:n_iter_propagate                                                                                   
+
+                                        % back time
+                                        back_time = obj.init.BackIterIndex+j-1;                                        
+
+                                        % how do you handle the input?
+                                        obj.init.params.ActualTimeIndex = back_time; % here you have the -1 because BackIterIndex is differently set up than in measure_function                                          
+                                        
+                                        if strcmp(func2str(obj.setup.ode),'odeLsim')
+                                           x_propagate = X.y(:,back_time);
+                                        end
 
                                         %%%% ESTIMATED measurements
                                         % measures       
@@ -1533,7 +1557,7 @@ classdef obsopt < handle
                                         for term=1:obj.setup.J_nterm
                                             obj.init.Yhat_full_story(traj).val(term,:,back_time) = yhat(traj).val(:,term);                                        
                                         end
-                                    end
+                                    end                                                                            
                                     %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%    
                                     obj.init.Jstory(1,end+1) = J;
                                     if obj.setup.Jterm_store

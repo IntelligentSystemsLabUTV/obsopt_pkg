@@ -15,11 +15,11 @@ function [obs, params] = simulation_TCV_Lsim
 rng(1);
     
 % init observer buffer (see https://doi.org/10.48550/arXiv.2204.09359)
-Nw = 600;
-Nts = 5;
+Nw = 300;
+Nts = 1;
 
 % set sampling time
-Ts = 1e-2;
+Ts = 1e-1;
 
 % set initial and final time instant
 t0 = 0;
@@ -27,7 +27,7 @@ t0 = 0;
 % uncomment to test the MHE with a single optimisation step
 % [Y,T] = step(sys_P);
 % tend = T(end);
-tend = (Nw*Nts)*Ts;
+tend = (Nw*Nts-1)*Ts;
 % tend = 30;
 
 %%%% params init function %%%%
