@@ -14,7 +14,7 @@
 function x_dot = model_TCV_reference_Zaccarian_outAll_Lsim(tspan,x,params,obs)
 
     % init the dynamics         
-    x_dot = repmat(x,1,length(tspan)-1); 
+    x_dot = repmat(x,1,length(tspan)-1);     
     t = tspan(1);
     
     % compute the time index
@@ -32,17 +32,20 @@ function x_dot = model_TCV_reference_Zaccarian_outAll_Lsim(tspan,x,params,obs)
     r = params.Cr*x(range,:) + params.Dr*params.u;
     obs.init.reference_story(obs.init.traj).val(:,pos) = r';        
     
+    % shift tspan
+    tspan = tspan-tspan(1);
+    
     % compute the CL plant
     range_c = params.dim_state_r+1:params.dim_state_r + params.dim_state_c;
     range_p = params.dim_state_r + params.dim_state_c + params.dim_state_op + params.dim_state_an + 1:params.dim_state - params.NumPsi - params.NumGamma;
     range = [range_c, range_p];    
     r_lsim = r;
     x0 = x(range);
-    [y,~,xout] = lsim(params.sys_pert(obs.init.traj).sys_CL,r_lsim,tspan,x0);  
+    [y,~,xout] = lsim(params.sys_pert(obs.init.traj).sys_CL,r_lsim,tspan,x0,'foh');  
     x_dot(range,:) = xout(2:end,:)';
     
     % save input story
-    [u,~,~] = lsim(params.sys_pert(obs.init.traj).sys_CLu,r_lsim,tspan,x0);  
+    [u,~,~] = lsim(params.sys_pert(obs.init.traj).sys_CLu,r_lsim,tspan,x0,'foh');  
     obs.init.input_default_story(obs.init.traj).val(:,pos) = u';
     obs.init.input_story_ref(obs.init.traj).val(:,pos) = u'; 
     

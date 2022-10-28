@@ -77,6 +77,18 @@ function params = params_TCV_Zaccarian(varargin)
     params.sys_C_err.InputName = 'e';
     params.sys_C_err.OutputName = 'yc';
     
+    %%% define PSI    
+    Npoints = 5;
+    poles = -logspace(0,1,Npoints);
+
+    for i=1:Npoints-1 
+        params.POLES(i,:) = linspace(poles(i),poles(i+1),3);
+        params.PSI(i,:) = poly(params.POLES(i,:));
+        params.PSI(i,:) = params.PSI(i,:)./params.PSI(i,end);    
+    end       
+%     params.tpoints = CustomStartPointSet(params.PSI(:,1:end-1));
+    %%%%%%%%%%%%%%%%%%
+    
     % optimizer (Sigma_op) 
     if params.case == 1
         % input allocation Strong (Zaccarian)
@@ -132,14 +144,17 @@ function params = params_TCV_Zaccarian(varargin)
     else
         % input allocation weak dynamic (Zaccarian)  
         % dynamic annihilator    
-        [params.sys_An, params.num_An, params.den_An, params.N, params.N_An] = annihilator(params.sys_P); 
+        [~, params.num_An, ~, params.N, params.N_An] = annihilator(params.sys_P); 
+        W_An = tf(params.num_An, params.PSI(end,:));
+        % Compute the annihilator state-space model
+        params.sys_An = ss(W_An);
         params.A_an = params.sys_An.A;
         params.B_an = params.sys_An.B;
         params.C_an = params.sys_An.C;
         params.D_an = params.sys_An.D;
         params.dim_state_an = size(params.A_an,1);
-        params.NumPsi = length(params.den_An);            
-        params.Psi = params.den_An';
+        params.Psi = params.PSI(1,:)';
+        params.NumPsi = length(params.Psi);                    
         % custom
         % params.Psi = [1.7748e-01 4.1587e+00 1.4709e+04 1.2118e+05]';        
                 
@@ -147,15 +162,47 @@ function params = params_TCV_Zaccarian(varargin)
         params.dim_state_op = size(params.Anstar,2);
         
         % Sigma op
-        params.R = [1 1 1].*eye(params.dim_input);
-        params.gamma = 1*ones(params.dim_state_op,1);
-        params.NumGamma = params.dim_state_op;
+        %%% first realisation (non minimal)
+        params.R = [1 1 1].*eye(params.dim_input);        
+        params.A_op_def = -params.Anstar'*params.R*params.Anstar;
+        params.B_op_def = -params.Anstar'*params.R;        
+        params.C_op_def = eye(params.dim_state_op);
+        params.D_op_def = zeros(params.dim_state_op,params.m);
+%         params.sys_op_def = minreal(ss(params.A_op_def,params.B_op_def,params.C_op_def,params.D_op_def),[],false);
+        params.sys_op_def = ss(params.A_op_def,params.B_op_def,params.C_op_def,params.D_op_def);
+        %%% minimal realisation (update with GAMMA)
+        params.dim_state_op = size(params.sys_op_def.A,2);
+        
+        %%% define GAMMA    
+        Npoints = 5;
+        decades = logspace(-2,1,Npoints);
+
+        for i=1:Npoints 
+            params.GAMMA(i,:) = repmat(decades(i),1,params.dim_state_op);            
+        end      
+        % define tpoints        
+        params.tpoints = CustomStartPointSet(params.GAMMA);
+        %%%%%%%%%%%%%%%%%%
+        
+%         params.gamma = params.GAMMA(1,:)';
+        params.gamma = 1*ones(params.dim_state_op,1);       
+%         params.gamma = 1e0*[1.4393e-02 5.8080e-03 8.2447e-03 1.4995e-02 7.0016e-04]';
         params.Gamma = diag(params.gamma);
-        params.A_op = -params.Gamma*params.Anstar'*params.R*params.Anstar;
-        params.B_op = -params.Gamma*params.Anstar'*params.R;        
-        params.C_op = eye(params.dim_state_op);
-        params.D_op = zeros(params.dim_state_op,params.m);
-        params.sys_op = ss(params.A_op,params.B_op,params.C_op,params.D_op);                
+        params.NumGamma = params.dim_state_op;
+        params.A_op = params.Gamma*params.sys_op_def.A;
+        params.B_op = params.Gamma*params.sys_op_def.B;
+        params.C_op = params.sys_op_def.C;
+        params.D_op = params.sys_op_def.D;
+        params.sys_op = ss(params.A_op,params.B_op,params.C_op,params.D_op);                    
+                
+        % get steady state input 
+        A_inf = [params.Ac, -params.Bc * params.C;
+                params.B*params.Cc, params.A];
+        B_inf = [params.Bc;
+                 zeros(params.n, params.p)];
+        C_inf = [params.Cc, zeros(params.m, params.n)];
+        y_c_inf = -C_inf * pinv(A_inf) * B_inf;
+        params.u_inf = (eye(params.m) - params.Anstar * pinv(params.Anstar' * params.R * params.Anstar) * params.Anstar' * params.R) * y_c_inf;
         
     end    
     
@@ -176,7 +223,15 @@ function params = params_TCV_Zaccarian(varargin)
     params.estimated_params = [params.dim_state_r + params.dim_state_c + params.dim_state_op + params.dim_state_an + params.n + 1:params.dim_state];
     
     % which vars am I optimising
-    params.opt_vars = [params.dim_state_r + params.dim_state_c + params.dim_state_op + params.dim_state_an + params.n + 1:params.dim_state-params.NumGamma - 1];
+    %%% PSI opt %%%
+    %params.opt_vars = [params.dim_state_r + params.dim_state_c + params.dim_state_op + params.dim_state_an + params.n + 1:params.dim_state-params.NumGamma - 1];
+    %%% GAMMA opt %%%
+    %params.opt_vars = [params.dim_state-params.NumGamma+1:params.dim_state];
+    %%% ALL OPT %%%
+    params.PsiPos = params.dim_state_r + params.dim_state_c + params.dim_state_op + params.dim_state_an + params.n + 1:params.dim_state-params.NumGamma;
+    params.GammaPos = params.dim_state-params.NumGamma+1:params.dim_state;
+    params.opt_vars = [params.GammaPos];
+    %params.PsiPos(1:end-1) 
     
     % set the not optimised vars
     tmp = 1:length(params.X(1).val(:,1));
@@ -196,9 +251,10 @@ function params = params_TCV_Zaccarian(varargin)
     params.plot_params = (params.n + params.dim_state_c + params.dim_state_r + params.dim_state_op + params.dim_state_an + 1):params.dim_state;   
     
     % number of reference trajectories (under development)
-    params.Ntraj = 5;
+    params.Ntraj = 2;
     params.traj = 1;
     params.optimising = 0;
+    params.Ru = 1;
     
     % perturbed models
     params.sys_pert(1).A = params.A;
@@ -232,9 +288,7 @@ function params = params_TCV_Zaccarian(varargin)
         params.sys_SumAll = sumblk('u = yc + ya',params.m);  
         params.sys_pert(i).sys_CL_Allu = connect(params.sys_Sum,params.sys_C_err,params.sys_op,params.sys_An,params.sys_SumAll,params.sys_pert(i).sys_P,'r','u');
         params.sys_pert(i).sys_CL_All = connect(params.sys_Sum,params.sys_C_err,params.sys_op,params.sys_An,params.sys_SumAll,params.sys_pert(i).sys_P,'r','y');
-        params.Perm = 1:20;
-        params.sys_pert(i).sys_CL_Allu = xperm(params.sys_pert(i).sys_CL_Allu,params.Perm);
-        params.sys_pert(i).sys_CL_All = xperm(params.sys_pert(i).sys_CL_All,params.Perm);
         
     end
+        
 end

@@ -27,8 +27,12 @@ t0 = 0;
 % uncomment to test the MHE with a single optimisation step
 % [Y,T] = step(sys_P);
 % tend = T(end);
-tend = (Nw*Nts-1)*Ts;
-% tend = 30;
+if Nts > 1
+    tend = Ts*(Nw*Nts);
+else
+    tend = Ts*(Nw*Nts-1);
+end
+% tend = 5;
 
 %%%% params init function %%%%
 % function: this function shall be in the following form:
@@ -126,6 +130,7 @@ ode = @odeLsim;
 % u: control variable
 input_law = @control_TCV;
 
+
 %%%% measurement noise %%%%
 % this should be a vector with 2 columns and as many rows as the state
 % dimension. All the noise are considered as Gaussian distributed. The 
@@ -152,12 +157,12 @@ terminal_weights = 1e-2*ones(size(terminal_states));
 
 % create observer class instance. For more information on the setup
 % options check directly the class constructor in obsopt.m
-obs = obsopt('DataType', 'simulated', 'optimise', 1, 'GlobalSearch', 0, 'MultiStart', 0, 'J_normalise', 1, 'MaxOptTime', Inf, ... 
+obs = obsopt('DataType', 'simulated', 'optimise', 1, 'MultiStart', 0, 'J_normalise', 1, 'MaxOptTime', Inf, ... 
           'Nw', Nw, 'Nts', Nts, 'ode', ode, 'PE_maxiter', 0, 'WaitAllBuffer', 1, 'params',params, 'filters', filterScale,'filterTF', filter, ...
           'model_reference',model_reference, 'measure_reference',measure_reference, ...
-          'Jdot_thresh',0.95,'MaxIter', 100, 'Jterm_store', 1, 'AlwaysOpt', 1 , 'print', 1 , 'SafetyDensity', 2, 'AdaptiveHist', [5e-3, 2.5e-2, 1e0], ...
-          'AdaptiveSampling',0, 'FlushBuffer', 1, 'opt', @fminsearch, 'terminal', 0, 'terminal_states', terminal_states, 'terminal_weights', terminal_weights, 'terminal_normalise', 1, ...
-          'ConPos', [], 'LBcon', [], 'UBcon', [], 'Bounds', 0);
+          'Jdot_thresh',0.95,'MaxIter', 200, 'Jterm_store', 1, 'AlwaysOpt', 1 , 'print', 1 , 'SafetyDensity', 2, 'AdaptiveHist', [5e-3, 2.5e-2, 1e0], ...
+          'AdaptiveSampling',0, 'FlushBuffer', 1, 'opt', @patternsearch, 'terminal', 0, 'terminal_states', terminal_states, 'terminal_weights', terminal_weights, 'terminal_normalise', 1, ...
+          'ConPos', [], 'LBcon', [], 'UBcon', [], 'NONCOLcon', @nonlcon_fcn,'Bounds', 0);
 
 %% %%%% SIMULATION %%%%
 % remark: the obs.setup.Ntraj variable describes on how many different

@@ -287,15 +287,7 @@ classdef obsopt < handle
                 obj.setup.fmin = varargin{pos+1};
             else
                 obj.setup.fmin = @fminsearch;
-            end
-            
-            % get the globalsearch option
-            if any(strcmp(varargin,'GlobalSearch'))
-                pos = find(strcmp(varargin,'GlobalSearch'));
-                obj.setup.GlobalSearch = varargin{pos+1};
-            else
-                obj.setup.GlobalSearch = 0;
-            end
+            end                        
             
             % get the multistart option
             if any(strcmp(varargin,'MultiStart'))
@@ -673,27 +665,19 @@ classdef obsopt < handle
             end
     
             
-            % optimset      
-            if strcmp(func2str(obj.setup.fmin),'fmincon')
-                obj.init.myoptioptions = optimoptions('fmincon', 'MaxIter', obj.setup.max_iter, 'display',obj.init.display, ...
+            % optimset                    
+            if strcmp(func2str(obj.setup.fmin),'fminsearchcon')
+                obj.init.myoptioptions = optimset('MaxIter', obj.setup.max_iter, 'display',obj.init.display, ...
+                                                  'MaxFunEvals',Inf,'OutputFcn',@obj.outfun,'TolFun',obj.init.TolFun,'TolX',obj.init.TolX);   
+            elseif strcmp(func2str(obj.setup.fmin),'patternsearch')                              
+                obj.init.myoptioptions = optimoptions(func2str(obj.setup.fmin), 'MaxIter', obj.setup.max_iter, 'display',obj.init.display, ...
+                                                      'Cache', 'on', 'UseParallel', false, 'StepTolerance', 0,'MaxFunEvals',Inf, 'Algorithm', 'nups');            
+            else
+                obj.init.myoptioptions = optimoptions(func2str(obj.setup.fmin), 'MaxIter', obj.setup.max_iter, 'display',obj.init.display, ...
                                                       'OptimalityTolerance', 0, 'StepTolerance', 0,'MaxFunEvals',Inf, 'GradObj', 'off',...
                                                       'OutputFcn',@obj.outfun,'TolFun',obj.init.TolFun,'TolX',obj.init.TolX, ...
-                                                      'FiniteDifferenceStepSize', obj.init.DiffMinChange, 'FiniteDifferenceType','central');  
-            elseif strcmp(func2str(obj.setup.fmin),'fminunc')
-                obj.init.myoptioptions = optimoptions('fminunc', 'MaxIter', obj.setup.max_iter, 'display',obj.init.display, ...
-                                                      'OptimalityTolerance', 0, 'StepTolerance', 0,'MaxFunEvals',Inf, 'GradObj', 'off',...
-                                                      'OutputFcn',@obj.outfun,'TolFun',obj.init.TolFun,'TolX',obj.init.TolX, ...
-                                                      'FiniteDifferenceStepSize', obj.init.DiffMinChange, 'FiniteDifferenceType','central');  
-            elseif strcmp(func2str(obj.setup.fmin),'fminsearch')
-                obj.init.myoptioptions = optimset('MaxIter', obj.setup.max_iter, 'display',obj.init.display, ...
-                                                  'MaxFunEvals',Inf,'OutputFcn',@obj.outfun,'TolFun',obj.init.TolFun,'TolX',obj.init.TolX); 
-            elseif strcmp(func2str(obj.setup.fmin),'fminsearchbnd')
-                obj.init.myoptioptions = optimset('MaxIter', obj.setup.max_iter, 'display',obj.init.display, ...
-                                                  'MaxFunEvals',Inf,'OutputFcn',@obj.outfun,'TolFun',obj.init.TolFun,'TolX',obj.init.TolX);                                               
-            elseif strcmp(func2str(obj.setup.fmin),'patternsearch')
-                obj.init.myoptioptions = optimoptions('patternsearch', 'MaxIter', obj.setup.max_iter, 'display',obj.init.display, ...
-                                                      'Cache', 'on', 'UseParallel', true, 'StepTolerance', 0,'MaxFunEvals',Inf); 
-            end                                              
+                                                      'FiniteDifferenceStepSize', obj.init.DiffMinChange, 'FiniteDifferenceType','central');                          
+            end
             %%% end of optimisation setup %%%
 
         end
@@ -764,6 +748,7 @@ classdef obsopt < handle
             
             % above ntraj init
             J_final = 0;
+            J_input = 0;
                 
             for traj = 1:obj.setup.Ntraj
                 
@@ -939,8 +924,13 @@ classdef obsopt < handle
                     J_barr = 0;
                 end
                 
+                %%% Allocation cost fucntion %%%
+                u_diff = obj.init.input_story(traj).val-obj.init.params.u_inf;
+                u_diff_norm = obj.init.params.Ru*vecnorm(u_diff);                
+                J_input = J_input + sum(u_diff_norm);
                 
-                J_final = J_final + Jtot + J_barr + J_terminal;
+                
+                J_final = J_final + Jtot + J_barr + J_terminal + J_input;
 
                 %%% final stuff %%%                
                 obj.init.Yhat_temp = Yhat;
@@ -1241,7 +1231,7 @@ classdef obsopt < handle
                         else                            
                             % back time index
                             buf_dist = diff(buf_Y_space_full_story);                        
-                            obj.init.BackTimeIndex = obj.setup.time(max(obj.init.ActualTimeIndex-sum(buf_dist(2:end)),1)); 
+                            obj.init.BackTimeIndex = obj.setup.time(max(obj.init.ActualTimeIndex-sum(buf_dist(1:end)),1)); 
                         end
                         
                         
@@ -1354,45 +1344,65 @@ classdef obsopt < handle
                             % Optimisation (only if distance_safe_flag == 1)
                             opt_time = tic;                        
 
-                            %%%%% OPTIMISATION - NORMAL MODE %%%%%%
-                            if ~obj.setup.GlobalSearch
-                                if strcmp(func2str(obj.setup.fmin),'fmincon')
-                                    [NewXopt, J, obj.init.exitflag,output] = obj.setup.fmin(@(x)obj.setup.cost_run(x,obj.init.temp_x0_nonopt,obj.init.temp_x0_filters,obj.init.target,1),...
-                                                                             obj.init.temp_x0_opt, obj.setup.Acon, obj.setup.Bcon,obj.setup.Acon_eq, obj.setup.Bcon_eq, obj.setup.LBcon,...
-                                                                             obj.setup.UBcon, obj.setup.NONCOLcon, obj.init.myoptioptions);
-                                elseif strcmp(func2str(obj.setup.fmin),'fminsearchbnd')
-                                    [NewXopt, J, obj.init.exitflag,output] = obj.setup.fmin(@(x)obj.setup.cost_run(x,obj.init.temp_x0_nonopt,obj.init.temp_x0_filters,obj.init.target,1),...
-                                                                             obj.init.temp_x0_opt, obj.setup.LBcon, obj.setup.UBcon, obj.init.myoptioptions);
+                            %%%%% OPTIMISATION - NORMAL MODE %%%%%%                            
+                            % run optimization
+                            if obj.setup.MultiStart                                                                 
+                                % init multistart
+                                ms = MultiStart('FunctionTolerance',obj.init.TolFun, 'XTolerance', obj.init.TolX, 'UseParallel',false);
+                            end                                                                   
+                            % create problem
+                            try
+                                problem = createOptimProblem(func2str(obj.setup.fmin),'objective',@(x)obj.setup.cost_run(x,obj.init.temp_x0_nonopt,obj.init.temp_x0_filters,obj.init.target,1),...
+                                                                            'x0', obj.init.temp_x0_opt, 'Aineq', obj.setup.Acon, 'bineq', obj.setup.Bcon, 'Aeq', obj.setup.Acon_eq, 'beq', obj.setup.Bcon_eq, ...
+                                                                            'lb', obj.setup.LBcon, 'ub', obj.setup.UBcon, 'nonlcon', @(x)obj.setup.NONCOLcon(x,obj.init.temp_x0_nonopt,obj), 'options', obj.init.myoptioptions);
+                                if ~obj.setup.MultiStart
+                                    [NewXopt, J] = obj.setup.fmin(problem);
                                 else
-                                    [NewXopt, J, obj.init.exitflag,output] = obj.setup.fmin(@(x)obj.setup.cost_run(x,obj.init.temp_x0_nonopt,obj.init.temp_x0_filters,obj.init.target,1),...
-                                                                             obj.init.temp_x0_opt, obj.init.myoptioptions);
+                                    [NewXopt, J] = run(ms,problem,obj.init.params.tpoints);                                                                
                                 end
-
-                                % save numer of iterations
-                                obj.init.NiterFmin(obj.init.ActualTimeIndex) = output.iterations;
-                                obj.init.exitflag_story(obj.init.ActualTimeIndex) = obj.init.exitflag;
-                            else                            
-                                if strcmp(func2str(obj.setup.fmin),'patternsearch')
-                                   [NewXopt, J, obj.init.exitflag,output] = obj.setup.fmin(@(x)obj.setup.cost_run(x,obj.init.temp_x0_nonopt,obj.init.temp_x0_filters,obj.init.target,1),...
-                                                                             obj.init.temp_x0_opt, obj.setup.Acon, obj.setup.Bcon,obj.setup.Acon_eq, obj.setup.Bcon_eq, obj.setup.LBcon,...
-                                                                             obj.setup.UBcon, obj.setup.NONCOLcon, obj.init.myoptioptions);
-                                   obj.init.NiterFmin(obj.init.ActualTimeIndex) = output.iterations;
-                                else            
-                                    % create problem
-                                    problem = createOptimProblem(func2str(obj.setup.fmin),'objective',@(x)obj.setup.cost_run(x,obj.init.temp_x0_nonopt,obj.init.temp_x0_filters,obj.init.target,1),...
-                                                                                'x0', obj.init.temp_x0_opt, 'Aineq', obj.setup.Acon, 'bineq', obj.setup.Bcon, 'Aeq', obj.setup.Acon_eq, 'beq', obj.setup.Bcon_eq, ...
-                                                                                'lb', obj.setup.LBcon, 'ub', obj.setup.UBcon, 'nonlcon', obj.setup.NONCOLcon, 'options', obj.init.myoptioptions);
-                                    if obj.setup.MultiStart
-                                        ms = MultiStart('FunctionTolerance',obj.init.TolFun, 'XTolerance', obj.init.TolX, 'UseParallel',true);
-                                        gs = GlobalSearch(ms);
-                                    else
-                                        gs = GlobalSearch;
+                                
+                            catch
+                                problem = createOptimProblem('fmincon','objective',@(x)obj.setup.cost_run(x,obj.init.temp_x0_nonopt,obj.init.temp_x0_filters,obj.init.target,1),...
+                                                                            'x0', obj.init.temp_x0_opt, 'Aineq', obj.setup.Acon, 'bineq', obj.setup.Bcon, 'Aeq', obj.setup.Acon_eq, 'beq', obj.setup.Bcon_eq, ...
+                                                                            'lb', obj.setup.LBcon, 'ub', obj.setup.UBcon, 'nonlcon', @(x)obj.setup.NONCOLcon(x,obj.init.temp_x0_nonopt,obj), 'options', obj.init.myoptioptions);
+                                                                        
+                                if strcmp(func2str(obj.setup.fmin),'patternsearch')                                                             
+                                    problem.solver = 'patternsearch';   
+                                    obj.init.myoptioptions.ConstraintTolerance = 1e-10;
+                                    obj.init.myoptioptions.MeshTolerance = 1e-6;
+                                    obj.init.myoptioptions.InitialMeshSize = 1e0;
+                                    obj.init.myoptioptions.Display = 'iter';
+                                    obj.init.myoptioptions.Algorithm = 'nups';
+                                    obj.init.myoptioptions.UseParallel = false;
+                                elseif strcmp(func2str(obj.setup.fmin),'fminsearchcon')   
+                                    problem = createOptimProblem('fmincon','objective',@(x)obj.setup.cost_run(x,obj.init.temp_x0_nonopt,obj.init.temp_x0_filters,obj.init.target,1),...
+                                                                            'x0',  obj.init.temp_x0_opt, 'lb', obj.setup.LBcon, 'ub', obj.setup.UBcon, 'Aeq', obj.setup.Acon_eq, 'beq', obj.setup.Bcon_eq, ...
+                                                                            'nonlcon', @(x)obj.setup.NONCOLcon(x,obj.init.temp_x0_nonopt,obj), 'options', obj.init.myoptioptions);
+                                    problem = rmfield(problem,'bineq');
+                                    problem = rmfield(problem,'Aineq');
+                                    problem.solver = 'fminsearchcon';                                    
+                                else    
+                                    error('WRONG OPTIMISATION SETUP');
+                                end
+                                
+                                problem.options = obj.init.myoptioptions;  
+                                
+                                if ~obj.setup.MultiStart
+                                    [NewXopt, J] = obj.setup.fmin(problem);
+                                else
+                                    list = obj.init.params.tpoints.list;
+                                    for pp = 1:obj.init.params.tpoints.NumStartPoints
+                                        problem.x0 = list(pp,:);
+                                        [J_before, obj_tmp] = obj.setup.cost_run(problem.x0,obj.init.temp_x0_nonopt,obj.init.temp_x0_filters,obj.init.target);     
+                                        [NewXopt(pp,:), J(pp,:)] = obj.setup.fmin(problem);
                                     end
-
-                                    [NewXopt, J] = run(gs,problem);
+                                    [J,pos] = min(J);
+                                    NewXopt = NewXopt(pos,:);
                                 end
-                            end                                               
-
+                                                                
+                            end
+                            
+                            
                             % reconstruct NewXopt from opt/nonopt vars
                             if obj.setup.MaxOptTimeFlag == 0
                                 NewXopt_tmp = [];
@@ -1490,7 +1500,7 @@ classdef obsopt < handle
                                     %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
                                     %%%%%%%%%%% PROPAGATION %%%%%%%%%%%%%%%%%%%%%%%
-                                    n_iter_propagate = obj.init.ActualTimeIndex-obj.init.BackIterIndex;
+                                    n_iter_propagate = obj.init.ActualTimeIndex-back_time;
                                     
                                     if ~strcmp(func2str(obj.setup.ode),'odeLsim')
                                         
@@ -1524,7 +1534,7 @@ classdef obsopt < handle
                                         
                                     end
 
-                                    for j =1:n_iter_propagate                                                                                   
+                                    for j =1:n_iter_propagate                                                                                
 
                                         % back time
                                         back_time = obj.init.BackIterIndex+j-1;                                        
@@ -1532,8 +1542,8 @@ classdef obsopt < handle
                                         % how do you handle the input?
                                         obj.init.params.ActualTimeIndex = back_time; % here you have the -1 because BackIterIndex is differently set up than in measure_function                                          
                                         
-                                        if strcmp(func2str(obj.setup.ode),'odeLsim')
-                                           x_propagate = X.y(:,back_time);
+                                        if strcmp(func2str(obj.setup.ode),'odeLsim')                                        
+                                            x_propagate = X.y(:,back_time-obj.init.BackIterIndex+1);
                                         end
 
                                         %%%% ESTIMATED measurements

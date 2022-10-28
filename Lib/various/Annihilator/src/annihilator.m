@@ -59,8 +59,8 @@ end
 % Compose the annihilator denomiantor
 sys_eigen = eig(sys.A);
 min_eigen = min(real(sys_eigen(real(sys_eigen) < 0)));
-scale = 1;
-poles = linspace(10 * min_eigen, 100 * min_eigen, n+1)/scale;
+scale = 1e-4;
+poles = linspace(1 * min_eigen, 10 * min_eigen, n+1)/scale;
 den_An = poly(poles);
 den_An = den_An ./ den_An(end);
 % Compute the annihilator transfer function
