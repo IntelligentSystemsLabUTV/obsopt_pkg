@@ -671,7 +671,7 @@ classdef obsopt < handle
                                                   'MaxFunEvals',Inf,'OutputFcn',@obj.outfun,'TolFun',obj.init.TolFun,'TolX',obj.init.TolX);   
             elseif strcmp(func2str(obj.setup.fmin),'patternsearch')                              
                 obj.init.myoptioptions = optimoptions(func2str(obj.setup.fmin), 'MaxIter', obj.setup.max_iter, 'display',obj.init.display, ...
-                                                      'Cache', 'on', 'UseParallel', false, 'StepTolerance', 0,'MaxFunEvals',Inf, 'Algorithm', 'nups');            
+                                                      'Cache', 'on', 'UseParallel', false, 'StepTolerance', 0,'MaxFunEvals',Inf,'Algorithm','nups');            
             else
                 obj.init.myoptioptions = optimoptions(func2str(obj.setup.fmin), 'MaxIter', obj.setup.max_iter, 'display',obj.init.display, ...
                                                       'OptimalityTolerance', 0, 'StepTolerance', 0,'MaxFunEvals',Inf, 'GradObj', 'off',...
@@ -1379,7 +1379,9 @@ classdef obsopt < handle
                                                                             'x0',  obj.init.temp_x0_opt, 'lb', obj.setup.LBcon, 'ub', obj.setup.UBcon, 'Aeq', obj.setup.Acon_eq, 'beq', obj.setup.Bcon_eq, ...
                                                                             'nonlcon', @(x)obj.setup.NONCOLcon(x,obj.init.temp_x0_nonopt,obj), 'options', obj.init.myoptioptions);
                                     problem = rmfield(problem,'bineq');
-                                    problem = rmfield(problem,'Aineq');
+                                    problem = rmfield(problem,'Aineq');   
+                                    obj.init.myoptioptions.ConstraintTolerance = 1e-10;
+                                    problem.options = obj.init.myoptioptions;
                                     problem.solver = 'fminsearchcon';                                    
                                 else    
                                     error('WRONG OPTIMISATION SETUP');
@@ -1388,7 +1390,11 @@ classdef obsopt < handle
                                 problem.options = obj.init.myoptioptions;  
                                 
                                 if ~obj.setup.MultiStart
-                                    [NewXopt, J] = obj.setup.fmin(problem);
+                                    try
+                                        [NewXopt, J] = obj.setup.fmin(problem);
+                                    catch
+                                        [NewXopt, J] = obj.setup.fmin(problem.objective,problem.x0,problem.lb,problem.ub,problem.Aeq,problem.beq,problem.nonlcon,problem.options);
+                                    end
                                 else
                                     list = obj.init.params.tpoints.list;
                                     for pp = 1:obj.init.params.tpoints.NumStartPoints

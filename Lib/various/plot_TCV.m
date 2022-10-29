@@ -283,7 +283,7 @@
                     u_def = obj.init.input_default_story(traj).val(i,:);                    
                     u_all = obj.init.input_story(traj).val(i,:);
                     plot(obj.setup.time(1:length(u_def)),u_def,'k--','LineWidth',1.5);
-                    plot(obj.setup.time(1:length(u_all)),u_all,'r','LineWidth',1.5);
+                    plot(obj.setup.time(1:length(u_all)),u_all,'b','LineWidth',1.5);
 
                 end                                                
             end
@@ -337,7 +337,7 @@
                     % plot
                     pos = obj.setup.params.q_pos(i);
                     est_error_all = reshape(obj.init.Y_full_story(traj).val(1,pos,:),1,obj.setup.Niter) - reshape(obj.init.Yhat_full_story(traj).val(1,pos,:),1,obj.setup.Niter);
-                    plot(obj.setup.time,est_error_all,'r','LineWidth',2);
+                    plot(obj.setup.time,est_error_all,'b','LineWidth',2);
                 end                
                 
                 xlabel('time [s]')

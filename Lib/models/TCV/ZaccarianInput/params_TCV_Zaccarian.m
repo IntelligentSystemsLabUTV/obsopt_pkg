@@ -230,8 +230,7 @@ function params = params_TCV_Zaccarian(varargin)
     %%% ALL OPT %%%
     params.PsiPos = params.dim_state_r + params.dim_state_c + params.dim_state_op + params.dim_state_an + params.n + 1:params.dim_state-params.NumGamma;
     params.GammaPos = params.dim_state-params.NumGamma+1:params.dim_state;
-    params.opt_vars = [params.GammaPos];
-    %params.PsiPos(1:end-1) 
+    params.opt_vars = [params.PsiPos(1:end-1)];
     
     % set the not optimised vars
     tmp = 1:length(params.X(1).val(:,1));
@@ -251,10 +250,10 @@ function params = params_TCV_Zaccarian(varargin)
     params.plot_params = (params.n + params.dim_state_c + params.dim_state_r + params.dim_state_op + params.dim_state_an + 1):params.dim_state;   
     
     % number of reference trajectories (under development)
-    params.Ntraj = 2;
+    params.Ntraj = 5;
     params.traj = 1;
     params.optimising = 0;
-    params.Ru = 1;
+    params.Ru = 0;
     
     % perturbed models
     params.sys_pert(1).A = params.A;
