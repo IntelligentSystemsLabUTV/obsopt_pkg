@@ -1145,7 +1145,7 @@ classdef obsopt < handle
             %%%% observer %%%%
             if  ( ~( ( (distance < obj.setup.Nts) || obj.init.hyst_flag || obj.init.PE_flag ) && (obj.init.distance_safe_flag) ) )
 
-                if obj.setup.print
+                if obj.setup.print && (mod(obj.init.ActualTimeIndex,1000)==1)
                     % Display iteration slengthtep
                     disp(['n window: ', num2str(obj.setup.w),'  n samples: ', num2str(obj.setup.Nts)])                    
                     disp(['N. optimisations RUN: ',num2str(obj.init.opt_counter)]);
@@ -1369,12 +1369,13 @@ classdef obsopt < handle
                                 if strcmp(func2str(obj.setup.fmin),'patternsearch')                                                             
                                     problem.solver = 'patternsearch';   
                                     obj.init.myoptioptions.ConstraintTolerance = 1e-10;
-                                    obj.init.myoptioptions.FunctionTolerance = 1e-10;
-                                    obj.init.myoptioptions.MeshTolerance = 1e-10;   
-                                    obj.init.myoptioptions.MaxMeshSize = 1;
-                                    obj.init.myoptioptions.InitialMeshSize = 1;
+%                                     obj.init.myoptioptions.FunctionTolerance = 1e-6;
+                                    obj.init.myoptioptions.ScaleMesh = 'off';
+%                                     obj.init.myoptioptions.MeshTolerance = 1e-6;   
+%                                     obj.init.myoptioptions.MaxMeshSize = 1;
+%                                     obj.init.myoptioptions.InitialMeshSize = 1;
                                     obj.init.myoptioptions.Display = 'iter';
-                                    obj.init.myoptioptions.Algorithm = 'nups-gps';
+                                    obj.init.myoptioptions.Algorithm = 'nups';
                                     obj.init.myoptioptions.UseParallel = false;
                                 elseif strcmp(func2str(obj.setup.fmin),'fminsearchcon')   
                                     problem = createOptimProblem('fmincon','objective',@(x)obj.setup.cost_run(x,obj.init.temp_x0_nonopt,obj.init.temp_x0_filters,obj.init.target,1),...

@@ -154,7 +154,7 @@ function params = params_TCV_Zaccarian(varargin)
         params.D_an = params.sys_An.D;
         params.dim_state_an = size(params.A_an,1);
         params.Psi = params.PSI(1,:)';
-        params.Psi = [2.7118e+03   1.0795e+06   1.0781e+08   1.0000e+00]';
+%         params.Psi = [2.7118e+03   1.0795e+06   1.0781e+08   1.0000e+00]';
         params.NumPsi = length(params.Psi);                            
                 
         params.Anstar = dcgain(params.sys_An);        
@@ -184,8 +184,8 @@ function params = params_TCV_Zaccarian(varargin)
         %%%%%%%%%%%%%%%%%%
         
 %         params.gamma = params.GAMMA(1,:)';
-        params.gamma = 1*ones(params.dim_state_op,1);       
-        params.gamma = 1e0*[1.9429e+02   4.1329e+02   1.4146e+00   1.1411e+00   8.5913e+01]';
+        params.gamma = 1.0*ones(params.dim_state_op,1);       
+%         params.gamma = 1e0*[1.9429e+02   4.1329e+02   1.4146e+00   1.1411e+00   8.5913e+01]';
         params.Gamma = diag(params.gamma);
         params.NumGamma = params.dim_state_op;
         params.A_op = params.Gamma*params.sys_op_def.A;
@@ -252,7 +252,7 @@ function params = params_TCV_Zaccarian(varargin)
     params.Ntraj = 5;
     params.traj = 1;
     params.optimising = 0;
-    params.Ru = 0;
+    params.Ru = 1;
     
     % perturbed models
     params.sys_pert(1).A = params.A;
@@ -262,7 +262,7 @@ function params = params_TCV_Zaccarian(varargin)
     params.sys_pert(1).sys_P = params.sys_P;
     
     % pert perc
-    params.pert_perc = 0.05;
+    params.pert_perc = 0.1;
     for i=2:params.Ntraj
         %%% no change in Pstar
 %         params.sys_pert(i).A = [[params.A(1:end-1,1).*(1+params.pert_perc*randn(params.n-1,1)); params.A(end,1)] params.A(:,2:end)];

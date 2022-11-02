@@ -167,7 +167,7 @@ function params = params_TCV_Zaccarian_nonlinear(varargin)
     params.plot_params = (params.n + params.dim_state_c + params.dim_state_r + params.dim_state_op + params.dim_state_an + 1):params.dim_state;   
     
     % number of reference trajectories (under development)
-    params.Ntraj = 1;
+    params.Ntraj = 5;
     params.traj = 1;
     params.optimising = 0;
     params.Ru = 0;
