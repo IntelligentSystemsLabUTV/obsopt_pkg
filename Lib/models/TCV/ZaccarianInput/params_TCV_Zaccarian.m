@@ -154,9 +154,8 @@ function params = params_TCV_Zaccarian(varargin)
         params.D_an = params.sys_An.D;
         params.dim_state_an = size(params.A_an,1);
         params.Psi = params.PSI(1,:)';
-        params.NumPsi = length(params.Psi);                    
-        % custom
-        % params.Psi = [1.7748e-01 4.1587e+00 1.4709e+04 1.2118e+05]';        
+        params.Psi = [2.7118e+03   1.0795e+06   1.0781e+08   1.0000e+00]';
+        params.NumPsi = length(params.Psi);                            
                 
         params.Anstar = dcgain(params.sys_An);        
         params.dim_state_op = size(params.Anstar,2);
@@ -186,7 +185,7 @@ function params = params_TCV_Zaccarian(varargin)
         
 %         params.gamma = params.GAMMA(1,:)';
         params.gamma = 1*ones(params.dim_state_op,1);       
-%         params.gamma = 1e0*[1.4393e-02 5.8080e-03 8.2447e-03 1.4995e-02 7.0016e-04]';
+        params.gamma = 1e0*[1.9429e+02   4.1329e+02   1.4146e+00   1.1411e+00   8.5913e+01]';
         params.Gamma = diag(params.gamma);
         params.NumGamma = params.dim_state_op;
         params.A_op = params.Gamma*params.sys_op_def.A;
@@ -230,7 +229,7 @@ function params = params_TCV_Zaccarian(varargin)
     %%% ALL OPT %%%
     params.PsiPos = params.dim_state_r + params.dim_state_c + params.dim_state_op + params.dim_state_an + params.n + 1:params.dim_state-params.NumGamma;
     params.GammaPos = params.dim_state-params.NumGamma+1:params.dim_state;
-    params.opt_vars = [params.PsiPos(1:end-1)];
+    params.opt_vars = [params.PsiPos(1:end-1) params.GammaPos];
     
     % set the not optimised vars
     tmp = 1:length(params.X(1).val(:,1));
@@ -265,8 +264,12 @@ function params = params_TCV_Zaccarian(varargin)
     % pert perc
     params.pert_perc = 0.05;
     for i=2:params.Ntraj
-        params.sys_pert(i).A = [[params.A(1:end-1,1).*(1+params.pert_perc*randn(params.n-1,1)); params.A(end,1)] params.A(:,2:end)];
-        params.sys_pert(i).B = [params.B(1:end-1,:).*(1+params.pert_perc*randn(params.n-1,params.m)); params.B(end, :)];
+        %%% no change in Pstar
+%         params.sys_pert(i).A = [[params.A(1:end-1,1).*(1+params.pert_perc*randn(params.n-1,1)); params.A(end,1)] params.A(:,2:end)];
+%         params.sys_pert(i).B = [params.B(1:end-1,:).*(1+params.pert_perc*randn(params.n-1,params.m)); params.B(end, :)];
+        %%% chage Pstar
+        params.sys_pert(i).A = [params.A(1:end,1).*(1+params.pert_perc*randn(params.n,1)) params.A(:,2:end)];
+        params.sys_pert(i).B = params.B.*(1+params.pert_perc*randn(params.n,params.m));
         params.sys_pert(i).C = params.C;
         params.sys_pert(i).D = params.D;
         params.sys_pert(i).sys_P = ss(params.sys_pert(i).A,params.sys_pert(i).B,params.sys_pert(i).C,params.sys_pert(i).D);
