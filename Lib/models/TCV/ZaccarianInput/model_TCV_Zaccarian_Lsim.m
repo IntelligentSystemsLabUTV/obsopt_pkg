@@ -14,7 +14,7 @@
 function x_dot = model_TCV_Zaccarian_Lsim(tspan,x,params,obs)
 
     % init the dynamics         
-    x_dot = repmat(x,1,length(tspan)-1);    
+    x_dot = repmat(x,1,max(1,max(1,length(tspan)-1)));    
     t = tspan(1);
     
     % compute the time index
@@ -24,7 +24,8 @@ function x_dot = model_TCV_Zaccarian_Lsim(tspan,x,params,obs)
         pos(i) = max(1,pos(i));        
     end
     drive_out = [];
-    params.u = params.input(tspan,drive_out,params);         
+    params.u = params.input(tspan,drive_out,params);   
+    
     
     % compute the reference (Sigma_r)
     range = 1:params.dim_state_r;

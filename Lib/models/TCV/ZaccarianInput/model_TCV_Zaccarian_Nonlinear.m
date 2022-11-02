@@ -11,7 +11,7 @@
 % obs: observer class instance (may be not used)
 % OUTPUT:
 % x_dot: dynamics equations
-function x_dot = model_TCV_Zaccarian(tspan,x,params,obs)
+function x_dot = model_TCV_Zaccarian_Nonlinear(tspan,x,params,obs)
 
     % init the dynamics         
     x_dot = repmat(x,1,max(1,length(tspan)-1));    
@@ -51,9 +51,10 @@ function x_dot = model_TCV_Zaccarian(tspan,x,params,obs)
     %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
     
     %%%%%% compute the optimizer %%%%%%
-    range = params.dim_state_r+params.dim_state_c+1:params.dim_state_r+params.dim_state_c+params.dim_state_op;             
-    x_dot(range,:) = params.A_op*x(range,:) + params.B_op*yc;
-    v = params.C_op*x(range,:) + params.D_op*yc;          
+    range = params.dim_state_r+params.dim_state_c+1:params.dim_state_r+params.dim_state_c+params.dim_state_op;      
+    u_prev = obs.init.input_story(obs.init.traj).val(:,max(1,pos-1));
+    x_dot(range,:) = DotXopt(x,yc,params);
+    v = x(range,:);
     obs.init.optimizer_story(obs.init.traj).val(:,pos) = v;
     %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
     
@@ -78,5 +79,7 @@ function x_dot = model_TCV_Zaccarian(tspan,x,params,obs)
     ybar = y(:,params.q_pos);    
     e = rbar-ybar;
     obs.init.error_story_ref(obs.init.traj).val(:,pos) = e';
+    
+%     obs.init.Jstory_all(obs.init.traj).val(pos) = Jcost(x,u_prev,params); 
        
 end

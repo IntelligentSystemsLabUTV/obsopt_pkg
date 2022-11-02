@@ -7,7 +7,7 @@ function [c, ceq] = nonlcon_fcn(xopt,xnonopt,obs)
     x(obs.setup.nonopt_vars) = xnonopt(1).val;  
     
     % tolerance
-    tol = 10*obs.init.myoptioptions.ConstraintTolerance;
+    tol = 1e0*obs.init.myoptioptions.ConstraintTolerance;
     
     % negative poles    
     c = [];
@@ -15,7 +15,7 @@ function [c, ceq] = nonlcon_fcn(xopt,xnonopt,obs)
         sys_sz = size(obs.init.params.sys_pert(traj).sys_CL_All.A,1);
         tmp = -1e2*ones(sys_sz,1);
         minss = minreal(obs.init.params.sys_pert(traj).sys_CL_All,[],false);
-        eig_sys = (real(eig(minss)) + eps);
+        eig_sys = (real(eig(minss)) + tol);
         tmp(1:length(eig_sys)) = eig_sys;
         c = [c; tmp];        
     end

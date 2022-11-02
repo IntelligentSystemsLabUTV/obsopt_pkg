@@ -15,11 +15,11 @@ function [obs, params] = simulation_TCV_Lsim
 rng(1);
     
 % init observer buffer (see https://doi.org/10.48550/arXiv.2204.09359)
-Nw = 300;
-Nts = 1;
+Nw = 400;
+Nts = 1e1;
 
 % set sampling time
-Ts = 1e-1;
+Ts = 1e-2;
 
 % set initial and final time instant
 t0 = 0;
@@ -43,7 +43,7 @@ end
 % model equations. e.g. for a mechanical system
 % params.M = mass
 % params.b = friction coefficient
-params_init = @params_TCV_Zaccarian;
+params_init = @params_TCV_Zaccarian_Nonlinear;
 
 %%%% params update function %%%%
 % remark: this file is used if the MHE is set to estimate mode parameters
@@ -55,7 +55,7 @@ params_init = @params_TCV_Zaccarian;
 % x: state vector
 % OUTPUT: 
 % params_out: updated structure with the new model parameters 
-params_update = @params_update_TCV_Zaccarian;
+params_update = @params_update_TCV_Zaccarian_Nonlinear;
 
 
 %%%% model function %%%%
@@ -68,7 +68,7 @@ params_update = @params_update_TCV_Zaccarian;
 % obs: instance of the obsopt observer class
 % OUTPUT:
 % xdot:output of the state space model
-model = @model_TCV_Zaccarian_Lsim;
+model = @model_TCV_Zaccarian_Nonlinear;
 
 %%%% model reference function %%%%
 % remark: !DEVEL! this function is used to generate the reference
@@ -84,7 +84,7 @@ model = @model_TCV_Zaccarian_Lsim;
 % OUTPUT:
 % xdot:output of the state space model
 % model_reference = model;
-model_reference = @model_TCV_reference_Zaccarian_outAll_Lsim;
+model_reference = @model_TCV_reference_Zaccarian_outAll;
 
 %%%% measure function %%%%
 % function: this file shall be in the following form:   
@@ -116,7 +116,7 @@ measure_reference = @measure_TCV_reference;
 
 %%%% integration method %%%%
 % ode45-like integration method. For discrete time systems use @odeDD
-ode = @odeLsim;
+ode = @odeEuler;
 
 
 %%%% input law %%%
@@ -157,7 +157,7 @@ terminal_weights = 1e-2*ones(size(terminal_states));
 
 % create observer class instance. For more information on the setup
 % options check directly the class constructor in obsopt.m
-obs = obsopt('DataType', 'simulated', 'optimise', 1, 'MultiStart', 0, 'J_normalise', 1, 'MaxOptTime', Inf, ... 
+obs = obsopt('DataType', 'simulated', 'optimise', 0, 'MultiStart', 0, 'J_normalise', 1, 'MaxOptTime', Inf, ... 
           'Nw', Nw, 'Nts', Nts, 'ode', ode, 'PE_maxiter', 0, 'WaitAllBuffer', 1, 'params',params, 'filters', filterScale,'filterTF', filter, ...
           'model_reference',model_reference, 'measure_reference',measure_reference, ...
           'Jdot_thresh',0.95,'MaxIter', 200, 'Jterm_store', 1, 'AlwaysOpt', 1 , 'print', 1 , 'SafetyDensity', 2, 'AdaptiveHist', [5e-3, 2.5e-2, 1e0], ...
@@ -179,6 +179,7 @@ t0 = tic;
     
     %%%% PROPAGATION %%%%
     % forward propagation of the previous estimate
+    disp('Integrating One Shot')
     for traj = 1:obs.setup.Ntraj
         
         % update traj

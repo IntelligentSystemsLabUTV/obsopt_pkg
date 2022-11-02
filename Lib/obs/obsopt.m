@@ -1369,10 +1369,12 @@ classdef obsopt < handle
                                 if strcmp(func2str(obj.setup.fmin),'patternsearch')                                                             
                                     problem.solver = 'patternsearch';   
                                     obj.init.myoptioptions.ConstraintTolerance = 1e-10;
-                                    obj.init.myoptioptions.MeshTolerance = 1e-6;
-                                    obj.init.myoptioptions.InitialMeshSize = 1e0;
+                                    obj.init.myoptioptions.FunctionTolerance = 1e-10;
+                                    obj.init.myoptioptions.MeshTolerance = 1e-10;   
+                                    obj.init.myoptioptions.MaxMeshSize = 1;
+                                    obj.init.myoptioptions.InitialMeshSize = 1;
                                     obj.init.myoptioptions.Display = 'iter';
-                                    obj.init.myoptioptions.Algorithm = 'nups';
+                                    obj.init.myoptioptions.Algorithm = 'nups-gps';
                                     obj.init.myoptioptions.UseParallel = false;
                                 elseif strcmp(func2str(obj.setup.fmin),'fminsearchcon')   
                                     problem = createOptimProblem('fmincon','objective',@(x)obj.setup.cost_run(x,obj.init.temp_x0_nonopt,obj.init.temp_x0_filters,obj.init.target,1),...
@@ -1513,7 +1515,7 @@ classdef obsopt < handle
                                         for j=1:n_iter_propagate
                                             
                                             % back time
-                                            back_time = obj.init.BackIterIndex+j-1;
+                                            back_time = obj.init.BackIterIndex+j;
                                             tspan = obj.setup.time(back_time-1:back_time);                                            
 
                                             % how do you handle the input?
@@ -1550,6 +1552,8 @@ classdef obsopt < handle
                                         
                                         if strcmp(func2str(obj.setup.ode),'odeLsim')                                        
                                             x_propagate = X.y(:,back_time-obj.init.BackIterIndex+1);
+                                        else
+                                            x_propagate = obj.init.X_est(traj).val(:,back_time-obj.init.BackIterIndex+1);
                                         end
 
                                         %%%% ESTIMATED measurements

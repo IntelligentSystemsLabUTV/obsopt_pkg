@@ -15,8 +15,8 @@ function [obs, params] = simulation_TCV
 rng(1);
     
 % init observer buffer (see https://doi.org/10.48550/arXiv.2204.09359)
-Nw = 60;
-Nts = 5;
+Nw = 300;
+Nts = 1;
 
 % set sampling time
 Ts = 1e-1;
@@ -27,8 +27,12 @@ t0 = 0;
 % uncomment to test the MHE with a single optimisation step
 % [Y,T] = step(sys_P);
 % tend = T(end);
-% tend = (Nw*Nts)*Ts;
-tend = 30;
+if Nts > 1
+    tend = Ts*(Nw*Nts);
+else
+    tend = Ts*(Nw*Nts-1);
+end
+% tend = 5;
 
 %%%% params init function %%%%
 % function: this function shall be in the following form:
@@ -64,7 +68,7 @@ params_update = @params_update_TCV_Zaccarian;
 % obs: instance of the obsopt observer class
 % OUTPUT:
 % xdot:output of the state space model
-model = @model_TCV_Zaccarian_Lsim;
+model = @model_TCV_reference_Zaccarian_outAll;
 
 %%%% model reference function %%%%
 % remark: !DEVEL! this function is used to generate the reference
@@ -80,7 +84,7 @@ model = @model_TCV_Zaccarian_Lsim;
 % OUTPUT:
 % xdot:output of the state space model
 % model_reference = model;
-model_reference = @model_TCV_reference_Zaccarian_outAll_Lsim;
+model_reference = @model_TCV_reference_Zaccarian_outAll;
 
 %%%% measure function %%%%
 % function: this file shall be in the following form:   
@@ -112,7 +116,7 @@ measure_reference = @measure_TCV_reference;
 
 %%%% integration method %%%%
 % ode45-like integration method. For discrete time systems use @odeDD
-ode = @odeLsim;
+ode = @oderk4_fast;
 
 
 %%%% input law %%%
