@@ -830,6 +830,9 @@ classdef obsopt < handle
                 
                 %%% get measure  %%
                 Yhat = zeros(obj.setup.Nfilt+1,obj.setup.dim_out,size(X.y,2));
+                if size(obj.init.input_story(traj).val,2) < size(X.y,2)
+                    obj.init.input_story(traj).val = [zeros(size(obj.init.input_story(traj).val,1),1), obj.init.input_story(traj).val];
+                end
                 Yhat(1,:,:) = obj.setup.measure(X.y,obj.init.params,tspan,obj.init.input_story(traj).val(:,(tspan_pos(1):tspan_pos(end))));
                 
                 %%% compute filters %%%
