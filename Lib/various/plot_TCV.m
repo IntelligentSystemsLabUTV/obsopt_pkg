@@ -283,7 +283,7 @@
                     u_def = obj.init.input_default_story(traj).val(i,:);                    
                     u_all = obj.init.input_story(traj).val(i,:);
                     plot(obj.setup.time(1:length(u_def)),u_def,'k--','LineWidth',1.5);
-                    plot(obj.setup.time(1:length(u_all)),u_all,'b','LineWidth',1.5);
+                    plot(obj.setup.time(1:length(u_all)),u_all,'r','LineWidth',1.5);
 
                 end                                                
             end
@@ -337,31 +337,7 @@
                     % plot
                     pos = obj.setup.params.q_pos(i);
                     est_error_all = reshape(obj.init.Y_full_story(traj).val(1,pos,:),1,obj.setup.Niter) - reshape(obj.init.Yhat_full_story(traj).val(1,pos,:),1,obj.setup.Niter);
-                    plot(obj.setup.time,est_error_all,'b','LineWidth',2);
-                end                
-                
-                xlabel('time [s]')
-                ylabel(['\delta yq_',num2str(i)])
-            end
-        end
-        
-        %%%% plot output eta difference %%%%
-        if ~isempty(obj.setup.params.eta)
-            fig_count = fig_count+1;
-            figure(fig_count)
-            sgtitle('Allocated output - difference')
-
-            for i=1:obj.setup.params.eta
-                subplot(obj.setup.params.eta,1,i);
-                hold on
-                grid on
-                box on
-
-                for traj=1:obj.setup.Ntraj
-                    % plot
-                    pos = obj.setup.params.eta_pos(i);
-                    est_error_all = reshape(obj.init.Y_full_story(traj).val(1,pos,:),1,obj.setup.Niter) - reshape(obj.init.Yhat_full_story(traj).val(1,pos,:),1,obj.setup.Niter);
-                    plot(obj.setup.time,est_error_all,'b','LineWidth',2);
+                    plot(obj.setup.time,est_error_all,'r','LineWidth',2);
                 end                
                 
                 xlabel('time [s]')
@@ -401,7 +377,7 @@
 
                 % plot estimated values
                 yhat = reshape(obj.init.Yhat_full_story(traj).val(1,k,:),size(obj.setup.time));
-                plot(obj.setup.time,yhat,'b--','LineWidth',1.5)
+                plot(obj.setup.time,yhat,'r--','LineWidth',1.5)
 
 
                 try

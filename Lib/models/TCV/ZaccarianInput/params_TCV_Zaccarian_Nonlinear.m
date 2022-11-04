@@ -7,7 +7,7 @@
 % INPUT: none
 % OUTPUT:
 % params: structure with all the necessary parameters
-function params = params_TCV_Zaccarian_nonlinear(varargin)
+function params = params_TCV_Zaccarian_Nonlinear(varargin)
     
     % Zaccarian
     % generate system
@@ -80,7 +80,7 @@ function params = params_TCV_Zaccarian_nonlinear(varargin)
     
     % input allocation weak dynamic (Zaccarian)  
     % dynamic annihilator    
-    [~, params.num_An, ~, params.N, params.N_An] = annihilator(params.sys_P); 
+    [params.num_An, params.N, params.N_An] = annihilator(params.sys_P, params.n+1); 
     W_An = tf(params.num_An, params.PSI(end,:));
     % Compute the annihilator state-space model
     params.sys_An = ss(W_An);
@@ -90,7 +90,7 @@ function params = params_TCV_Zaccarian_nonlinear(varargin)
     params.D_an = params.sys_An.D;
     params.dim_state_an = size(params.A_an,1);
     params.Psi = params.PSI(1,:)';
-%     params.Psi = [2.7118e+03   1.0795e+06   1.0781e+08   1.0000e+00]';
+    params.Psi = [0.1667    1.0000    1.8333    1.0000]';
     params.NumPsi = length(params.Psi);                            
             
     params.Anstar = dcgain(params.sys_An);        
@@ -170,7 +170,7 @@ function params = params_TCV_Zaccarian_nonlinear(varargin)
     params.Ntraj = 5;
     params.traj = 1;
     params.optimising = 0;
-    params.Ru = 0;
+    params.Ru = 1e-1;
     
     % perturbed models
     params.sys_pert(1).A = params.A;

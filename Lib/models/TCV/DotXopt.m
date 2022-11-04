@@ -11,7 +11,7 @@ function xdot = DotXopt(x,yc,params)
 
     for i=1:params.m
         if abs(u(i))>params.InputBound
-            Grad = params.R(i)*u(i)*Anstar(i,:);
+            Grad = params.R(i)*(u(i) - params.InputBound)*Anstar(i,:);
             xdot = xdot-Gamma*Grad';
         end
     end

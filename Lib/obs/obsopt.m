@@ -925,8 +925,8 @@ classdef obsopt < handle
                 end
                 
                 %%% Allocation cost fucntion %%%
-                u_diff = obj.init.input_story(traj).val-obj.init.params.u_inf;
-                u_diff_norm = obj.init.params.Ru*vecnorm(u_diff);                
+                u_diff = obj.init.input_story(traj).val;
+                u_diff_norm = obj.init.params.Ru*vecnorm(u_diff).^2;                
                 J_input = J_input + sum(u_diff_norm);
                 
                 

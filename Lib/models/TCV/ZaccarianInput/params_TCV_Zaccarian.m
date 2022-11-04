@@ -144,7 +144,7 @@ function params = params_TCV_Zaccarian(varargin)
     else
         % input allocation weak dynamic (Zaccarian)  
         % dynamic annihilator    
-        [~, params.num_An, ~, params.N, params.N_An] = annihilator(params.sys_P); 
+        [params.num_An,params.N, params.N_An] = annihilator(params.sys_P, params.n + 1); 
         W_An = tf(params.num_An, params.PSI(end,:));
         % Compute the annihilator state-space model
         params.sys_An = ss(W_An);
@@ -252,7 +252,7 @@ function params = params_TCV_Zaccarian(varargin)
     params.Ntraj = 5;
     params.traj = 1;
     params.optimising = 0;
-    params.Ru = 1;
+    params.Ru = 0.25e-1;
     
     % perturbed models
     params.sys_pert(1).A = params.A;
@@ -268,8 +268,8 @@ function params = params_TCV_Zaccarian(varargin)
 %         params.sys_pert(i).A = [[params.A(1:end-1,1).*(1+params.pert_perc*randn(params.n-1,1)); params.A(end,1)] params.A(:,2:end)];
 %         params.sys_pert(i).B = [params.B(1:end-1,:).*(1+params.pert_perc*randn(params.n-1,params.m)); params.B(end, :)];
         %%% chage Pstar
-        params.sys_pert(i).A = [params.A(1:end,1).*(1+params.pert_perc*randn(params.n,1)) params.A(:,2:end)];
-        params.sys_pert(i).B = params.B.*(1+params.pert_perc*randn(params.n,params.m));
+        params.sys_pert(i).A = [params.A(1:end,1).*(1+params.pert_perc*rand(params.n,1)) params.A(:,2:end)];
+        params.sys_pert(i).B = params.B.*(1+params.pert_perc*rand(params.n,params.m));
         params.sys_pert(i).C = params.C;
         params.sys_pert(i).D = params.D;
         params.sys_pert(i).sys_P = ss(params.sys_pert(i).A,params.sys_pert(i).B,params.sys_pert(i).C,params.sys_pert(i).D);

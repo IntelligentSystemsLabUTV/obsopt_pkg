@@ -15,11 +15,11 @@ function [obs, params] = simulation_TCV_Lsim
 rng(1);
     
 % init observer buffer (see https://doi.org/10.48550/arXiv.2204.09359)
-Nw = 300;
+Nw = 3000;
 Nts = 1e0;
 
 % set sampling time
-Ts = 1e-1;
+Ts = 1e-2;
 
 % set initial and final time instant
 t0 = 0;
@@ -157,7 +157,7 @@ terminal_weights = 1e-2*ones(size(terminal_states));
 
 % create observer class instance. For more information on the setup
 % options check directly the class constructor in obsopt.m
-obs = obsopt('DataType', 'simulated', 'optimise', 1, 'MultiStart', 0, 'J_normalise', 1, 'MaxOptTime', Inf, ... 
+obs = obsopt('DataType', 'simulated', 'optimise', 0, 'MultiStart', 0, 'J_normalise', 1, 'MaxOptTime', Inf, ... 
           'Nw', Nw, 'Nts', Nts, 'ode', ode, 'PE_maxiter', 0, 'WaitAllBuffer', 1, 'params',params, 'filters', filterScale,'filterTF', filter, ...
           'model_reference',model_reference, 'measure_reference',measure_reference, ...
           'Jdot_thresh',0.95,'MaxIter', 200, 'Jterm_store', 1, 'AlwaysOpt', 1 , 'print', 1 , 'SafetyDensity', 2, 'AdaptiveHist', [5e-3, 2.5e-2, 1e0], ...
