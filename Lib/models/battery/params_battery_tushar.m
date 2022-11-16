@@ -18,22 +18,46 @@ function params = params_battery_tushar
     params.input_soc = input_data.SOC';
     params.input_R0 = input_data.R0;
     params.input_R1 = input_data.R1;
-    params.input_C1 = input_data.C1;        
+    params.input_C1 = input_data.C1;      
+    
+    params.min_params = min([input_data.OCV;input_data.R0;input_data.R1;input_data.C1],[],2);
+    params.max_params = max([input_data.OCV;input_data.R0;input_data.R1;input_data.C1],[],2);
     
     % model inconsistency
-    params.deltaModel = 1*0.05;
-    params.input_data.OCV_nominal = params.input_OCV*(1+params.deltaModel);
-    params.input_data.R0_nominal = params.input_R0*(1+params.deltaModel);
-    params.input_data.R1_nominal = params.input_R1*(1+params.deltaModel);
-    params.input_data.C1_nominal = params.input_C1*(1+params.deltaModel);
+    params.deltaModel = 0*0.05;
+    npoints = length(params.input_OCV);
+    params.input_data.OCV_nominal = params.input_OCV.*(1+0.1*params.deltaModel*randn(1,npoints));
+    params.input_data.R0_nominal = params.input_R0.*(1+params.deltaModel*randn(1,npoints));
+    params.input_data.R1_nominal = params.input_R1.*(1+params.deltaModel*randn(1,npoints));
+    params.input_data.C1_nominal = params.input_C1.*(1+params.deltaModel*randn(1,npoints));
+    
+    % fault-detection
+%     params.input_data.R0_nominal(3) = 0.1*params.input_data.R0_nominal;
+%     params.input_data.R1_nominal(3) = 0.1*params.input_data.R1_nominal;
+%     params.input_data.C1_nominal(3) = 0.1*params.input_data.C1_nominal;
+    
+    % Battery Capacity (converting Ampere-hour to Ampere-second)
+    params.InputAmplitude = -1;
+    params.C_n_h = 4.1*abs(params.InputAmplitude);
+    params.C_n = params.C_n_h * 3600;     
+    params.C_n_h_nominal = params.C_n_h*(1+params.deltaModel);
+    params.C_n_nominal = params.C_n_h_nominal * 3600;     
 
     % generate modular HPPC
     params.input_current_Ts = 1;
-    params.startpos = 320;
-    params.stoppos = 677;
+    Shen = 1;
+    if Shen
+        [HCCP, tspan, tspan_pos] = generate_HCCP(params.input_current_Ts,params.C_n_h);
+        params.startpos = tspan_pos(1);
+        params.stoppos = tspan_pos(end); 
+        params.input_current = HCCP;
+    else
+        params.startpos = 320;
+        params.stoppos = 677; 
+    end        
     params.input_current_modular_period = params.stoppos-params.startpos;    
     params.input_current_modular_time = 0:params.input_current_modular_period;
-    params.input_current_modular_time_dense = 0:params.input_current_Ts:params.input_current_modular_period;
+    params.input_current_modular_time_dense = 0:params.input_current_Ts:params.input_current_modular_period;    
     params.input_current_modular = interp1(params.input_current_modular_time,params.input_current(params.startpos:params.stoppos),params.input_current_modular_time_dense);
     
     % slow modular HPPC
@@ -56,13 +80,7 @@ function params = params_battery_tushar
     % polarization resistance
     params.R1 = 0.040;
     % polarization capacity
-    params.C1 = 500;
-    % Battery Capacity (converting Ampere-hour to Ampere-second)
-    params.InputAmplitude = 1;
-    params.C_n_h = 4.1*params.InputAmplitude;
-    params.C_n = params.C_n_h * 3600;     
-    params.C_n_h_nominal = params.C_n_h*(1+params.deltaModel);
-    params.C_n_nominal = params.C_n_h_nominal * 3600;     
+    params.C1 = 500;    
     % Battery charging-discharging efficiency (for Li-ion=100%)
     params.eta = 1;  
     
@@ -148,7 +166,7 @@ function params = params_battery_tushar
     % plot vars (used to plot the state estimation. When the parameters are
     % too many, consider to use only the true state components)
     params.plot_vars = 1:2;
-    params.plot_params = [];%[7:14];
+    params.plot_params = [4:6];%[7:14];
     params.multi_traj_var = params.nonopt_vars;
     
     % same initial condition for all the trajectories (under development)

@@ -41,7 +41,7 @@ function [filter, filterScale, reference] = filter_define(Ts,Nts)
     fil2 = 0;
     if fil2
     i = i+1;    
-    eps2 = 1e2;
+    eps2 = 1e5;
     G = tf(1,[eps2 1]);
     SS = ss(G);
     D = c2d(SS,Ts);

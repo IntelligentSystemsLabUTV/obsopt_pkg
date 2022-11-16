@@ -11,13 +11,13 @@
 % obs: observer class instance (may be not used)
 % OUTPUT:
 % x_dot: dynamics equations
-function x_dot = model_battery_tushar(t,x,params,obs)
+function x_dot = model_battery_tushar_backward(t,x,params,obs)
 
     % init the dynamics 
     x_dot = x;  
     
     % compute the control
-    params.u = 1*params.input(t,x,params);        
+    params.u = 1*params.input(t-obs.setup.Ts,x,params);        
 
     % save input
     tdiff = obs.setup.time-t;   
@@ -28,7 +28,7 @@ function x_dot = model_battery_tushar(t,x,params,obs)
     % model dynamics - discrete
     % Zk (SOC)
     if (x(1,:) > 0) || 0   
-        x_dot(1,:) = x(1,:) - params.eta * obs.setup.Ts *params.u(1,:)/params.C_n;                        
+        x_dot(1,:) = x(1,:) -(-params.eta * obs.setup.Ts *params.u(1,:)/params.C_n);
     else
         x_dot(1,:) = 0;              
     end    
@@ -38,7 +38,7 @@ function x_dot = model_battery_tushar(t,x,params,obs)
     a1 = exp(-obs.setup.Ts/tau_1);
     b1 = x(5,:).*(1 - exp(-obs.setup.Ts/tau_1));
     % V1 (voltage RC)
-    x_dot(2,:) = a1*x(2,:) + b1*params.u(1,:);
+    x_dot(2,:) = x(2,:)/a1 -(params.u(1,:)*b1);
     
     x_dot(3,:) = params.alpha_Voc + params.beta_Voc*x(1,:) + params.gamma_Voc*(x(1,:).^2) + params.delta_Voc*(x(1,:).^3) + params.eps_Voc*(x(1,:).^4) + params.xi_Voc*(x(1,:).^5);
     x_dot(4,:) = params.alpha_R0 + params.beta_R0*x(1,:) + params.gamma_R0*(x(1,:).^2) + params.delta_R0*(x(1,:).^3) + params.eps_R0*(x(1,:).^4) + params.xi_R0*(x(1,:).^5);

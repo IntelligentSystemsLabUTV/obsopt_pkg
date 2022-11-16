@@ -1,14 +1,17 @@
 %% function 
-function plot_interp(obs,str,pos,params,wholeSim,fig)
+function plot_interp(obs,str,pos,params,fig,sim,range)
 
     
 
     % create data
-    data = obs.init.cloud_X(1,:);
-%     data = obs.init.X_est(1).val(1,:);
+    if ~sim
+        data = obs.init.cloud_X(1,:);
+        % sort in ascending order
+        [data_s, idx_s] = sort(data);
+    else
+        data_s = obs.init.X_est.val(1,:);
+    end
     
-    % sort in ascending order
-    [data_s, idx_s] = sort(data);
     
     % compute poly
     for p=1:length(params)
@@ -17,31 +20,22 @@ function plot_interp(obs,str,pos,params,wholeSim,fig)
 
     % plot
     figure(fig)
-    plot(obs.init.params.input_soc,str,'p:','LineWidth',2)
     hold on
+    grid on
+    box on
     
-    if ~wholeSim
-        i=1;        
+    if ~sim
+        plot(obs.init.params.input_soc,str,'p','LineWidth',2,'MarkerSize',20)  
         plot(data_s,obs.init.cloud_Y(pos,idx_s),'r+','LineWidth',2)
-%         plot(data_s,spline(obs.init.params.input_soc, str, obs.init.cloud(1,idx_s)),'b:o','LineWidth',2)
-%         plot(obs.init.X(1).val(1,i),spline(obs.init.params.input_soc, str, obs.init.X(1).val(1,i)),'k+')   
-
-        % plot estimation
-        plot(data_s,params*data_p,'k--o','LineWidth',2)
-    else
-%         plot(obs.init.X(1).val(1,:),spline(obs.init.params.input_soc, str, obs.init.X(1).val(1,:)),'m--o','LineWidth',2)    
         
         % plot estimation
-        plot(data_s,params*data_p,'m--o','LineWidth',2)
+        plot(data_s,params'*data_p,'m--o','LineWidth',2) 
+    else        
+        % plot estimation
+        plot(data_s,params'*data_p,'b--o','LineWidth',2)            
     end
+
     
-    
-    
-    % manipulate
-    grid on
-    xlabel('Z')
-    ylabel('param')
-%     legend('experimental data')
-    legend('measured','spline interp','linear interp')
+
 
 end

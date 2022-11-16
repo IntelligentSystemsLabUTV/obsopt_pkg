@@ -31,7 +31,7 @@ end
 N = length(x0);           
   
 % numer of time steps
-M = length(tspan);   
+M = length(tspan);
 
 % initial time instant
 t0 = tspan(1);

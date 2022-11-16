@@ -1,8 +1,8 @@
 %% setup data for simulink model
-function [obs, params, SimParams] = setup_model_slow(tend,Ts)
+function [obs, params, SimParams] = setup_model_slow(tstart,tend,Ts)
 
     % set initial and final time instant
-    t0 = 0;
+    t0 = tstart;
     
     %%%% params init function %%%%
     params_init = @params_battery_tushar;    
@@ -15,11 +15,11 @@ function [obs, params, SimParams] = setup_model_slow(tend,Ts)
     % measure = @measure_general;    
     
     % MHE
-    Nw = 20;
-    Nts = 25;
+    Nw = 30;
+    Nts = 20;
+%     Nts = [1*ones(1,5) 20*ones(1,25)];
     
-    %%%% filters %%%%
-    system("sed -i 's/fil1 = .*/fil1 = 0;/' Lib/measure/filter_define.m");
+    %%%% filters %%%%    
     [filter, filterScale, ~] = filter_define(Ts,Nts);
     
     %%%% integration method %%%%
@@ -35,17 +35,23 @@ function [obs, params, SimParams] = setup_model_slow(tend,Ts)
         
     %%%% observer init %%%%    
     terminal_states = params.opt_vars;
-    terminal_weights = 1*ones(size(terminal_states));
-    terminal_weights(3:end) = 0.1;
+    terminal_weights = 1e0*ones(size(terminal_states));
+    % all state
+    terminal_weights(2) = 1e-1;
+    terminal_weights(3:5) = 5e0;
+    terminal_weights(6:8) = 4e0;
+    terminal_weights(9:11) = 3e0;    
+    terminal_weights(12:14) = 2e0;
+    terminal_weights = 5e2*terminal_weights;
     
-    obs = obsopt('DataType', 'measured', 'optimise', 1 , 'GlobalSearch', 0, 'MultiStart', 0, 'J_normalise', 1, 'MaxOptTime', Inf, ... 
-          'Nw', Nw, 'Nts', Nts, 'ode', ode, 'PE_maxiter', 0, 'WaitAllBuffer', 1, 'params',params, 'filters', filterScale,'filterTF', filter, ...
-          'Jdot_thresh',0.95,'MaxIter',5, 'Jterm_store', 1, 'AlwaysOpt', 1 , 'print', 0 , 'SafetyDensity', 4, 'AdaptiveHist', [5e-3, 2.5e-2, 1e0], ...
-          'AdaptiveSampling',0, 'FlushBuffer', 1, 'opt', @fminsearchbnd, 'terminal', 1, 'terminal_states', terminal_states, 'terminal_weights', terminal_weights, 'terminal_normalise', 1, ...
-          'ConPos', [1], 'LBcon', [0], 'UBcon', [1], 'Bounds', 0);
+    obs = obsopt('DataType', 'measured', 'optimise', 1, 'GlobalSearch', 0, 'MultiStart', 0, 'J_normalise', 1, 'MaxOptTime', Inf, ... 
+          'Nw', Nw, 'Nts', Nts, 'ode', ode, 'PE_maxiter', 0, 'WaitAllBuffer', 0, 'params',params, 'filters', filterScale,'filterTF', filter, ...
+          'Jdot_thresh',0.99,'MaxIter',50, 'Jterm_store', 0, 'AlwaysOpt', 1 , 'print', 0 , 'SafetyDensity', 5, 'AdaptiveHist', [1*1e-3, 1*1e-3, 1.3], 'PEPos', [1 1], ...
+          'AdaptiveSampling',0, 'FlushBuffer', 0, 'opt', @fminsearchbnd, 'terminal', 1, 'terminal_states', terminal_states, 'terminal_weights', terminal_weights, 'terminal_normalise', 1, ...
+          'ConPos', [1], 'LBcon', [0], 'UBcon', [1], 'Bounds', 1, 'BoundsPos',[4 5], 'BoundsValLow',[5e-3 5e-3], 'BoundsValUp',[Inf Inf], 'BoundsWeight',[1 1]);
       
     % update vars for multi MHE
-    obs.setup.update_vars = [7:obs.setup.dim_state];
+    obs.setup.update_vars = [1:2 8:10];
       
     %%%%%%%%%% SIMULINK STUFF %%%%%%%%%
     % load OCV and R data (for ECM in simulink)

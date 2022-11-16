@@ -1,8 +1,8 @@
 %% setup data for simulink model
-function [obs, params, SimParams] = setup_model_fast(tend,Ts)
+function [obs, params, SimParams] = setup_model_fast(tstart,tend,Ts)
 
     % set initial and final time instant
-    t0 = 0;
+    t0 = tstart;
     
     %%%% params init function %%%%
     params_init = @params_battery_tushar;    
@@ -15,11 +15,10 @@ function [obs, params, SimParams] = setup_model_fast(tend,Ts)
     % measure = @measure_general;    
     
     % MHE
-    Nw = 10;
-    Nts = 5;
+    Nw = 30;
+    Nts = 2;
     
-    %%%% filters %%%%
-    system("sed -i 's/fil1 = .*/fil1 = 0;/' Lib/measure/filter_define.m");
+    %%%% filters %%%%    
     [filter, filterScale, ~] = filter_define(Ts,Nts);
     
     %%%% integration method %%%%
@@ -34,15 +33,16 @@ function [obs, params, SimParams] = setup_model_fast(tend,Ts)
             'input_enable',1,'input_law',input_law,'params_init',params_init);
         
     %%%% observer init %%%%    
-    terminal_states = [1:2 8:10];
-    terminal_weights = 1000*ones(size(terminal_states));
-    terminal_weights(3:end) = 0.1;
+    terminal_states = params.opt_vars;
+    terminal_weights = 1e0*ones(size(terminal_states));
+    terminal_weights(2) = 1e-1;    
+%     terminal_weights(3:5) = 5e0;
 
     obs = obsopt('DataType', 'measured', 'optimise', 1, 'GlobalSearch', 0, 'MultiStart', 0, 'J_normalise', 1, 'MaxOptTime', Inf, ... 
           'Nw', Nw, 'Nts', Nts, 'ode', ode, 'PE_maxiter', 0, 'WaitAllBuffer', 1, 'params',params, 'filters', filterScale,'filterTF', filter, ...
-          'Jdot_thresh',0.95,'MaxIter',5, 'Jterm_store', 1, 'AlwaysOpt', 1 , 'print', 0 , 'SafetyDensity', 3, 'AdaptiveHist', [1e-3, 5e-3, 5e-1], ...
+          'Jdot_thresh',0.99,'MaxIter',50, 'Jterm_store', 1, 'AlwaysOpt', 0 , 'print', 0 , 'SafetyDensity', 1, 'AdaptiveHist', [1e-3, 5e-2, 1e0], 'PEPos', [1 1], ...
           'AdaptiveSampling',0, 'FlushBuffer', 1, 'opt', @fminsearchbnd, 'terminal', 1, 'terminal_states', terminal_states, 'terminal_weights', terminal_weights, 'terminal_normalise', 1, ...
-          'ConPos', [1], 'LBcon', [0], 'UBcon', [1], 'Bounds', 0);
+          'ConPos', [1], 'LBcon', [0], 'UBcon', [1], 'Bounds', 1, 'BoundsPos',[4 5], 'BoundsValLow',[5e-3 5e-3], 'BoundsValUp',[Inf Inf], 'BoundsWeight',[1 1]);
       
     % update vars for multi MHE
     obs.setup.update_vars = [8:10 12:14 16:18 20:22];

@@ -47,6 +47,17 @@ function u = control(t,drive,params)
             case 4    
                 len = min(length(params.input_current_modular_time_slown_dense),length(params.input_current_modular_slown));
                 u(1,:) = -params.InputAmplitude*interp1(params.input_current_modular_time_slown_dense(1:len),params.input_current_modular_slown(1:len),mod(t,params.input_current_modular_period_slown),'previous');
+                
+                if 0
+                    tspan_start = [1000:2000:10000];
+                    tspan_stop = tspan_start + 200;                    
+                    mask_start = find(t(end)>tspan_start);
+                    mask_stop = find(t(end)<tspan_stop);
+                    flag = ~isempty(intersect(mask_start,mask_stop));
+                    if flag
+                        u(1,:) = 0;
+                    end                
+                end
             
             otherwise
                 disp('no input law selected')
