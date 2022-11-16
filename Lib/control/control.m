@@ -9,7 +9,7 @@
 % params: structure with all the necessary parameters 
 % OUTPUT:
 % u: control variable
-function u = control(t,drive,params)
+function u = control(t,drive,params,obs)
 
     % init input
     u = zeros(1,length(t));
