@@ -78,7 +78,7 @@ classdef obsopt < handle
                 obj.setup.noise = params.noise;
                 obj.setup.noise_mu = params.noise_mu;
                 obj.setup.noise_std = params.noise_std;
-
+                
                 % observed state
                 obj.setup.observed_state = params.observed_state;
                 
@@ -258,7 +258,7 @@ classdef obsopt < handle
                 obj.setup.Nts = 3;
             end
             obj.init.Nsaved = 0;
-
+            
             % Discrete sampling time (for filters)
             obj.setup.DTs = obj.setup.Nts*obj.setup.Ts;
 
@@ -297,7 +297,7 @@ classdef obsopt < handle
             else
                 obj.setup.PE_maxiter = 0;
             end
-
+            
             % PE position
             if any(strcmp(varargin,'PEPos'))
                 pos = find(strcmp(varargin,'PEPos'));
@@ -331,7 +331,7 @@ classdef obsopt < handle
             else
                 obj.setup.bounds = 0;
             end
-
+            
             % get the multistart option
             if any(strcmp(varargin,'BoundsPos'))
                 pos = find(strcmp(varargin,'BoundsPos'));
@@ -777,7 +777,7 @@ classdef obsopt < handle
         function [J_final,obj] = cost_function(obj,varargin) 
             
             obj.init.t_J_start = tic;
-
+            
             % above ntraj init
             J_final = 0;
             J_input = 0;
@@ -960,7 +960,7 @@ classdef obsopt < handle
                 else
                     J_barr = 0;
                 end
-
+                                
                 if any(isinf(J_barr))
                     J_final = Inf;
                     break
@@ -971,7 +971,7 @@ classdef obsopt < handle
                 u_diff_norm = obj.init.params.Ru*vecnorm(u_diff).^2;                
                 J_input = J_input + sum(u_diff_norm);
                                 
-                J_final = J_final + Jtot + J_barr + J_terminal + J_input;
+                J_final = J_final + Jtot + J_barr + J_terminal + 0*J_input;
 
                 %%% final stuff %%%                
                 obj.init.Yhat_temp = Yhat;
@@ -1222,7 +1222,7 @@ classdef obsopt < handle
             % flag = all good, no sampling
 %             obj.init.hyst_flag = ~(hyst_low || hyst_high);
             obj.init.hyst_flag = ~(hyst_high);
-
+            
             %%%% observer %%%%
             if  ( ~( ( (distance < obj.setup.NtsVal(NtsPos)) || obj.init.hyst_flag || obj.init.PE_flag ) && (obj.init.distance_safe_flag) ) )
 
@@ -1247,9 +1247,9 @@ classdef obsopt < handle
                 obj.init.Y_space(1:end-1) = obj.init.Y_space(2:end);
                 obj.init.Y_space(end) = obj.init.ActualTimeIndex;
                 obj.init.Y_space_full_story(end+1) = obj.init.ActualTimeIndex;
-
+                
                 obj.init.Nsaved = obj.init.Nsaved + 1;
-
+                
                 % store measure times
                 obj.init.temp_time = [obj.init.temp_time obj.init.ActualTimeIndex];
 
@@ -1313,7 +1313,7 @@ classdef obsopt < handle
                         else                            
                             % back time index
                             buf_dist = diff(buf_Y_space_full_story);
-                            obj.init.BackTimeIndex = obj.setup.time(max(obj.init.ActualTimeIndex-sum(buf_dist(1:end)),1));
+                            obj.init.BackTimeIndex = obj.setup.time(max(obj.init.ActualTimeIndex-sum(buf_dist(1:end)),1)); 
                         end
                         
                         
@@ -1400,11 +1400,11 @@ classdef obsopt < handle
                                 end
                             end
                         end
-
+                        
                         % check fmin time (boundaries)
                         obj.setup.opt_temp_time = tic;
                         obj.setup.MaxOptTimeFlag = 0;
-
+                        
                         % save max times
                         obj.init.MaxOptTime_story = [obj.init.MaxOptTime_story obj.setup.MaxOptTime];
                         obj.init.MaxIter_story = [obj.init.MaxIter_story obj.setup.max_iter];
@@ -1486,7 +1486,7 @@ classdef obsopt < handle
                                     NewXopt = NewXopt(pos,:);
                                 end
                             end
-
+                            
                             % reconstruct NewXopt from opt/nonopt vars
                             NewXopt_tmp = [];
                             for traj = 1:obj.setup.Ntraj
@@ -1660,7 +1660,7 @@ classdef obsopt < handle
                     clc;
                 end                
             else
-            end
+            end            
         end
     end
 end
