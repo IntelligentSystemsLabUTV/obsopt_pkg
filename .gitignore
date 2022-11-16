@@ -3,8 +3,20 @@ fig/
 Latex/
 results/
 workspace/
+config/
+x86/
+doc/
+slprj/
 
-*asv
-*.gitignore
-*.mat
-.*
+# files
+*.asv
+*.save
+.gitignore
+*.autosave
+*.original
+*.slxc
+*.zip
+*.prj
+
+# exceptions
+!results/simulations/battery/report

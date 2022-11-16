@@ -4,7 +4,7 @@
 % date: 10/01/2022
 % description: this function defines the filters applied to the output 
 % measurements. Their usage is strictly related to filtered_MHE (see 
-% https://doi.org/10.48550/arXiv.2204.09359). Simply use the if 1
+% https://doi.org/10.48550/arXiv.2204.09359). Simply use the if 0;
 % enable or disable the filtering actions.
 % INPUT: 
 % Ts: sampling time
@@ -20,7 +20,8 @@ function [filter, filterScale, reference] = filter_define(Ts,Nts)
     filter = [];
     
     %%% derivative filter %%%
-    if 0
+    fil1 = 0;
+    if fil1
     i = i+1;   
     eps1 = 1e-1;
     G = tf([1 0],[eps1 1]);
@@ -37,9 +38,10 @@ function [filter, filterScale, reference] = filter_define(Ts,Nts)
     end
 
     %%%% integral filter %%%%
-    if 0
+    fil2 = 0;
+    if fil2
     i = i+1;    
-    eps2 = 1e2;
+    eps2 = 1e5;
     G = tf(1,[eps2 1]);
     SS = ss(G);
     D = c2d(SS,Ts);
@@ -53,31 +55,18 @@ function [filter, filterScale, reference] = filter_define(Ts,Nts)
     filterScale(i+1)= 1;
     end
     
-    %%%% second order filter %%%%
-    if 0
-    i = i+1;    
-    tau = 1;
-    wn = 1;
-    G = tf(1,[wn 2*tau*wn 1]);
-    SS = ss(G);
-    D = c2d(SS,Ts);
-    filter(i).TF = D;
-    filter(i).A = D.A;
-    filter(i).B = D.B;
-    filter(i).C = D.C;
-    filter(i).D = D.D;
-    filter(i).G = G;
-    filter(i).dim = size(D.B,1);
-    filterScale(i+1)= 1;
-    end
-    
-    %%%% second order filter %%%%
-    if 0
-    i = i+1;    
-    tau = 1e-1;
-    wn = 1e-1;
-    G = tf(1,[wn 2*tau*wn 1]);
-    SS = ss(G);
+    %%%% 2nd order filter %%%%
+    fil3 = 0;
+    if fil3
+    i = i+1; 
+    eps0 = 1e0;
+    eps1 = 5e-2;
+    K = 1;
+    eps2 = 5e-2;
+    G1 = tf(K*[eps0 1],[eps1 1]);
+    G2 = tf([1],[eps2 1]);
+    G = G1*G2;
+    SS = ss(G1);
     D = c2d(SS,Ts);
     filter(i).TF = D;
     filter(i).A = D.A;
@@ -91,8 +80,8 @@ function [filter, filterScale, reference] = filter_define(Ts,Nts)
     
     %%%% reference filter %%%%
     % (under development)
-    eps = 2e0;
-    G = tf(eps,[1 eps]);
+    eps = 2;
+    G = tf(1,[eps 1]);
     SS = ss(G);
     D = c2d(SS,Ts);
     reference.TF = D;
@@ -102,5 +91,9 @@ function [filter, filterScale, reference] = filter_define(Ts,Nts)
     reference.D = D.D;
     reference.G = G;
     reference.dim = size(D.B,1);
+    reference.x0 = 4*ones(reference.dim,1);
+    
+    %%% butterworth %%%
+    [reference.butter.b,reference.butter.a] = butter(1,0.8);
     
 end
