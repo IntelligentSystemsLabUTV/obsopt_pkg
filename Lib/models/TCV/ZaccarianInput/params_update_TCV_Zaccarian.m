@@ -17,10 +17,18 @@ function params_out = params_update_TCV_Zaccarian(params,x)
     % update psi
 
     %%% update the denominator %%%
-    params_out.Psi = x(end-params.NumGamma-params.NumPsi+1:end-params.NumGamma)';
+    params_out.Psi = x(params.PsiPos)';
 
     % update An
-    params_out.W_An = tf(params.num_An, params_out.Psi);
+    params_out.den_An = cellmat(params.m, params.nu, 1, params.eta+2);
+    for k = 1 : params.eta+2
+      for j = 1 : params.nu
+        for i = 1 : params.m
+          params_out.den_An{i, j}(k) = params_out.Psi(params.nu*(k-1) + j);
+        end
+      end
+    end
+    params_out.W_An = tf(params.num_An, params_out.den_An);
     params_out.Anstar = dcgain(params_out.W_An);
     params_out.sys_An = ss(params_out.W_An);
     params_out.A_an = params_out.sys_An.A;
@@ -32,10 +40,18 @@ function params_out = params_update_TCV_Zaccarian(params,x)
         
     % update gamma
     safeeps = 1e-10;
-    params_out.gamma = x(end+1-params.NumGamma:end);
-    params_out.Gamma = diag(params_out.gamma+safeeps);
-    params_out.A_op = params_out.Gamma*params.sys_op_def.A;
-    params_out.B_op = params_out.Gamma*params.sys_op_def.B;
+    params_out.Gamma = x(params.GammaPos) + safeeps;
+    params_out.GAMMA = zeros(params.nu, params.nu);
+    tmp = 0;
+    for i = 1 : params.nu
+      for j = i : params.nu
+        tmp = tmp + 1;
+        params_out.GAMMA(i, j) = params_out.Gamma(tmp);
+        params_out.GAMMA(j, i) = params_out.Gamma(tmp);
+      end
+    end
+    params_out.A_op = params_out.GAMMA*params.sys_op_def.A;
+    params_out.B_op = params_out.GAMMA*params.sys_op_def.B;
     params_out.C_op = params.sys_op_def.C;
     params_out.D_op = params.sys_op_def.D;
     params_out.sys_op = ss(params_out.A_op,params_out.B_op,params_out.C_op,params_out.D_op);  

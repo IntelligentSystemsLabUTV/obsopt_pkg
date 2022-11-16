@@ -13,26 +13,23 @@ function [obs, params] = simulation_TCV_Lsim
 
 % rng('default');
 rng(1);
-    
-% init observer buffer (see https://doi.org/10.48550/arXiv.2204.09359)
-Nw = 3000;
-Nts = 1e0;
 
 % set sampling time
-Ts = 1e-1;
+Ts = 1e-2;
+
+% init observer buffer (see https://doi.org/10.48550/arXiv.2204.09359)
+freq = [50, 100, 200];
+slot = [10, 10, 10];
+Nw_vec =  slot ./ (Ts .*freq);
+Nw = sum(Nw_vec);
+Nts = [];
+for i = 1 : numel(Nw_vec)
+  Nts = [Nts, freq(i) * ones(1, Nw_vec(i))];
+end
 
 % set initial and final time instant
 t0 = 0;
-% tend = 4;
-% uncomment to test the MHE with a single optimisation step
-% [Y,T] = step(sys_P);
-% tend = T(end);
-if Nts > 1
-    tend = Ts*(Nw*Nts);
-else
-    tend = Ts*(Nw*Nts-1);
-end
-% tend = 5;
+tend = sum(slot);
 
 %%%% params init function %%%%
 % function: this function shall be in the following form:
