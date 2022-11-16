@@ -41,7 +41,14 @@ function params = params_battery_tushar
     params.C_n_h = 4.1*abs(params.InputAmplitude);
     params.C_n = params.C_n_h * 3600;     
     params.C_n_h_nominal = params.C_n_h*(1+params.deltaModel);
-    params.C_n_nominal = params.C_n_h_nominal * 3600;     
+    params.C_n_nominal = params.C_n_h_nominal * 3600;   
+    
+    % out vars
+    params.OutDim = 1;
+    params.OutDim_compare = [1];
+
+    % input dim
+    params.dim_input = 1;
 
     % generate modular HPPC
     params.input_current_Ts = 1;

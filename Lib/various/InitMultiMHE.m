@@ -19,7 +19,7 @@ function [params_s, obs_s, time, SimParams, params, SIMstate, SIMinput, SIMmeasu
     % 12:14 16:18 20:22
     system("sed -i 's/params.opt_vars =.*/params.opt_vars = [1:2 8:10 12:14 16:18 20:22];/' Lib/models/battery/params_battery_tushar.m");
     pause(1);
-    system("sed -i 's/fil1 = .*/fil1 = 0;/' Lib/measure/filter_define.m");
+    system("sed -i 's/fil1 = .*/fil1 = 1;/' Lib/measure/filter_define.m");
     pause(1);
     system("sed -i 's/fil2 = .*/fil2 = 0;/' Lib/measure/filter_define.m");
     pause(1);

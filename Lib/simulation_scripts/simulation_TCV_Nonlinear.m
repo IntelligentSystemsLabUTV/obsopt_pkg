@@ -128,7 +128,7 @@ ode = @odeEuler;
 % params: structure with model parameters (see params_init)
 % OUTPUT:
 % u: control variable
-input_law = @control_TCV;
+input_law = @control;
 
 
 %%%% measurement noise %%%%
@@ -161,7 +161,7 @@ obs = obsopt('DataType', 'simulated', 'optimise', 1, 'MultiStart', 0, 'J_normali
           'Nw', Nw, 'Nts', Nts, 'ode', ode, 'PE_maxiter', 0, 'WaitAllBuffer', 1, 'params',params, 'filters', filterScale,'filterTF', filter, ...
           'model_reference',model_reference, 'measure_reference',measure_reference, ...
           'Jdot_thresh',0.95,'MaxIter', 20, 'Jterm_store', 1, 'AlwaysOpt', 1 , 'print', 1 , 'SafetyDensity', 2, 'AdaptiveHist', [5e-3, 2.5e-2, 1e0], ...
-          'AdaptiveSampling',0, 'FlushBuffer', 1, 'opt', @fminsearchcon, 'terminal', 0, 'terminal_states', terminal_states, 'terminal_weights', terminal_weights, 'terminal_normalise', 1, ...
+          'AdaptiveSampling',0, 'FlushBuffer', 1, 'opt', @patternsearch, 'terminal', 0, 'terminal_states', terminal_states, 'terminal_weights', terminal_weights, 'terminal_normalise', 1, ...
           'ConPos', [], 'LBcon', [], 'UBcon', [], 'NONCOLcon', @nonlcon_fcn,'Bounds', 0);
 
 %% %%%% SIMULATION %%%%

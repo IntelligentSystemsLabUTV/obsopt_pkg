@@ -17,6 +17,7 @@ slprj/
 *.slxc
 *.zip
 *.prj
+*.tmp
 
 # exceptions
 !results/simulations/battery/report

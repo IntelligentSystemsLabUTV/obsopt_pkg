@@ -137,11 +137,7 @@ function params = model_init(varargin)
         params.input_enable = varargin{pos+1};
     else
         params.input_enable = 0;
-    end
-    
-    % input dimension. Default is the whole state dimension. Whether to use
-    % it or not shall be explicited in the @model function
-    params.dim_input = params.StateDim;
+    end        
 
     % input law definition. Default is free evolution 
     if any(strcmp(varargin,'input_law'))
