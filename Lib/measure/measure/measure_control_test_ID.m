@@ -1,7 +1,7 @@
 %% MODEL_REFERENCE
-% file: measure_general.m
+% file: measure_control_test.m
 % author: Federico Oliva
-% date: 10/01/2022
+% date: 22/06/2022
 % description: this function implements the output mapping of a general
 % state space system
 % INPUT:
@@ -10,8 +10,12 @@
 % t: time instant (may be not used)
 % OUTPUT:
 % y: output measurement
-function y = measure_general(x,params,t,u)
+function y = measure_control_test_ID(x,params,t)
 
-    % get the observed components of the state vector
-    y = x(params.observed_state,:);
+    % LTI system - C matrix
+    C = [params.C1, params.C2];
+    
+    % get the observed components of the state vector        
+    y(1,:) = 1*C*x(1:2,:);
+    
 end

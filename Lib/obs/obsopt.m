@@ -422,7 +422,7 @@ classdef obsopt < handle
                     pos = find(strcmp(varargin,'NONCOLcon'));
                     obj.setup.NONCOLcon = varargin{pos+1}; 
                 else
-                    obj.setup.NONCOLcon = [];
+                    obj.setup.NONCOLcon = @obj.NONCOLcon;
                 end
             else
                 obj.setup.Acon = [];    
@@ -649,7 +649,7 @@ classdef obsopt < handle
                 obj.init.Y_buffer_control(i).val = [];
                 obj.init.drive_out(i).val = [];
                 obj.init.input_story(i).val(:,1) = zeros(obj.setup.params.dim_input,1);
-                obj.init.input_story_ref(i).val = zeros(obj.setup.params.dim_input,1);
+                obj.init.input_story_ref(i).val(:,1) = zeros(obj.setup.params.dim_input,1);
             end
             
             % input dimension
@@ -731,6 +731,12 @@ classdef obsopt < handle
             end
             %%% end of optimisation setup %%%
 
+        end
+
+        % nonlinear constraing default
+        function [c, ceq] = NONCOLcon(varargin)
+            c = 0;
+            ceq = 0;
         end
         
         % scale factor: this method defines the cost function weights
@@ -857,10 +863,8 @@ classdef obsopt < handle
                 end                
                 
                 %%% get measure  %%
-                Yhat = zeros(obj.setup.Nfilt+1,obj.setup.dim_out,size(X.y,2));
-                if size(obj.init.input_story(traj).val,2) < size(X.y,2)
-                    u_in = [zeros(size(obj.init.input_story(traj).val,1),1), obj.init.input_story(traj).val];
-                end
+                Yhat = zeros(obj.setup.Nfilt+1,obj.setup.dim_out,size(X.y,2));                
+                u_in = [zeros(size(obj.init.input_story(traj).val,1),1), obj.init.input_story(traj).val];
                 Yhat(1,:,:) = obj.setup.measure(X.y,obj.init.params,tspan,u_in(:,(tspan_pos(1):tspan_pos(end))));
                 
                 %%% compute filters %%%
@@ -899,7 +903,7 @@ classdef obsopt < handle
                     end
                 end                                                                              
                 % cost function
-                J = zeros(obj.setup.J_nterm,size(Yhat,1));
+                J = zeros(obj.setup.J_nterm,obj.setup.dim_out_compare);
                 target_pos = find(obj.init.Y_space ~= 0);
 
                 for term=1:obj.setup.J_nterm
@@ -967,11 +971,15 @@ classdef obsopt < handle
                 end 
                 
                 %%% Allocation cost fucntion %%%
-                u_diff = obj.init.input_story(traj).val;
-                u_diff_norm = obj.init.params.Ru*vecnorm(u_diff).^2;                
-                J_input = J_input + sum(u_diff_norm);
+                if 0
+                    u_diff = obj.init.input_story(traj).val;
+                    u_diff_norm = obj.init.params.Ru*vecnorm(u_diff).^2;                
+                    J_input = J_input + sum(u_diff_norm);
+                else
+                    J_input = 0;
+                end
                                 
-                J_final = J_final + Jtot + J_barr + J_terminal + 0*J_input;
+                J_final = J_final + Jtot + sum(J_barr) + J_terminal + 0*J_input;
 
                 %%% final stuff %%%                
                 obj.init.Yhat_temp = Yhat;
@@ -1092,12 +1100,13 @@ classdef obsopt < handle
                     obj.init.PE_pos_array = [obj.init.PE_pos_array obj.init.ActualTimeIndex];
                 end
                 
+                Y_buf = [];
                 nsamp = length(obj.init.PE_pos_array);
                 if nsamp >= obj.setup.w
-                    Y_buf(1,1,:) = obj.init.Y_full_story(traj).val(PEterm,PEmeas,obj.init.PE_pos_array(end-obj.setup.w+1:end));
+                    Y_buf(1,1,:) = squeeze(obj.init.Y_full_story(traj).val(PEterm,PEmeas,obj.init.PE_pos_array(end-obj.setup.w+1:end)));
                     Y_buf(1,1,end+1) = obj.init.Y_full_story(traj).val(PEterm,PEmeas,obj.init.ActualTimeIndex); 
                 elseif nsamp > 0
-                    Y_buf(1,1,:) = obj.init.Y_full_story(traj).val(PEterm,PEmeas,obj.init.PE_pos_array(end-nsamp+1:end));
+                    Y_buf(1,1,:) = squeeze(obj.init.Y_full_story(traj).val(PEterm,PEmeas,obj.init.PE_pos_array(end-nsamp+1:end)));
                     Y_buf(1,1,end+1) = obj.init.Y_full_story(traj).val(PEterm,PEmeas,obj.init.ActualTimeIndex); 
                 else
                     Y_buf(1,1,1) = obj.init.Y_full_story(traj).val(PEterm,PEmeas,obj.init.ActualTimeIndex); 
@@ -1446,11 +1455,7 @@ classdef obsopt < handle
                                 if strcmp(func2str(obj.setup.fmin),'patternsearch')                                                             
                                     problem.solver = 'patternsearch';   
                                     obj.init.myoptioptions.ConstraintTolerance = 1e-10;
-%                                     obj.init.myoptioptions.FunctionTolerance = 1e-6;
                                     obj.init.myoptioptions.ScaleMesh = 'off';
-%                                     obj.init.myoptioptions.MeshTolerance = 1e-6;   
-%                                     obj.init.myoptioptions.MaxMeshSize = 1;
-%                                     obj.init.myoptioptions.InitialMeshSize = 1;
                                     obj.init.myoptioptions.Display = 'iter';
                                     obj.init.myoptioptions.Algorithm = 'nups';
                                     obj.init.myoptioptions.UseParallel = false;

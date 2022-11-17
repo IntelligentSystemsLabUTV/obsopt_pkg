@@ -11,13 +11,22 @@
 % obs: observer class instance (may be not used)
 % OUTPUT:
 % x_dot: dynamics equations
-function x_dot = model_oscillator_VDP(t,x,params,obs)
+function x_dot = model_oscillator_VDP(tspan,x,params,obs)
 
     % init the dynamics 
     x_dot = zeros(length(x),1);
+
+    % compute the time index
+    for i=1:length(tspan)
+        tdiff = obs.setup.time-tspan(i);   
+        pos(i) = find(abs(tdiff) == min(abs(tdiff)),1,'first');    
+        pos(i) = max(1,pos(i));        
+    end    
     
     % compute the control
-    params.u = params.input(t,x,params);
+    params.u = params.input(tspan,x,params);
+    obs.init.input_story(obs.init.traj).val(:,pos) = params.u;
+    obs.init.input_story_ref(obs.init.traj).val(:,pos) = params.u;
     
     % model dynamics
     x_dot(1) = params.eps*(x(2) + params.u(1));
