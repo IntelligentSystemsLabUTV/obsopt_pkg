@@ -43,7 +43,7 @@ function params = params_oscillator_VDP
     params.estimated_params = [3];
     
     % which vars am I optimising
-    params.opt_vars = [1:2];
+    params.opt_vars = [1:3];
     
     % set the not optimised vars
     tmp = 1:length(params.X(1).val(:,1));

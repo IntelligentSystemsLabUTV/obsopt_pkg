@@ -1608,9 +1608,9 @@ classdef obsopt < handle
                                         obj.init.params.ActualTimeIndex = back_time; % here you have the -1 because BackIterIndex is differently set up than in measure_function                                          
                                         
                                         if strcmp(func2str(obj.setup.ode),'odeLsim')                                        
-                                            x_propagate = X.y(:,back_time-obj.init.BackIterIndex+1);
+                                            x_propagate = X.y(:,back_time);
                                         else
-                                            x_propagate = obj.init.X_est(traj).val(:,back_time-obj.init.BackIterIndex+1);
+                                            x_propagate = obj.init.X_est(traj).val(:,back_time);
                                         end
 
                                         %%%% ESTIMATED measurements
