@@ -21,10 +21,18 @@ function params = params_oscillator_VDP
     params.Ntraj = 1;
     
     % state dimension
-    params.dim_state = 2;
+    params.dim_state = 3;
+
+    % input dim
+    params.dim_input = 2;
+
+    % output dim
+    params.OutDim = 1;
+    params.OutDim_compare = [1];
+    params.observed_state = 2;    
     
     % initial condition
-    params.X(1).val(:,1) = [1;1];
+    params.X(1).val(:,1) = [1;1;params.mu];
     
     % same initial condition for all the trajectories (under development)
     for traj=2:params.Ntraj
@@ -32,7 +40,7 @@ function params = params_oscillator_VDP
     end
     
     % position in the state vector of the estimated parameters
-    params.estimated_params = [];
+    params.estimated_params = [3];
     
     % which vars am I optimising
     params.opt_vars = [1:2];
@@ -47,5 +55,6 @@ function params = params_oscillator_VDP
     
     % plot vars (used to plot the state estimation. When the parameters are
     % too many, consider to use only the true state components)
-    params.plot_vars = params.dim_state;
+    params.plot_vars = 1:2;
+    params.plot_params = 3;
 end

@@ -422,7 +422,7 @@ classdef obsopt < handle
                     pos = find(strcmp(varargin,'NONCOLcon'));
                     obj.setup.NONCOLcon = varargin{pos+1}; 
                 else
-                    obj.setup.NONCOLcon = @(xopt,xnonopt,obs)0;
+		    obj.setup.NONCOLcon = @obj.NONCOLcon;
                 end
             else
                 obj.setup.Acon = [];    
@@ -732,6 +732,12 @@ classdef obsopt < handle
             %%% end of optimisation setup %%%
 
         end
+
+        % nonlinear constraing default
+        function [c, ceq] = NONCOLcon(varargin)
+            c = 0;
+            ceq = 0;
+        end
         
         % scale factor: this method defines the cost function weights
         % accordingly to the selected filters (see setup.temp_scale).
@@ -856,13 +862,9 @@ classdef obsopt < handle
                     break
                 end                
                 
-                %%% get measure  %%
-                Yhat = zeros(obj.setup.Nfilt+1,obj.setup.dim_out,size(X.y,2));
-                if size(obj.init.input_story(traj).val,2) < size(X.y,2)
-                    u_in = [zeros(size(obj.init.input_story(traj).val,1),1), obj.init.input_story(traj).val];
-                else
-                    u_in = obj.init.input_story(traj).val;
-                end
+                %%% get measure  %%               
+                Yhat = zeros(obj.setup.Nfilt+1,obj.setup.dim_out,size(X.y,2));                
+                u_in = [zeros(size(obj.init.input_story(traj).val,1),1), obj.init.input_story(traj).val];
                 Yhat(1,:,:) = obj.setup.measure(X.y,obj.init.params,tspan,u_in(:,(tspan_pos(1):tspan_pos(end))));
                 
                 %%% compute filters %%%
@@ -1453,11 +1455,7 @@ classdef obsopt < handle
                                 if strcmp(func2str(obj.setup.fmin),'patternsearch')                                                             
                                     problem.solver = 'patternsearch';   
                                     obj.init.myoptioptions.ConstraintTolerance = 1e-10;
-%                                     obj.init.myoptioptions.FunctionTolerance = 1e-6;
                                     obj.init.myoptioptions.ScaleMesh = 'off';
-%                                     obj.init.myoptioptions.MeshTolerance = 1e-6;   
-%                                     obj.init.myoptioptions.MaxMeshSize = 1;
-%                                     obj.init.myoptioptions.InitialMeshSize = 1;
                                     obj.init.myoptioptions.Display = 'iter';
                                     obj.init.myoptioptions.Algorithm = 'nups';
                                     obj.init.myoptioptions.UseParallel = false;

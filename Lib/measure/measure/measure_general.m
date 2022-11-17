@@ -10,7 +10,7 @@
 % t: time instant (may be not used)
 % OUTPUT:
 % y: output measurement
-function y = measure_general(x,params,t,u)
+function y = measure_general(x,params,t)
 
     % get the observed components of the state vector
     y = x(params.observed_state,:);
