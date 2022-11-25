@@ -17,7 +17,7 @@ update_fast = 0;
 
 % time setup
 tstart = 0;
-tend = 4000;
+tend = 1000;
 Ts_fast = 1e0;
 Ts_slow = 1e0;
 conversion = Ts_slow/Ts_fast;
