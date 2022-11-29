@@ -12,7 +12,7 @@ function [obs,params] = simulation_general
 % close all
     
 % init observer buffer (see https://doi.org/10.48550/arXiv.2204.09359)
-Nw = 10;
+Nw = 30;
 Nts = 5;
 
 % set sampling time
@@ -20,7 +20,7 @@ Ts = 1e-2;
 
 % set initial and final time instant
 t0 = 0;
-tend = 2;
+tend = 20;
 % uncomment to test the MHE with a single optimisation step
 %tend = 1*(Nw*Nts-1)*Ts;
 
@@ -123,8 +123,8 @@ input_law = @control;
 % this should be a vector with 2 columns and as many rows as the state
 % dimension. All the noise are considered as Gaussian distributed. The 
 % first column defines the mean while the second column the variance.
-noise_mat = 0*ones(1,2);
-noise_mat(1,2) = 5e-2;
+noise_mat = 0*ones(5,2);
+% noise_mat(1,2) = 5e-2;
 
 %%%% params init %%%%
 % init the parameters structure through funtion @model_init. 
@@ -139,15 +139,16 @@ params = model_init('Ts',Ts,'T0',[t0, tend],'noise',1, 'noise_spec', noise_mat, 
 %%%% observer init %%%%
 % defien arrival cost
 terminal_states = params.opt_vars;
-terminal_weights = 1e-2*ones(size(terminal_states));
+terminal_weights = 1e-1*ones(size(terminal_states));
+terminal_weights(3:5) = 10*terminal_weights(3);
 
 % create observer class instance. For more information on the setup
 % options check directly the class constructor in obsopt.m
 obs = obsopt('DataType', 'simulated', 'optimise', 1, 'MultiStart', 0, 'J_normalise', 1, 'MaxOptTime', Inf, ... 
           'Nw', Nw, 'Nts', Nts, 'ode', ode, 'PE_maxiter', 0, 'WaitAllBuffer', 1, 'params',params, 'filters', filterScale,'filterTF', filter, ...
           'model_reference',model_reference, 'measure_reference',measure_reference, ...
-          'Jdot_thresh',0.95,'MaxIter', 5, 'Jterm_store', 1, 'AlwaysOpt', 1 , 'print', 0 , 'SafetyDensity', 2, 'AdaptiveHist', [5e-3, 2.5e-2, 1e0], ...
-          'AdaptiveSampling',0, 'FlushBuffer', 1, 'opt', @fminsearchcon, 'terminal', 1, 'terminal_states', terminal_states, 'terminal_weights', terminal_weights, 'terminal_normalise', 1, ...
+          'Jdot_thresh',0.95,'MaxIter', 5, 'Jterm_store', 1, 'AlwaysOpt', 1 , 'print', 0 , 'SafetyDensity', 2, 'AdaptiveFreqMin', [0.5], ...
+          'AdaptiveSampling',1, 'FlushBuffer', 1, 'opt', @fminsearchcon, 'terminal', 1, 'terminal_states', terminal_states, 'terminal_weights', terminal_weights, 'terminal_normalise', 1, ...
           'ConPos', [], 'LBcon', [], 'UBcon', [],'Bounds', 0);
 
 %% %%%% SIMULATION %%%%
@@ -189,11 +190,11 @@ for i = 1:obs.setup.Niter
             tspan = obs.setup.time(startpos:stoppos);   
             
             % true system - correct initial condition and no noise
-            % considered            
+            % considered                 
             X = obs.setup.ode(@(t,x)obs.setup.model_reference(t, x, obs.setup.params, obs), tspan, obs.init.X(traj).val(:,startpos),params.odeset); 
             obs.init.X(traj).val(:,startpos:stoppos) = [X.y(:,1),X.y(:,end)];
 
-            % real system - initial condition perturbed 
+            % real system - initial condition perturbed             
             X = obs.setup.ode(@(t,x)obs.setup.model(t, x, obs.init.params, obs), tspan, obs.init.X_est(traj).val(:,startpos),params.odeset);
             obs.init.X_est(traj).val(:,startpos:stoppos) = [X.y(:,1),X.y(:,end)]; 
                       

@@ -173,22 +173,25 @@ classdef obsopt < handle
                 obj.setup.AdaptiveSampling = 0;
             end
             obj.init.nfreqs = 2;
+            obj.init.wavelet_output_dim = 1;
             obj.init.freqs = zeros(obj.init.nfreqs,1);
+            obj.init.wvname = 'amor';
+            obj.init.Nv = 48;
+            obj.init.PLIMITS = [1e0*obj.setup.Ts 2e2*obj.setup.Ts];
+            obj.init.FLIMITS = fliplr(1./obj.init.PLIMITS);            
+            obj.init.NtsChanged = 0;
+
                         
             
             % option to define the safety interval in adaptive sampling. If
             % AdaptiveSampling flag is zero the histeresis is set to zero,
             % disabling the adaptive sampling
-            if any(strcmp(varargin,'AdaptiveHist')) && (obj.setup.AdaptiveSampling)
-                pos = find(strcmp(varargin,'AdaptiveHist'));
-                tmp = varargin{pos+1};
-                obj.setup.dJ_low = tmp(1);
-                obj.setup.dJ_high = tmp(2);
-                obj.setup.dPE = tmp(3);
+            if any(strcmp(varargin,'AdaptiveFreqMin')) && (obj.setup.AdaptiveSampling)
+                pos = find(strcmp(varargin,'AdaptiveFreqMin'));
+                tmp = varargin{pos+1};         
+                obj.init.Fmin = tmp; %Hz
             else
-                obj.setup.dJ_low = 0;
-                obj.setup.dJ_high = 0;
-                obj.setup.dPE = -1;
+                obj.init.Fmin = 1; %Hz
             end
             
             % enable or not the buffer flush on the adaptive sampling
@@ -1051,32 +1054,37 @@ classdef obsopt < handle
         % it will simply return the main frequencies of the current signal
         function obj = dJ_cond_v5_function(obj)            
 
-            buffer_ready = (nnz(obj.init.Y_space) >= 2);            
+            buffer_ready = (nnz(obj.init.Y_space) > 3 );            
 
-            if buffer_ready && obj.init.AdaptiveSampling
+            if buffer_ready && obj.setup.AdaptiveSampling
 
                 % get current buffer
                 [~, pos_hat] = find(obj.init.Y_space > 1);
-                buffer = obj.init.Y_full_story(1,:,min(pos_hat):max(pos_hat));                
-                                
-                Nv = 48;
-                % frequency constraint
-                PLIMITS = [1e0*obj.setup.Ts 2e2*obj.setup.Ts];
-                FLIMITS = fliplr(1./PLIMITS);
-                [WT, F] = cwt(y_meas,wvname,Fs,'VoicesPerOctave',Nv,'FrequencyLimits',FLIMITS);
+                buffer = squeeze(obj.init.Y_full_story.val(1,obj.init.wavelet_output_dim,obj.init.Y_space(min(pos_hat)):obj.init.Y_space(max(pos_hat)))); 
+                                                                
+                % frequency constraint                                
+                %[WT, F] = cwt(buffer,obj.init.wvname,1/obj.setup.Ts,'VoicesPerOctave',obj.init.Nv,'FrequencyLimits',obj.init.FLIMITS);
+                [WT, F] = cwt(buffer,obj.init.wvname,1/obj.setup.Ts,'VoicesPerOctave',obj.init.Nv);
+
 
                 % real values
                 WT_real = real(WT);
-                WT_norm = vecnorm(WT_real,2,2);
-                tmp = WT_norm;
-                for i=1:obj.init.nfreqs
-                    [~,pos(i)] = max(tmp);
-                    tmp(tmp == pos(i)) = [];
-                end
-                obj.init.freqs(:,obj.init.ActualTimeIndex) = F(pos);
-                                          
+                WT_norm = vecnorm(WT_real,2,2);   
+                WT_norm_filt = movmean(WT_norm,5);
+                % find derivative
+                [WT_norm_peaks,pos_peaks] = findpeaks(WT_norm_filt);
+                % lower freq comparison with min freq constraint
+                df = abs(max(F(pos_peaks))-obj.init.Fmin)/obj.init.Fmin;
+                % set freqs
+                if ~isempty(pos_peaks)
+                    [pos_max] = find(WT_norm_filt == max(WT_norm_peaks));
+                    [pos_min] = find(WT_norm_filt == min(WT_norm_peaks));
+                    obj.init.freqs = [obj.init.freqs F([pos_max pos_min])];
+                else
+                    obj.init.freqs = [obj.init.freqs zeros(obj.init.nfreqs,1)];
+                end                                                          
             else
-                obj.init.freqs(:,obj.init.ActualTimeIndex) = 0;
+                obj.init.freqs = [obj.init.freqs zeros(obj.init.nfreqs,1)];
             end                       
         end                
         
@@ -1162,22 +1170,36 @@ classdef obsopt < handle
                 end
             end            
             
-            %%% TRY TO REMOVE
-            %obj.init.initBuf_flag = (obj.init.ActualTimeIndex > obj.setup.w*obj.setup.Nts);
-            %%%%%
-            obj = obj.dJ_cond_v5_function();   
+            obj = obj.dJ_cond_v5_function(); 
+            % compute minimum freq to be considered
+            F_min = 1/((obj.init.Y_space(end)-obj.init.Y_space(1))*obj.setup.Ts);
+            % define selcted freq: freq_sel=1 MAX freq_sel=2 MIN
+            freq_sel = 1;
+            % define bound on freq (at least 2 due to Nyquist
+            freq_bound = 6;
             % set NtsVal depending on freqs
-            if any(obj.init.freqs(:,obj.init.ActualTimeIndex))
-                distance_min = 1/(4*max(obj.init.freqs(:,obj.init.ActualTimeIndex)));
+            if any(obj.init.freqs(:,end)) && (F_min < obj.init.Fmin)
+                % define freq on which calibrate the sampling time
+                freq = freq_bound*obj.init.freqs(freq_sel,end); % Hz
+                Ts_wv = 1/(freq); % s
+                distance_min = max(1,ceil(Ts_wv/obj.setup.Ts));
             else
-                distance_min = obj.setup.NtsVal(NtsPos);
+                if 1 && (obj.setup.AdaptiveSampling)                    
+                    Tmin = 1/(freq_bound*obj.init.Fmin);
+                    distance_min = max(obj.setup.NtsVal(NtsPos),ceil(Tmin/obj.setup.Ts));
+                else
+                    distance_min = obj.setup.NtsVal(NtsPos);
+                end
             end
+
+            % update the minimum distance                        
+            obj.setup.NtsVal(NtsPos) = distance_min;            
             
             % safety flag
             obj.init.distance_safe_flag = (distance < obj.init.safety_interval);           
             
             %%%% observer %%%%
-            if  ( ~( (distance < distance_min) && (obj.init.distance_safe_flag) ) )
+            if  ( ~( (distance < obj.setup.NtsVal(NtsPos)) && (obj.init.distance_safe_flag) ) )
 
                 if obj.setup.print
                     % Display iteration slengthtep
@@ -1196,7 +1218,7 @@ classdef obsopt < handle
                     end
                 end
 
-                % adaptive sampling
+                % adaptive sampling                
                 obj.init.Y_space(1:end-1) = obj.init.Y_space(2:end);
                 obj.init.Y_space(end) = obj.init.ActualTimeIndex;
                 obj.init.Y_space_full_story(end+1) = obj.init.ActualTimeIndex;

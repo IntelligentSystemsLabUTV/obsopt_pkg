@@ -77,15 +77,7 @@ function params = model_init(varargin)
         params.StateDim = varargin{pos+1};
     else
         params.StateDim = params.dim_state;
-    end
-    
-    % get set of observed states. Default is 1
-    if any(strcmp(varargin,'ObservedState'))
-        pos = find(strcmp(varargin,'ObservedState'));
-        params.observed_state = varargin{pos+1};
-    else
-        params.observed_state = 1;
-    end        
+    end               
     
     % get model if exists. Default is a 1 dimension asymptotically stable
     % system.
@@ -171,23 +163,23 @@ function params = model_init(varargin)
             randflag_opt = 0;
             randflag_nonopt = 0;
             noise_opt = 1;
-            noise_nonopt = 0;
+            noise_nonopt = 1;
             
             % if case: random perturbation percentage - non optimised vars
             if noise_nonopt
                 if randflag_nonopt
-                    params.perc(params.nonopt_vars,traj) = randn(1,length(params.nonopt_vars))*1e-1;
+                    params.perc(params.nonopt_vars,traj) = randn(1,length(params.nonopt_vars))*5e-1;
                 else
-                    params.perc(params.nonopt_vars,traj) = ones(1,length(params.nonopt_vars))*1e-1;
+                    params.perc(params.nonopt_vars,traj) = ones(1,length(params.nonopt_vars))*5e-1;
                 end
             end
 
             % if case: random perturbation percentage - optimised vars
             if noise_opt
                 if randflag_opt
-                    params.perc(params.opt_vars,traj) = 1*randn(1,length(params.opt_vars))*1e-1;
+                    params.perc(params.opt_vars,traj) = 1*randn(1,length(params.opt_vars))*5e-1;
                 else
-                    params.perc(params.opt_vars,traj) = 1*ones(1,length(params.opt_vars))*1e-1;
+                    params.perc(params.opt_vars,traj) = 1*ones(1,length(params.opt_vars))*5e-1;
                 end
             end
             

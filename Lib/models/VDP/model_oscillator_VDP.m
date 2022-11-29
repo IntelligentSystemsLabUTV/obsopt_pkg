@@ -30,8 +30,8 @@ function x_dot = model_oscillator_VDP(tspan,x,params,obs)
     
     % model dynamics
     x_dot(1) = params.eps*(x(2) + params.u(1));
-    x_dot(2) = params.eps*(-x(1) + params.mu*(1-x(1)^2)*x(2) + params.u(2));
+    x_dot(2) = params.eps*(-x(1) + x(3)*(1-x(1)^2)*x(2) + params.u(2));
     
     % params dynamics (under development)
-    % x_dot(3) = 0.1 + 0.05*randn(1);    % random walk
+    x_dot(3) = params.A_mu*cos(params.F_mu*tspan(1)+params.Phi_mu);    % oscillates
 end

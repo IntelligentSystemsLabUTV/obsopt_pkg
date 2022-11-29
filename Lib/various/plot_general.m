@@ -194,63 +194,7 @@ function plot_general(obj,varargin)
         xlabel('time [s]')
         ylabel('\delta x_norm') 
     end
-    
-    
-    %%%% plot windowed data %%%%            
-    fig_count = fig_count+1;
-    figure(fig_count)
-    grid on
-    sgtitle('Sampled measured')
-    ax = zeros(1,3);
-    for k=1:obj.setup.dim_out
-        
-        % number fo subplots depending on the output dimension
-        n_subplot = obj.setup.dim_out;
-        
-        % indicize axes
-        ax_index = k;
-        ax(ax_index)=subplot(n_subplot,1,ax_index);
-        
-        % hold on on plots
-        hold on
-        
-        % dpwn sampling instants
-        WindowTime = obj.setup.time(obj.init.temp_time);
-        
-        for traj=1:obj.setup.Ntraj
-            % plot true values
-            y_meas = reshape(obj.init.Y_full_story(traj).val(1,k,:),size(obj.setup.time));
-            plot(obj.setup.time,y_meas,'m:','LineWidth',2)
-            
-            % plot estimated values
-            yhat = reshape(obj.init.Yhat_full_story(traj).val(1,k,:),size(obj.setup.time));
-            plot(obj.setup.time,yhat,'b--','LineWidth',2)
-            
-            if strcmp(obj.setup.DataType,'simulated')
-                y_true = reshape(obj.init.Ytrue_full_story(traj).val(1,k,:),size(obj.setup.time));
-                plot(obj.setup.time,y_true,'k--','LineWidth',2)
-            end                    
 
-            % plot target values    
-            try
-                data = reshape(obj.init.target_story(traj).val(1,k,obj.init.temp_time),1,length(WindowTime));
-                plot(WindowTime,data,'bo','MarkerSize',5);
-            catch 
-                disp('CHECK T_END OR AYELS CONDITION - LOOKS LIKE NO OPTIMISATION HAS BEEN RUN')
-            end
-
-            set(gca,'fontsize', fontsize)
-            ylabel(strcat('y_',num2str(k)));
-            xlabel('simulation time [s]');
-            if strcmp(obj.setup.DataType,'simulated')
-                legend('meas','estimation','target','sampled')
-            else
-                legend('meas','est','sampled')
-            end
-        end
-    end
-    linkaxes(ax,'x');
-    
     %%%% plot filters %%%%%            
     fig_count = fig_count+1;
     figure(fig_count)
@@ -302,25 +246,63 @@ function plot_general(obj,varargin)
     end
     linkaxes(ax,'x');
     
-    %%% plot adaptive sampling            
+    
+    %%%% plot windowed data %%%%            
     fig_count = fig_count+1;
     figure(fig_count)
-    hold on
+    subplot(2,1,1)
     grid on
-    plot(obj.setup.time,obj.init.dJ_cond_story,'b','LineWidth',1.5)            
-    plot(obj.setup.time,ones(obj.setup.Niter,1)*obj.setup.dJ_low,'k--','LineWidth',2)
-    plot(obj.setup.time,ones(obj.setup.Niter,1)*obj.setup.dJ_high,'k--','LineWidth',2)
-%             set(gca, 'YScale', 'log')            
-    plot(obj.setup.time,ones(obj.setup.Niter,1)*obj.setup.dPE,'k:','LineWidth',2)
-    plot(obj.setup.time,obj.init.PE(1).val,'r','LineWidth',1.5)
-    WindowTime = obj.setup.time(obj.init.temp_time);
-    data = obj.init.dJ_cond_story(obj.init.temp_time);
-    plot(WindowTime,data,'mo','MarkerSize',5);
-    WindowTime = obj.setup.time(obj.init.temp_time);
-    data = obj.init.PE(1).val(obj.init.temp_time);
-    plot(WindowTime,data,'mo','MarkerSize',5);
-    set(gca,'fontsize', fontsize)
-    xlabel('time [s]');
-    ylabel('adaptive condition');
+    sgtitle('Sampled measured')
+    ax = zeros(1,3);
+    for k=1:obj.setup.dim_out
+        
+        % number fo subplots depending on the output dimension
+        n_subplot = obj.setup.dim_out+1;
+        
+        % indicize axes
+        ax_index = k;
+        ax(ax_index)=subplot(n_subplot,1,ax_index);
+        
+        % hold on on plots
+        hold on
+        
+        % dpwn sampling instants
+        WindowTime = obj.setup.time(obj.init.temp_time);
+        
+        for traj=1:obj.setup.Ntraj
+            % plot true values
+            y_meas = reshape(obj.init.Y_full_story(traj).val(1,k,:),size(obj.setup.time));
+            plot(obj.setup.time,y_meas,'m:','LineWidth',2)
+
+            % plot target values    
+            try
+                data = reshape(obj.init.target_story(traj).val(1,k,obj.init.temp_time),1,length(WindowTime));
+                plot(WindowTime,data,'bo','MarkerSize',5);
+            catch 
+                disp('CHECK T_END OR AYELS CONDITION - LOOKS LIKE NO OPTIMISATION HAS BEEN RUN')
+            end
+
+            set(gca,'fontsize', fontsize)
+            ylabel(strcat('y_',num2str(k)));
+            xlabel('simulation time [s]');
+            legend('meas','sampled')
+
+        end
+    end
+    linkaxes(ax(1:n_subplot-1),'x');
+    %%% plot adaptive sampling            
+    ax(n_subplot) = subplot(n_subplot,1,n_subplot);
+    % frequency constraint
+    y_meas = squeeze(obj.init.Y_full_story.val(1,1,:));  
+    [WT,F] = cwt(y_meas,obj.init.wvname,1/obj.setup.Ts,'VoicesPerOctave',obj.init.Nv,'FrequencyLimits',obj.init.FLIMITS);    
+    heatmap(obj.setup.time,F,real(WT))
+    grid off
+    colormap jet
+
+    %%% single cwt
+    fig_count = fig_count+1;
+    figure(fig_count)
+    cwt(y_meas,obj.init.wvname,1/obj.setup.Ts,'VoicesPerOctave',obj.init.Nv,'FrequencyLimits',obj.init.FLIMITS);
+            
     
 end
