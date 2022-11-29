@@ -12,8 +12,8 @@ function [obs,params] = simulation_general
 % close all
     
 % init observer buffer (see https://doi.org/10.48550/arXiv.2204.09359)
-Nw = 30;
-Nts = 5;
+Nw = 15;
+Nts = 10;
 
 % set sampling time
 Ts = 1e-2;
@@ -147,7 +147,7 @@ terminal_weights(3:5) = 10*terminal_weights(3);
 obs = obsopt('DataType', 'simulated', 'optimise', 1, 'MultiStart', 0, 'J_normalise', 1, 'MaxOptTime', Inf, ... 
           'Nw', Nw, 'Nts', Nts, 'ode', ode, 'PE_maxiter', 0, 'WaitAllBuffer', 1, 'params',params, 'filters', filterScale,'filterTF', filter, ...
           'model_reference',model_reference, 'measure_reference',measure_reference, ...
-          'Jdot_thresh',0.95,'MaxIter', 5, 'Jterm_store', 1, 'AlwaysOpt', 1 , 'print', 0 , 'SafetyDensity', 2, 'AdaptiveFreqMin', [0.5], ...
+          'Jdot_thresh',0.95,'MaxIter', 5, 'Jterm_store', 1, 'AlwaysOpt', 1 , 'print', 0 , 'SafetyDensity', 2, 'AdaptiveFreqMin', [1.5], ...
           'AdaptiveSampling',1, 'FlushBuffer', 1, 'opt', @fminsearchcon, 'terminal', 1, 'terminal_states', terminal_states, 'terminal_weights', terminal_weights, 'terminal_normalise', 1, ...
           'ConPos', [], 'LBcon', [], 'UBcon', [],'Bounds', 0);
 
