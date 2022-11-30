@@ -11,7 +11,8 @@ function params = params_rover
 
     % system parameters
     params.m = 1;
-    params.eps = 5;
+    params.eps = 5;    
+    params.Nanchor = 3;
     
     % control parameters
     params.K1 = 0.1;
@@ -21,18 +22,18 @@ function params = params_rover
     params.Ntraj = 1;
     
     % state dimension
-    params.dim_state = 4;
+    params.dim_state = 4 + 2*params.Nanchor;
 
     % input dim
     params.dim_input = 2;
 
     % output dim
-    params.OutDim = 2; % 2 accelerations
+    params.OutDim = 2 + 2*params.Nanchor; % rover position and anchor positions
     params.OutDim_compare = [1 2];
-    params.observed_state = []; % not reading the state    
+    params.observed_state = [1:2 5:params.dim_state]; % not reading the state    
     
     % initial condition
-    params.X(1).val(:,1) = [0;0;0;0];
+    params.X(1).val(:,1) = [0;0;0;1;0;-1;1;0];
     
     % same initial condition for all the trajectories (under development)
     for traj=2:params.Ntraj
@@ -56,6 +57,6 @@ function params = params_rover
     % plot vars (used to plot the state estimation. When the parameters are
     % too many, consider to use only the true state components)
     params.plot_vars = 1:4;
-    params.plot_params = [];
+    params.plot_params = 5:params.dim_state;
     params.multi_traj_var = params.nonopt_vars;
 end
