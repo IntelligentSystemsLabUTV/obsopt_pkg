@@ -39,4 +39,6 @@ vec = zeros(1,n);
 %   method: 0 = gradient method, else = newton (suggested)
 %   epsilon: error
 
-uwb_est(P_r, P_a, false, vec, 0, 1e-4)
+uwb_est(P_r, P_a, false, vec, 5, 1e-4, false)
+
+

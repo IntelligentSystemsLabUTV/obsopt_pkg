@@ -1,4 +1,4 @@
-function Pr_hat = uwb_est(P_r, P_a, bias, dist_vec, method, epsilon)
+function Pr_hat = uwb_est(P_r, P_a, bias, dist_vec, method, epsilon, display)
 %UWB_EST Summary of this function goes here
 %   P_r: vector(2,1) - Rover position
 %   P_a: vector(2,n) - Anchor position
@@ -24,14 +24,14 @@ function Pr_hat = uwb_est(P_r, P_a, bias, dist_vec, method, epsilon)
         disp("ERROR: Anchor position size")
         return
     end
-    
-    % display method
-    if method == 0
-        disp("Choosen method: Gradient")
-    else
-        disp("Choosen method: Newton")
+    if display
+        % display method
+        if method == 0
+            disp("Choosen method: Gradient")
+        else
+            disp("Choosen method: Newton")
+        end
     end
-    
     % bias correction
     if bias
         if size(dist_vec,1) == 1
@@ -77,7 +77,7 @@ function Pr_hat = uwb_est(P_r, P_a, bias, dist_vec, method, epsilon)
     
     eta = zeros(2,N);
     % initial conditions (then will be the previous step approximation)
-    eta(:,1) = [P_r(1),P_r(2)]*1.05;
+    eta(:,1) = [P_r(1),P_r(2)]*1.2;
     
     Jn = zeros(N,1);
 
@@ -95,23 +95,24 @@ function Pr_hat = uwb_est(P_r, P_a, bias, dist_vec, method, epsilon)
         end
         
         Jn(k) = eval(subs(J,{x,y},{eta(1,k-1),eta(2,k-1)}));
-        error = eta(:,k)-P_r;
+        error = vecnorm(eta(:,k)-P_r,2,1);
         if error < epsilon
             break
         end
         %fprintf("Iteration:\t%d\n",k);
     end
     t = toc;
-    fprintf("Frequency:\t%d Hz\n\n",1/t);
-    eta
-    Pr_hat = eta(:,k);
-    error = Pr_hat-P_r
     
-     
-%     figure(j)
-%     plot(Jn)
-%     grid on
-%     legend('Jn')
-
+    Pr_hat = eta(:,k);
+    
+    if display
+        fprintf("Frequency:\t%d Hz\n\n",1/t);
+        eta
+        error = vecnorm(Pr_hat-P_r)
+        figure(j)
+        plot(Jn)
+        grid on
+        legend('Jn')
+    end
 end
 
