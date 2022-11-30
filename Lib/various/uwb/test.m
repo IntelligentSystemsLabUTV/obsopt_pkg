@@ -31,4 +31,12 @@ for i=1:n
 end
 vec = zeros(1,n);
 
-uwb_est(P_r, P_a, false, n, vec, 0)
+% USAGE: 
+%   P_r must be a vector (1,2) [or (2,1)]
+%   P_a must be a matrix (n,2) [or (2,n)]
+%   bias correction: bool
+%   dist_vec not use at this time -> zeros(1,n)
+%   method: 0 = gradient method, else = newton (suggested)
+%   epsilon: error
+
+uwb_est(P_r, P_a, false, vec, 0, 1e-4)

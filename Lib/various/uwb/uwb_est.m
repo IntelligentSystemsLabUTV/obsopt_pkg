@@ -1,11 +1,11 @@
-function Pr_hat = uwb_est(P_r, P_a, bias, n, dist_vec, method)
+function Pr_hat = uwb_est(P_r, P_a, bias, dist_vec, method, epsilon)
 %UWB_EST Summary of this function goes here
 %   P_r: vector(2,1) - Rover position
 %   P_a: vector(2,n) - Anchor position
 %   bias: bool - bias correction
-%   n: int - number of anchors
 %   dist_vec TODO
 %   method: 0 = gradient or 1 = newton, default: Newton
+%   epsilon: float - error
     
     % checks
     % column vector
@@ -19,6 +19,7 @@ function Pr_hat = uwb_est(P_r, P_a, bias, n, dist_vec, method)
     if size(P_a, 1) ~= 2 
         P_a = P_a';
     end
+    n = size(P_a,2);
     if size(P_a, 1) ~= 2 || size(P_a, 2) ~= n
         disp("ERROR: Anchor position size")
         return
@@ -74,9 +75,9 @@ function Pr_hat = uwb_est(P_r, P_a, bias, n, dist_vec, method)
         N = 5;
     end
     
-    eta = ones(2,N);
+    eta = zeros(2,N);
     % initial conditions (then will be the previous step approximation)
-    eta(:,1) = [P_r(1),P_r(2)]*1;
+    eta(:,1) = [P_r(1),P_r(2)]*1.05;
     
     Jn = zeros(N,1);
 
@@ -94,14 +95,23 @@ function Pr_hat = uwb_est(P_r, P_a, bias, n, dist_vec, method)
         end
         
         Jn(k) = eval(subs(J,{x,y},{eta(1,k-1),eta(2,k-1)}));
-   
+        error = eta(:,k)-P_r;
+        if error < epsilon
+            break
+        end
         %fprintf("Iteration:\t%d\n",k);
     end
     t = toc;
     fprintf("Frequency:\t%d Hz\n\n",1/t);
-    
-    Pr_hat = eta(:,end);
+    eta
+    Pr_hat = eta(:,k);
     error = Pr_hat-P_r
     
+     
+%     figure(j)
+%     plot(Jn)
+%     grid on
+%     legend('Jn')
+
 end
 
