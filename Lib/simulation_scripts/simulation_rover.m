@@ -16,11 +16,11 @@ Nw = 15;
 Nts = 10;
 
 % set sampling time
-Ts = 1e-2;
+Ts = 1e-1;
 
 % set initial and final time instant
 t0 = 0;
-tend = 5;
+tend = 20;
 % uncomment to test the MHE with a single optimisation step
 %tend = 1*(Nw*Nts-1)*Ts;
 
