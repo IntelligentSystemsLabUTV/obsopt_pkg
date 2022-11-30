@@ -1,17 +1,15 @@
-%% MODEL_OSCILLATOR_VDP
-% file: model_oscillator_VDP.m
+%% MODEL_ROVER
+% file: model_rover.m
 % author: Federico Oliva
 % date: 10/01/2022
-% description: this function describes the dynamics equation of a Van der 
-% Pol oscillator
-% INPUT:
+% description: this function describes the dynamics equation of a rover
 % t: time instant
 % x: state vector
 % params: structure with all the necessary parameters 
 % obs: observer class instance (may be not used)
 % OUTPUT:
 % x_dot: dynamics equations
-function x_dot = model_oscillator_VDP(tspan,x,params,obs)
+function x_dot = model_rover(tspan,x,params,obs)
 
     % init the dynamics 
     x_dot = zeros(length(x),1);
@@ -29,9 +27,9 @@ function x_dot = model_oscillator_VDP(tspan,x,params,obs)
     obs.init.input_story_ref(obs.init.traj).val(:,pos) = params.u;
     
     % model dynamics
-    x_dot(1) = params.eps*(x(2) + params.u(1));
-    x_dot(2) = params.eps*(-x(1) + x(3)*(1-x(1)^2)*x(2) + params.u(2));
-    
-    % params dynamics (under development)
-    x_dot(3) = params.A_mu*cos(params.F_mu*tspan(1)+params.Phi_mu);    % oscillates
+    x_dot(1) = x(3);
+    x_dot(2) = x(4);
+    x_dot(3) = params.u(1)/params.m;
+    x_dot(4) = params.u(2)/params.m;
+        
 end

@@ -15,8 +15,10 @@ function params = params_rover
     params.Nanchor = 3;
     
     % control parameters
-    params.K1 = 0.1;
-    params.K2 = 0.1;    
+    params.wnx = 1;
+    params.wny = 0.5;
+    params.rhox = 0.1;
+    params.rhoy = 0.05;
     
     % number of reference trajectories (under development)
     params.Ntraj = 1;
@@ -33,7 +35,7 @@ function params = params_rover
     params.observed_state = [1:2 5:params.dim_state]; % not reading the state    
     
     % initial condition
-    params.X(1).val(:,1) = [0;0;0;1;0;-1;1;0];
+    params.X(1).val(:,1) = [1;1;0;0;0;1;0;-1;1;0];
     
     % same initial condition for all the trajectories (under development)
     for traj=2:params.Ntraj
@@ -58,5 +60,6 @@ function params = params_rover
     % too many, consider to use only the true state components)
     params.plot_vars = 1:4;
     params.plot_params = 5:params.dim_state;
+    params.dim_out_plot = [1:2];
     params.multi_traj_var = params.nonopt_vars;
 end
