@@ -77,7 +77,7 @@ function Pr_hat = uwb_est(P_r, P_a, bias, dist_vec, method, epsilon, display)
     
     eta = zeros(2,N);
     % initial conditions (then will be the previous step approximation)
-    eta(:,1) = [P_r(1),P_r(2)]*1.2;
+    eta(:,1) = [P_r(1),P_r(2)]*1;
     
     Jn = zeros(N,1);
 
