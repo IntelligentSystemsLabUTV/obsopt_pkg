@@ -123,9 +123,9 @@ input_law = @control;
 % this should be a vector with 2 columns and as many rows as the state
 % dimension. All the noise are considered as Gaussian distributed. The 
 % first column defines the mean while the second column the variance.
-noise_mat = 0*ones(11,2);
-noise_mat(1:2,2) = 1e-2; % noise on position
-noise_mat(9:11,2) = 1e-2; % noise on UWB
+noise_mat = 0*ones(15,2);
+noise_mat(14:15,2) = 1e-2; % noise on IMU
+noise_mat(11:13,2) = 5e-2; % noise on UWB
 
 %%%% params init %%%%
 % init the parameters structure through funtion @model_init. 
@@ -175,55 +175,55 @@ for i = 1:obs.setup.Niter
     obs.init.t = obs.setup.time(i);
     
     %%%% PROPAGATION %%%%
-    % forward propagation of the previous estimate
-    for traj = 1:obs.setup.Ntraj
+    % forward propagation of the previous estimate    
         
-        % update traj
-        obs.init.traj = traj;
-                 
-        % propagate only if the time gets over the initial time instant
-        if(obs.init.ActualTimeIndex > 1)
-            
-            % define the time span of the integration
-            startpos = obs.init.ActualTimeIndex-1;
-            stoppos = obs.init.ActualTimeIndex;
-            tspan = obs.setup.time(startpos:stoppos);   
-            
-            % true system - correct initial condition and no noise
-            % considered                 
-            X = obs.setup.ode(@(t,x)obs.setup.model_reference(t, x, obs.setup.params, obs), tspan, obs.init.X(traj).val(:,startpos),params.odeset); 
-            obs.init.X(traj).val(:,startpos:stoppos) = [X.y(:,1),X.y(:,end)];
-
-            % real system - initial condition perturbed             
-            X = obs.setup.ode(@(t,x)obs.setup.model(t, x, obs.init.params, obs), tspan, obs.init.X_est(traj).val(:,startpos),params.odeset);
-            obs.init.X_est(traj).val(:,startpos:stoppos) = [X.y(:,1),X.y(:,end)]; 
-                      
-        end
+    % update traj
+    obs.init.traj = 1;
+             
+    % propagate only if the time gets over the initial time instant
+    if(obs.init.ActualTimeIndex > 1)
         
-        %%%% REAL MEASUREMENT %%%%
-        % here the noise is noise added aggording to noise_spec
-        obs.init.Ytrue_full_story(traj).val(1,:,obs.init.ActualTimeIndex) = obs.setup.measure_reference(obs.init.X(traj).val(:,obs.init.ActualTimeIndex),obs.init.params,obs.setup.time(obs.init.ActualTimeIndex),...
-                                                                            obs.init.input_story_ref(traj).val(:,max(1,obs.init.ActualTimeIndex-1)));
-        obs.init.noise_story(traj).val(:,obs.init.ActualTimeIndex) = obs.setup.noise*(obs.setup.noise_mu + obs.setup.noise_std.*randn(obs.setup.dim_out,1));
-        y_meas(traj).val =  reshape(obs.init.Ytrue_full_story(traj).val(1,:,obs.init.ActualTimeIndex),obs.setup.dim_out,1) + obs.init.noise_story(traj).val(:,obs.init.ActualTimeIndex);
+        % define the time span of the integration
+        startpos = obs.init.ActualTimeIndex-1;
+        stoppos = obs.init.ActualTimeIndex;
+        tspan = obs.setup.time(startpos:stoppos);   
+        
+        % true system - correct initial condition and no noise
+        % considered                 
+        X = obs.setup.ode(@(t,x)obs.setup.model_reference(t, x, obs.setup.params, obs), tspan, obs.init.X(1).val(:,startpos),params.odeset); 
+        obs.init.X(1).val(:,startpos:stoppos) = [X.y(:,1),X.y(:,end)];
 
-        %%% UWB OPT %%%
-        p_r = obs.init.X_est(1).val(1:2,obs.init.ActualTimeIndex);   
-        P_a(1,:) = y_meas(traj).val(3:2:end-obs.setup.params.Nanchor);
-        P_a(2,:) = y_meas(traj).val(4:2:end-obs.setup.params.Nanchor);
-        d = y_meas(traj).val(end-obs.setup.params.Nanchor+1:end);
-%         obs.init.Phat(:,obs.init.ActualTimeIndex) = [0;0];
-        obs.init.Phat(:,obs.init.ActualTimeIndex) = uwb_est_v2(p_r,P_a,d,obs.setup.params);
-%         obs.init.Phat(:,obs.init.ActualTimeIndex) = uwb_est(p_r,params.P_a,params.bias, d, params.method, params.epsilon, params.display_uwb);
+        % real system - initial condition perturbed             
+        X = obs.setup.ode(@(t,x)obs.setup.model(t, x, obs.init.params, obs), tspan, obs.init.X_est(1).val(:,startpos),params.odeset);
+        obs.init.X_est(1).val(:,startpos:stoppos) = [X.y(:,1),X.y(:,end)]; 
+                  
     end
-      
-    %%%% OBSERVER %%%%
-    % start time counter for the observation
-    t1 = tic;
     
+    %%%% REAL MEASUREMENT %%%%
+    % here the noise is noise added aggording to noise_spec
+    obs.init.Ytrue_full_story(1).val(1,:,obs.init.ActualTimeIndex) = obs.setup.measure_reference(obs.init.X(1).val(:,obs.init.ActualTimeIndex),obs.init.params,obs.setup.time(obs.init.ActualTimeIndex),...
+                                                                        obs.init.input_story_ref(1).val(:,max(1,obs.init.ActualTimeIndex-1)),obs);
+    obs.init.noise_story(1).val(:,obs.init.ActualTimeIndex) = obs.setup.noise*(obs.setup.noise_mu + obs.setup.noise_std.*randn(obs.setup.dim_out,1));
+    y_meas(1).val =  reshape(obs.init.Ytrue_full_story(1).val(1,:,obs.init.ActualTimeIndex),obs.setup.dim_out,1) + obs.init.noise_story(1).val(:,obs.init.ActualTimeIndex);
+
+    %%% UWB OPT %%%
+    p_r = obs.init.X_est(1).val(1:2,obs.init.ActualTimeIndex);   
+    P_a(1,:) = y_meas(1).val(params.pos_anchor(1):2:params.pos_anchor(end));
+    P_a(2,:) = y_meas(1).val(params.pos_anchor(2):2:params.pos_anchor(end));
+    obs.init.d_true(:,obs.init.ActualTimeIndex) = obs.init.Ytrue_full_story(1).val(1,params.pos_dist,obs.init.ActualTimeIndex);
+    obs.init.d_noise(:,obs.init.ActualTimeIndex) = y_meas(1).val(params.pos_dist);
+    obs.init.Phat(:,obs.init.ActualTimeIndex) = uwb_est_v2(p_r,P_a,obs.init.d_noise(:,obs.init.ActualTimeIndex),obs.setup.params);
+    obs.init.d_est(:,obs.init.ActualTimeIndex) = get_dist(obs.init.Phat(:,obs.init.ActualTimeIndex),P_a);
+
+    %%% JUMP MAP %%%
+
+    %%% OBSERVER %%%
+      
+    %%%% MHE OBSERVER %%%%
+    % start time counter for the observation
+    t1 = tic;    
     % call the observer
-    obs = obs.observer(obs.init.X_est,y_meas);
-   
+    obs = obs.observer(obs.init.X_est,y_meas);   
     % stop time counter for the observer. Each optimisation process is
     % timed.
     obs.init.iter_time(obs.init.ActualTimeIndex) = toc(t1);
@@ -232,11 +232,10 @@ end
 
 %%%% SNR %%%
 % the SNR is computed on the mesurements https://ieeexplore.ieee.org/document/9805818 
-for traj = 1:obs.setup.Ntraj
-    for i=1:obs.setup.dim_out
-        obs.init.SNR(traj).val(i) = 10*log(sum(obs.init.Ytrue_full_story(traj).val(1,i,:).^2)/sum(obs.init.noise_story(traj).val(i,:).^2));
-    end
+for i=1:obs.setup.dim_out
+    obs.init.SNR(1).val(i) = 10*log(sum(obs.init.Ytrue_full_story(1).val(1,i,:).^2)/sum(obs.init.noise_story(1).val(i,:).^2));
 end
+
 
 % overall computation time
 obs.init.total_time = toc(t0);

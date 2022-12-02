@@ -870,7 +870,7 @@ classdef obsopt < handle
                 %%% get measure  %%               
                 Yhat = zeros(obj.setup.Nfilt+1,obj.setup.dim_out,size(X.y,2));                
                 u_in = [zeros(size(obj.init.input_story(traj).val,1),1), obj.init.input_story(traj).val];
-                Yhat(1,:,:) = obj.setup.measure(X.y,obj.init.params,tspan,u_in(:,(tspan_pos(1):tspan_pos(end))));
+                Yhat(1,:,:) = obj.setup.measure(X.y,obj.init.params,tspan,u_in(:,(tspan_pos(1):tspan_pos(end))),obj);
                 
                 %%% compute filters %%%
                 if obj.setup.Nfilt > 0                     
@@ -1114,7 +1114,7 @@ classdef obsopt < handle
                 % save runtime state
                 obj.init.X_est_runtime(traj).val(:,obj.init.ActualTimeIndex) = obj.init.X_est(traj).val(:,obj.init.ActualTimeIndex);
                 % get ESTIMATED measure from ESTIMATED state (xhat)
-                yhat(traj).val = obj.setup.measure(xhat(traj).val,obj.init.params,obj.setup.time(obj.init.ActualTimeIndex),obj.init.input_story(traj).val(:,max(1,obj.init.ActualTimeIndex-1)));
+                yhat(traj).val = obj.setup.measure(xhat(traj).val,obj.init.params,obj.setup.time(obj.init.ActualTimeIndex),obj.init.input_story(traj).val(:,max(1,obj.init.ActualTimeIndex-1)),obj);
             end
             
             for traj=1:obj.setup.Ntraj
@@ -1511,7 +1511,7 @@ classdef obsopt < handle
                                     % NB: the output storage has to be done in
                                     % back_time+1 as the propagation has been
                                     % performed 
-                                    Yhat = obj.setup.measure(x_propagate,obj.init.params,obj.setup.time(back_time),obj.init.input_story(traj).val(:,back_time));
+                                    Yhat = obj.setup.measure(x_propagate,obj.init.params,obj.setup.time(back_time),obj.init.input_story(traj).val(:,back_time),obj);
                                     % get filters - yhat
                                     obj.init.Yhat_full_story(traj).val(1,:,back_time) = Yhat;  
                                     tspan_pos = [max(1,back_time-1), back_time];
@@ -1584,7 +1584,7 @@ classdef obsopt < handle
                                         % NB: the output storage has to be done in
                                         % back_time+1 as the propagation has been
                                         % performed 
-                                        Yhat = obj.setup.measure(x_propagate,obj.init.params,obj.setup.time(back_time),obj.init.input_story(traj).val(:,back_time));
+                                        Yhat = obj.setup.measure(x_propagate,obj.init.params,obj.setup.time(back_time),obj.init.input_story(traj).val(:,back_time),obj);
                                         % get filters - yhat
                                         obj.init.Yhat_full_story(traj).val(1,:,back_time) = Yhat;            
                                         tspan_pos = [max(1,back_time-1), back_time];

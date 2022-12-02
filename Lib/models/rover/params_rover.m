@@ -31,14 +31,18 @@ function params = params_rover
     
     % state dimension
     params.dim_state = 4 + 2*params.Nanchor;
+    params.pos_p = [1 2];
+    params.pos_v = [3 4];
+    params.pos_anchor = [5:params.dim_state];    
 
     % input dim
     params.dim_input = 2;
 
     % output dim
-    params.OutDim = 2 + 3*params.Nanchor; % rover position and anchor positions + distances
-    params.OutDim_compare = [1 2 (params.OutDim-params.Nanchor+1):params.OutDim];
-    params.observed_state = [1:2 5:params.dim_state]; % not reading the state    
+    params.OutDim = params.dim_state + params.Nanchor + params.dim_input;       % rover position and anchor positions + distances + accelerations
+    params.OutDim_compare = [params.dim_state + params.Nanchor+1:params.OutDim];%[1 2 (params.OutDim-params.Nanchor+1):params.OutDim];
+    params.observed_state = [1:params.dim_state];                               % not reading the state    
+    params.pos_dist = params.dim_state+1:params.dim_state+params.Nanchor;
     
     % initial condition
     params.X(1).val(:,1) = 1*[1;1;0;0;0;1;0;-1;1;0];

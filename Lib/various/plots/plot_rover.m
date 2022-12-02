@@ -208,11 +208,10 @@ function plot_rover(obj,varargin)
         % indicize axes
         ax_index = k;
         ax(ax_index)=subplot(n_subplot,1,ax_index);                
-        
-        % plot
         hold on
         grid on
-        
+
+        % plot                
         for traj=1:obj.setup.Ntraj
             for dim=1:length(obj.setup.params.dim_out_plot)
                 y_plot = obj.setup.J_temp_scale(k)*reshape(obj.init.Y_full_story(traj).val(k,obj.setup.params.dim_out_plot(dim),:),size(obj.setup.time));
@@ -240,7 +239,7 @@ function plot_rover(obj,varargin)
             
             set(gca,'fontsize', fontsize)
             ylabel(strcat('y_{filter}^',num2str(k)));
-            xlabel('simulation time [s]');
+            xlabel('simulation time [s]');            
         end            
         
     end
@@ -250,8 +249,7 @@ function plot_rover(obj,varargin)
     %%%% plot windowed data %%%%            
     fig_count = fig_count+1;
     figure(fig_count)
-    subplot(2,1,1)
-    grid on
+    subplot(2,1,1)    
     sgtitle('Sampled measured')
     ax = zeros(1,3);
     for k=1:length(obj.setup.params.dim_out_plot)
@@ -265,7 +263,8 @@ function plot_rover(obj,varargin)
         
         % hold on on plots
         hold on
-        
+        grid on
+
         % dpwn sampling instants
         WindowTime = obj.setup.time(obj.init.temp_time);
         
@@ -304,17 +303,23 @@ function plot_rover(obj,varargin)
     plot(obj.init.X_est(1).val(1,:),obj.init.X_est(1).val(2,:),'b--');
     xlabel('X')
     ylabel('Y')
+    set(gca,'fontsize', fontsize)
 
     %%% check distances %%%
     fig_count = fig_count+1;
     figure(fig_count)    
-    for n=1:2
-        ax(n) = subplot(2,1,n);
+    for n=1:obj.init.params.Nanchor
+        ax(n) = subplot(obj.init.params.Nanchor,1,n);
         hold on
-        grid on
-        plot(obj.setup.time,obj.init.X(1).val(n,:));
-        plot(obj.setup.time,obj.init.Phat(n,:));        
-    end
+        grid on        
+        plot(obj.setup.time,obj.init.d_true(n,:));
+        plot(obj.setup.time,obj.init.d_noise(n,:));
+        plot(obj.setup.time,obj.init.d_est(n,:));
+        xlabel('time [s]')
+        ylabel(['d_',num2str(n)])
+        legend('true','meas','opt');
+        set(gca,'fontsize', fontsize)
+    end    
 
             
     

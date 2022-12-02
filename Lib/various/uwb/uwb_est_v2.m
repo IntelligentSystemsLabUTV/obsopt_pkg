@@ -75,7 +75,7 @@ function Pr_hat = uwb_est_v2(P_r, P_a, dist_vec, params)
     gamma = 0.1;
    
     % test: No optimization
-    %N = 1;    
+%     N = 1;    
 
     tic
     for k=2:N
@@ -96,7 +96,7 @@ function Pr_hat = uwb_est_v2(P_r, P_a, dist_vec, params)
     end
     t = toc;
     
-    %k = 1;
+%     k = 1;
     Pr_hat = eta(:,k);
     
     if params.display_uwb

@@ -10,16 +10,19 @@
 % t: time instant (may be not used)
 % OUTPUT:
 % y: output measurement
-function y = measure_rover(x,params,t,u)
+function y = measure_rover(x,params,t,u,obs)
 
     % get the observed components of the state vector
     y = x(params.observed_state,:);
 
+    % get the IMU accelerations
+    xd = model_rover([t t+params.Ts],x,params,obs);
+
     % get distances
-    p = y(1:2);
-    Pa(1,:) = y(3:2:end);
-    Pa(2,:) = y(4:2:end);
+    p = x(params.pos_p);
+    Pa(1,:) = x(params.pos_anchor(1):2:params.pos_anchor(end));
+    Pa(2,:) = x(params.pos_anchor(2):2:params.pos_anchor(end));
     D = get_dist(p,Pa);
 
-    y = [y; D];
+    y = [y; D; xd(3:4)];
 end

@@ -24,7 +24,10 @@ function [filter, filterScale, reference] = filter_define(Ts,Nts)
     if fil1
     i = i+1;   
     eps1 = 1e-2;
-    G = tf([1 0],[eps1 1]);
+    eps2 = 1e0;
+    G1 = tf([1 0],[eps1 1]);
+    G2 = tf(1,[eps2 1]);
+    G = G1*G2;
     SS = ss(G);
     D = c2d(SS,Ts);
     filter(i).TF = D;
@@ -59,10 +62,10 @@ function [filter, filterScale, reference] = filter_define(Ts,Nts)
     fil3 = 0;
     if fil3
     i = i+1; 
-    eps0 = 1e0;
-    eps1 = 5e-2;
+    eps0 = 0*1e-4;
+    eps1 = 1e2;
     K = 1;
-    eps2 = 5e-2;
+    eps2 = 1e4;
     G1 = tf(K*[eps0 1],[eps1 1]);
     G2 = tf([1],[eps2 1]);
     G = G1*G2;
