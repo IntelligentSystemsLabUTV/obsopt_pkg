@@ -18,7 +18,7 @@ function params = params_rover
     params.wnx = 0.2;
     params.wny = 0.3;
     params.rhox = 0.3;
-    params.rhoy = 0.3;
+    params.rhoy = 0.3;    
 
     % params uwb
     params.display_uwb = false;
@@ -40,9 +40,22 @@ function params = params_rover
 
     % output dim
     params.OutDim = params.dim_state + params.Nanchor + params.dim_input;       % rover position and anchor positions + distances + accelerations
-    params.OutDim_compare = [params.dim_state + 1 + params.Nanchor:params.OutDim];               %[1 2 (params.OutDim-params.Nanchor+1):params.OutDim];
+    params.OutDim_compare = [params.dim_state + 1 + params.Nanchor:params.OutDim];        
     params.observed_state = [1:params.dim_state];                               % not reading the state    
     params.pos_dist = params.dim_state+1:params.dim_state+params.Nanchor;
+    params.pos_acc = [params.dim_state + 1 + params.Nanchor:params.OutDim];
+
+    % noise
+    params.noise_mat = 0*ones(params.OutDim,3);
+    params.noise_mat(params.pos_acc,3) = 0;      % noise on IMU - bias 
+    params.noise_mat(params.pos_dist,3) = 7e-2;  % noise on UWB - bias
+    params.noise_mat(params.pos_acc,2) = 2e-1;   % noise on IMU - std
+    params.noise_mat(params.pos_dist,2) = 2e-1;  % noise on UWB - std
+    params.noise_mat(params.pos_acc,1) = 1e-2;   % noise on IMU - mean
+    params.noise_mat(params.pos_dist,1) = 1e-1;  % noise on UWB - mean
+    params.bias = params.noise_mat(:,3);
+    params.mean = params.noise_mat(:,2);
+    params.std = params.noise_mat(:,1);
     
     % initial condition
     params.X(1).val(:,1) = 1*[1;1;0;0;0;1;0;-1;1;0];

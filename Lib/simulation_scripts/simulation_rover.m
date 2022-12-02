@@ -119,25 +119,13 @@ ode = @oderk4_fast;
 % u: control variable
 input_law = @control;
 
-%%%% measurement noise %%%%
-% this should be a vector with 2 columns and as many rows as the state
-% dimension. All the noise are considered as Gaussian distributed. The 
-% first column defines the mean while the second column the variance.
-noise_mat = 0*ones(15,3);
-noise_mat(14:15,3) = 0;     % noise on IMU - bias 
-noise_mat(11:13,3) = 7e-2;  % noise on UWB - bias
-noise_mat(14:15,2) = 2e-1;  % noise on IMU - std
-noise_mat(11:13,2) = 2e-1;  % noise on UWB - std
-noise_mat(14:15,1) = 1e-2;  % noise on IMU - mean
-noise_mat(11:13,1) = 1e-1;  % noise on UWB - mean
-
 %%%% params init %%%%
 % init the parameters structure through funtion @model_init. 
 % The model_init file has lots of setup options (varargin). The most 
 % important is the 'params_init' option, which takes as input the function 
 % handle to the previously defined @params_init. For more information see 
 % directly the model_init.m file.
-params = model_init('Ts',Ts,'T0',[t0, tend],'noise',1, 'noise_spec', noise_mat, 'params_update', params_update, ...
+params = model_init('Ts',Ts,'T0',[t0, tend],'noise',1, 'params_update', params_update, ...
             'model',model,'measure',measure,'ode',ode, 'odeset', [1e-3 1e-6], ...
             'input_enable',1,'input_law',input_law,'params_init',params_init);
              
@@ -145,6 +133,9 @@ params = model_init('Ts',Ts,'T0',[t0, tend],'noise',1, 'noise_spec', noise_mat, 
 % defien arrival cost
 terminal_states = params.opt_vars;
 terminal_weights = 1e-1*ones(size(terminal_states));
+
+%%% noise %%%
+noise_mat = params.noise_mat;
 
 % create observer class instance. For more information on the setup
 % options check directly the class constructor in obsopt.m
@@ -208,8 +199,7 @@ for i = 1:obs.setup.Niter
     yTrue = obs.setup.measure_reference(obs.init.X(1).val(:,obs.init.ActualTimeIndex),obs.init.params,obs.setup.time(obs.init.ActualTimeIndex),...
                                                                         obs.init.input_story_ref(1).val(:,max(1,obs.init.ActualTimeIndex-1)),obs);
     
-    obs.init.Ytrue_full_story(1).val(1,:,obs.init.ActualTimeIndex) = yTrue;
-                                                                   
+    obs.init.Ytrue_full_story(1).val(1,:,obs.init.ActualTimeIndex) = yTrue;                                                                      
     obs.init.noise_story(1).val(:,obs.init.ActualTimeIndex) = obs.setup.noise*(yTrue.*noise_mat(:,2).*randn(obs.setup.dim_out,1) + noise_mat(:,1).*randn(obs.setup.dim_out,1) + noise_mat(:,3));
     y_meas(1).val =  reshape(obs.init.Ytrue_full_story(1).val(1,:,obs.init.ActualTimeIndex),obs.setup.dim_out,1) + obs.init.noise_story(1).val(:,obs.init.ActualTimeIndex);
 
