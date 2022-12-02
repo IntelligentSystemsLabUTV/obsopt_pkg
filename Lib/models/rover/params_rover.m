@@ -40,7 +40,7 @@ function params = params_rover
 
     % output dim
     params.OutDim = params.dim_state + params.Nanchor + params.dim_input;       % rover position and anchor positions + distances + accelerations
-    params.OutDim_compare = [params.dim_state + params.Nanchor+1:params.OutDim];%[1 2 (params.OutDim-params.Nanchor+1):params.OutDim];
+    params.OutDim_compare = [params.dim_state + 1 + params.Nanchor:params.OutDim];               %[1 2 (params.OutDim-params.Nanchor+1):params.OutDim];
     params.observed_state = [1:params.dim_state];                               % not reading the state    
     params.pos_dist = params.dim_state+1:params.dim_state+params.Nanchor;
     

@@ -15,6 +15,7 @@ function Pr_hat = uwb_est(P_r, P_a, bias, dist_vec, method, epsilon, display)
     if size(P_r, 1) ~= 2 
         disp("ERROR: Rover position size")
         return
+        
     end
     if size(P_a, 1) ~= 2 
         P_a = P_a';

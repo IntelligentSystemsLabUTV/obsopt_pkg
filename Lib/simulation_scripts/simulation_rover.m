@@ -123,9 +123,13 @@ input_law = @control;
 % this should be a vector with 2 columns and as many rows as the state
 % dimension. All the noise are considered as Gaussian distributed. The 
 % first column defines the mean while the second column the variance.
-noise_mat = 0*ones(15,2);
-noise_mat(14:15,2) = 1e-2; % noise on IMU
-noise_mat(11:13,2) = 5e-2; % noise on UWB
+noise_mat = 0*ones(15,3);
+noise_mat(14:15,3) = 0;     % noise on IMU - bias 
+noise_mat(11:13,3) = 7e-2;  % noise on UWB - bias
+noise_mat(14:15,2) = 2e-1;  % noise on IMU - std
+noise_mat(11:13,2) = 2e-1;  % noise on UWB - std
+noise_mat(14:15,1) = 1e-2;  % noise on IMU - mean
+noise_mat(11:13,1) = 1e-1;  % noise on UWB - mean
 
 %%%% params init %%%%
 % init the parameters structure through funtion @model_init. 
@@ -148,7 +152,7 @@ obs = obsopt('DataType', 'simulated', 'optimise', 0, 'MultiStart', 0, 'J_normali
           'Nw', Nw, 'Nts', Nts, 'ode', ode, 'PE_maxiter', 0, 'WaitAllBuffer', 1, 'params',params, 'filters', filterScale,'filterTF', filter, ...
           'model_reference',model_reference, 'measure_reference',measure_reference, ...
           'Jdot_thresh',0.95,'MaxIter', 5, 'Jterm_store', 1, 'AlwaysOpt', 1 , 'print', 0 , 'SafetyDensity', 2, 'AdaptiveFreqMin', [1.5], ...
-          'AdaptiveSampling',1, 'FlushBuffer', 1, 'opt', @fminsearchcon, 'terminal', 1, 'terminal_states', terminal_states, 'terminal_weights', terminal_weights, 'terminal_normalise', 1, ...
+          'AdaptiveSampling',0, 'FlushBuffer', 1, 'opt', @fminsearchcon, 'terminal', 1, 'terminal_states', terminal_states, 'terminal_weights', terminal_weights, 'terminal_normalise', 1, ...
           'ConPos', [], 'LBcon', [], 'UBcon', [],'Bounds', 0);
 
 %% %%%% SIMULATION %%%%
@@ -201,9 +205,12 @@ for i = 1:obs.setup.Niter
     
     %%%% REAL MEASUREMENT %%%%
     % here the noise is noise added aggording to noise_spec
-    obs.init.Ytrue_full_story(1).val(1,:,obs.init.ActualTimeIndex) = obs.setup.measure_reference(obs.init.X(1).val(:,obs.init.ActualTimeIndex),obs.init.params,obs.setup.time(obs.init.ActualTimeIndex),...
+    yTrue = obs.setup.measure_reference(obs.init.X(1).val(:,obs.init.ActualTimeIndex),obs.init.params,obs.setup.time(obs.init.ActualTimeIndex),...
                                                                         obs.init.input_story_ref(1).val(:,max(1,obs.init.ActualTimeIndex-1)),obs);
-    obs.init.noise_story(1).val(:,obs.init.ActualTimeIndex) = obs.setup.noise*(obs.setup.noise_mu + obs.setup.noise_std.*randn(obs.setup.dim_out,1));
+    
+    obs.init.Ytrue_full_story(1).val(1,:,obs.init.ActualTimeIndex) = yTrue;
+                                                                   
+    obs.init.noise_story(1).val(:,obs.init.ActualTimeIndex) = obs.setup.noise*(yTrue.*noise_mat(:,2).*randn(obs.setup.dim_out,1) + noise_mat(:,1).*randn(obs.setup.dim_out,1) + noise_mat(:,3));
     y_meas(1).val =  reshape(obs.init.Ytrue_full_story(1).val(1,:,obs.init.ActualTimeIndex),obs.setup.dim_out,1) + obs.init.noise_story(1).val(:,obs.init.ActualTimeIndex);
 
     %%% UWB OPT %%%
@@ -216,7 +223,7 @@ for i = 1:obs.setup.Niter
     obs.init.d_est(:,obs.init.ActualTimeIndex) = get_dist(obs.init.Phat(:,obs.init.ActualTimeIndex),P_a);
 
     %%% JUMP MAP %%%
-
+    
     %%% OBSERVER %%%
       
     %%%% MHE OBSERVER %%%%
