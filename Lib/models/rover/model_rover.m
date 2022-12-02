@@ -31,5 +31,5 @@ function x_dot = model_rover(tspan,x,params,obs)
     x_dot(2) = x(4);
     x_dot(3) = params.u(1)/params.m;
     x_dot(4) = params.u(2)/params.m;
-        
+    
 end

@@ -20,7 +20,7 @@ Ts = 1e-1;
 
 % set initial and final time instant
 t0 = 0;
-tend = 20;
+tend = 60;
 % uncomment to test the MHE with a single optimisation step
 %tend = 1*(Nw*Nts-1)*Ts;
 
@@ -86,8 +86,8 @@ model_reference = @model_rover;
 % OUTPUT:
 % y = measure (no noise added). In the following examples it holds
 % y = x(params.observed_state) (see params_init options)
-measure = @measure_general;
-measure_reference = @measure_general;
+measure = @measure_rover;
+measure_reference = @measure_rover;
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 %%%% filters %%%%
@@ -123,8 +123,9 @@ input_law = @control;
 % this should be a vector with 2 columns and as many rows as the state
 % dimension. All the noise are considered as Gaussian distributed. The 
 % first column defines the mean while the second column the variance.
-noise_mat = 0*ones(10,2);
-% noise_mat(1,2) = 5e-2;
+noise_mat = 0*ones(11,2);
+noise_mat(1:2,2) = 1e-2; % noise on position
+noise_mat(9:11,2) = 1e-2; % noise on UWB
 
 %%%% params init %%%%
 % init the parameters structure through funtion @model_init. 
@@ -132,7 +133,7 @@ noise_mat = 0*ones(10,2);
 % important is the 'params_init' option, which takes as input the function 
 % handle to the previously defined @params_init. For more information see 
 % directly the model_init.m file.
-params = model_init('Ts',Ts,'T0',[t0, tend],'noise',0, 'noise_spec', noise_mat, 'params_update', params_update, ...
+params = model_init('Ts',Ts,'T0',[t0, tend],'noise',1, 'noise_spec', noise_mat, 'params_update', params_update, ...
             'model',model,'measure',measure,'ode',ode, 'odeset', [1e-3 1e-6], ...
             'input_enable',1,'input_law',input_law,'params_init',params_init);
              
@@ -203,8 +204,17 @@ for i = 1:obs.setup.Niter
         % here the noise is noise added aggording to noise_spec
         obs.init.Ytrue_full_story(traj).val(1,:,obs.init.ActualTimeIndex) = obs.setup.measure_reference(obs.init.X(traj).val(:,obs.init.ActualTimeIndex),obs.init.params,obs.setup.time(obs.init.ActualTimeIndex),...
                                                                             obs.init.input_story_ref(traj).val(:,max(1,obs.init.ActualTimeIndex-1)));
-        obs.init.noise_story(traj).val(:,obs.init.ActualTimeIndex) = obs.setup.noise*(obs.setup.noise_mu(obs.setup.observed_state)  + obs.setup.noise_std(obs.setup.observed_state).*randn(obs.setup.dim_out,1));
+        obs.init.noise_story(traj).val(:,obs.init.ActualTimeIndex) = obs.setup.noise*(obs.setup.noise_mu + obs.setup.noise_std.*randn(obs.setup.dim_out,1));
         y_meas(traj).val =  reshape(obs.init.Ytrue_full_story(traj).val(1,:,obs.init.ActualTimeIndex),obs.setup.dim_out,1) + obs.init.noise_story(traj).val(:,obs.init.ActualTimeIndex);
+
+        %%% UWB OPT %%%
+        p_r = obs.init.X_est(1).val(1:2,obs.init.ActualTimeIndex);   
+        P_a(1,:) = y_meas(traj).val(3:2:end-obs.setup.params.Nanchor);
+        P_a(2,:) = y_meas(traj).val(4:2:end-obs.setup.params.Nanchor);
+        d = y_meas(traj).val(end-obs.setup.params.Nanchor+1:end);
+%         obs.init.Phat(:,obs.init.ActualTimeIndex) = [0;0];
+        obs.init.Phat(:,obs.init.ActualTimeIndex) = uwb_est_v2(p_r,P_a,d,obs.setup.params);
+%         obs.init.Phat(:,obs.init.ActualTimeIndex) = uwb_est(p_r,params.P_a,params.bias, d, params.method, params.epsilon, params.display_uwb);
     end
       
     %%%% OBSERVER %%%%

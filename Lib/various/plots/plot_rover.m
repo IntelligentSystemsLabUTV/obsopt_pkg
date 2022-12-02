@@ -304,6 +304,18 @@ function plot_rover(obj,varargin)
     plot(obj.init.X_est(1).val(1,:),obj.init.X_est(1).val(2,:),'b--');
     xlabel('X')
     ylabel('Y')
+
+    %%% check distances %%%
+    fig_count = fig_count+1;
+    figure(fig_count)    
+    for n=1:2
+        ax(n) = subplot(2,1,n);
+        hold on
+        grid on
+        plot(obj.setup.time,obj.init.X(1).val(n,:));
+        plot(obj.setup.time,obj.init.Phat(n,:));        
+    end
+
             
     
 end
