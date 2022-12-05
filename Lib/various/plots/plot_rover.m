@@ -13,6 +13,10 @@ function plot_rover(obj,varargin)
     fontsize = 20;
     fig_count = 0;
     
+    if length(varargin) == 1
+        params = varargin{1};
+    end
+    
     %%%% plot state estimation %%%
     fig_count = fig_count+1;
     figure(fig_count)            
@@ -27,10 +31,10 @@ function plot_rover(obj,varargin)
             if 1 || strcmp(obj.setup.DataType,'simulated')
                 plot(obj.setup.time,obj.init.X(traj).val(obj.setup.plot_vars(i),:),'b--','LineWidth',2);
             end
-            plot(obj.setup.time,obj.init.X_est(traj).val(obj.setup.plot_vars(i),:),'r--','LineWidth',2);                                      
-
+            plot(obj.setup.time,obj.init.X_est(traj).val(obj.setup.plot_vars(i),:),'r.','LineWidth',2);                                      
+            plot(obj.setup.time,params.Xo(obj.setup.plot_vars(i),:),'m-','LineWidth',2);                                      
             if strcat(obj.setup.DataType,'simulated')
-                legend('True','Est')
+                legend('True','Tilde','Est')
             else
                 legend('Stored','Est','Runtime')
             end

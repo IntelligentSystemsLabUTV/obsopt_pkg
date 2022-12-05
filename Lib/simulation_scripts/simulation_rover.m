@@ -106,7 +106,7 @@ measure_reference = @measure_rover;
 
 %%%% integration method %%%%
 % ode45-like integration method. For discrete time systems use @odeDD
-ode = @oderk4_fast;
+ode = @odeEuler;
 
 %%%% input law %%%
 % function: defines the input law used. Remember to check the @model
@@ -125,7 +125,7 @@ input_law = @control;
 % important is the 'params_init' option, which takes as input the function 
 % handle to the previously defined @params_init. For more information see 
 % directly the model_init.m file.
-params = model_init('Ts',Ts,'T0',[t0, tend],'noise',1, 'params_update', params_update, ...
+params = model_init('Ts',Ts,'T0',[t0, tend],'noise',0, 'params_update', params_update, ...
             'model',model,'measure',measure,'ode',ode, 'odeset', [1e-3 1e-6], ...
             'input_enable',1,'input_law',input_law,'params_init',params_init);
              
@@ -151,6 +151,8 @@ obs = obsopt('DataType', 'simulated', 'optimise', 0, 'MultiStart', 0, 'J_normali
 % trajectories the MHE is run. This makes sense in the control design
 % framework, which is under development. If standard MHE is to be used,
 % please ignore obs.setup.Ntraj as it is set to 1.
+
+params.Xo(:,1) = params.X_est.val(1:4,1);
 
 % start time counter
 t0 = tic;
@@ -198,11 +200,20 @@ for i = 1:obs.setup.Niter
     % here the noise is noise added aggording to noise_spec
     yTrue = obs.setup.measure_reference(obs.init.X(1).val(:,obs.init.ActualTimeIndex),obs.init.params,obs.setup.time(obs.init.ActualTimeIndex),...
                                                                         obs.init.input_story_ref(1).val(:,max(1,obs.init.ActualTimeIndex-1)),obs);
-    
     obs.init.Ytrue_full_story(1).val(1,:,obs.init.ActualTimeIndex) = yTrue;                                                                      
     obs.init.noise_story(1).val(:,obs.init.ActualTimeIndex) = obs.setup.noise*(yTrue.*noise_mat(:,2).*randn(obs.setup.dim_out,1) + noise_mat(:,1).*randn(obs.setup.dim_out,1) + noise_mat(:,3));
     y_meas(1).val =  reshape(obs.init.Ytrue_full_story(1).val(1,:,obs.init.ActualTimeIndex),obs.setup.dim_out,1) + obs.init.noise_story(1).val(:,obs.init.ActualTimeIndex);
 
+    %%%% MHE OBSERVER %%%%
+    % start time counter for the observation
+    t1 = tic;    
+    % call the observer
+    obs = obs.observer(obs.init.X_est,y_meas);   
+    % stop time counter for the observer. Each optimisation process is
+    % timed.
+    obs.init.iter_time(obs.init.ActualTimeIndex) = toc(t1);
+    
+    
     %%% UWB OPT %%%
     p_r = obs.init.X_est(1).val(1:2,obs.init.ActualTimeIndex);   
     P_a(1,:) = y_meas(1).val(params.pos_anchor(1):2:params.pos_anchor(end));
@@ -215,15 +226,18 @@ for i = 1:obs.setup.Niter
     %%% JUMP MAP %%%
     
     %%% OBSERVER %%%
-      
-    %%%% MHE OBSERVER %%%%
-    % start time counter for the observation
-    t1 = tic;    
-    % call the observer
-    obs = obs.observer(obs.init.X_est,y_meas);   
-    % stop time counter for the observer. Each optimisation process is
-    % timed.
-    obs.init.iter_time(obs.init.ActualTimeIndex) = toc(t1);
+    if(obs.init.ActualTimeIndex > 1)
+        
+         % define the time span of the integration
+        startpos = obs.init.ActualTimeIndex-1;
+        stoppos = obs.init.ActualTimeIndex;
+        tspan = obs.setup.time(startpos:stoppos);   
+        
+        y = squeeze(obs.init.Y_full_story.val(1,:,startpos));
+        X = obs.setup.ode(@(t,x)model_observer(t, x, y, obs.init.params, obs), tspan, params.Xo(:,startpos) ,params.odeset);
+            params.Xo(:,startpos:stoppos) = [X.y(:,1),X.y(:,end)]; 
+    end
+    
 
 end
 
