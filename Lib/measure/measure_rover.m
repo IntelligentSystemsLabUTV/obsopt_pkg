@@ -10,19 +10,40 @@
 % t: time instant (may be not used)
 % OUTPUT:
 % y: output measurement
-function y = measure_rover(x,params,t,u,obs)
+function y = measure_rover(x,params,tspan,u,obs) 
 
-    % get the observed components of the state vector
-    y = x(params.observed_state,:);
+    % define y
+    y = zeros(params.OutDim,length(tspan));
 
-    % get the IMU accelerations
-    xd = model_rover([t t+params.Ts],x,params,obs);
-
-    % get distances
-    p = x(params.pos_p);
-    Pa(1,:) = x(params.pos_anchor(1):2:params.pos_anchor(end));
-    Pa(2,:) = x(params.pos_anchor(2):2:params.pos_anchor(end));
-    D = get_dist(p,Pa);
-
-    y = [y; D; xd(3:4)];
+    for k=1:length(tspan)
+        t = tspan(k);
+        % compute the time index
+        pos = zeros(1,length(t));
+        for i=1:length(t)
+            tdiff = obs.setup.time-t(i);   
+            pos(i) = find(abs(tdiff) == min(abs(tdiff)),1,'first');    
+            pos(i) = max(1,pos(i));        
+        end
+    
+        %%% get the IMU accelerations
+        xd = obs.setup.model([t t+params.Ts],x(:,k),params,obs);
+        IMU_true = xd(params.pos_v);
+    
+        %%% get distances        
+        if mod(pos,params.UWB_samp) == 0            
+            % true position
+            p = x(params.pos_p);
+            % adjacency matrix
+            Pa(1,:) = x(params.pos_anchor(1):2:params.pos_anchor(end));
+            Pa(2,:) = x(params.pos_anchor(2):2:params.pos_anchor(end));
+            % true distances
+            D = get_dist(p,Pa);       
+        else
+            D = 0*zeros(params.Nanchor,1);
+        end
+    
+        % add noise
+        % noise on UWB + IMU
+        y(:,k) = [D; IMU_true];                 
+    end
 end

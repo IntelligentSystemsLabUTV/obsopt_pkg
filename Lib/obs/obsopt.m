@@ -908,7 +908,7 @@ classdef obsopt < handle
                     end
                 end                                                                              
                 % cost function
-                J = zeros(obj.setup.J_nterm,obj.setup.dim_out_compare);
+                J = zeros(obj.setup.J_nterm,length(obj.setup.dim_out_compare));
                 target_pos = find(obj.init.Y_space ~= 0);
 
                 for term=1:obj.setup.J_nterm

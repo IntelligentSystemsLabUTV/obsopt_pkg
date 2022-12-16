@@ -58,12 +58,7 @@ function Pr_hat = uwb_est_v2(P_r, P_a, dist_vec, params)
     % TODO
     % gamma_i depends on dist_vec(i) variance
     
-    % iterations depends on the choosen method
-    if params.method == 0 
-        N = 10;
-    else
-        N = 5;
-    end
+    N = params.grad_Niter+1;
     
     eta = zeros(2,N);
     % initial conditions (then will be the previous step approximation)
@@ -75,7 +70,7 @@ function Pr_hat = uwb_est_v2(P_r, P_a, dist_vec, params)
     gamma = 0.1;
    
     % test: No optimization
-     N = 1;    
+    %N = 1;    
 
     tic
     for k=2:N
@@ -96,7 +91,7 @@ function Pr_hat = uwb_est_v2(P_r, P_a, dist_vec, params)
     end
     t = toc;
     
-     k = 1;
+    %k = 1;
     Pr_hat = eta(:,k);
     
     if params.display_uwb

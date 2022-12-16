@@ -27,17 +27,10 @@ function plot_rover(obj,varargin)
         grid on
         box on
         
-        for traj=1:obj.setup.Ntraj
-            if 1 || strcmp(obj.setup.DataType,'simulated')
-                plot(obj.setup.time,obj.init.X(traj).val(obj.setup.plot_vars(i),:),'b--','LineWidth',2);
-            end
-            plot(obj.setup.time,obj.init.X_est(traj).val(obj.setup.plot_vars(i),:),'r.','LineWidth',2);                                      
-            plot(obj.setup.time,params.Xo(obj.setup.plot_vars(i),:),'m-','LineWidth',2);                                      
-            if strcat(obj.setup.DataType,'simulated')
-                legend('True','Tilde','Est')
-            else
-                legend('Stored','Est','Runtime')
-            end
+        for traj=1:obj.setup.Ntraj            
+            plot(obj.setup.time,obj.init.X(traj).val(obj.setup.plot_vars(i),:),'b--','LineWidth',2);
+            plot(obj.setup.time,obj.init.X_est(traj).val(obj.setup.plot_vars(i),:),'r.','LineWidth',2);                                                             
+            legend('True','Est')            
         end
         
         % labels
@@ -58,16 +51,9 @@ function plot_rover(obj,varargin)
             box on
 
             for traj=1:obj.setup.Ntraj
-                if 1 || strcmp(obj.setup.DataType,'simulated')
-                    plot(obj.setup.time,obj.init.X(traj).val(obj.setup.plot_params(i),:),'b--','LineWidth',2);
-                end
+                plot(obj.setup.time,obj.init.X(traj).val(obj.setup.plot_params(i),:),'b--','LineWidth',2);                
                 plot(obj.setup.time,obj.init.X_est(traj).val(obj.setup.plot_params(i),:),'g--','LineWidth',2);                                      
-
-                if strcat(obj.setup.DataType,'simulated')
-                    legend('True','Est')
-                else
-                    legend('Stored','Est','Runtime')
-                end
+                legend('True','Est')                
             end
 
             % labels
@@ -75,179 +61,7 @@ function plot_rover(obj,varargin)
             xlabel(['time [s]'])
             ylabel(['x_',num2str(obj.setup.plot_params(i))])
         end
-    end
-    
-    %%%% plot state estimation error %%%
-    if strcmp(obj.setup.DataType,'simulated')                
-        fig_count = fig_count+1;
-        figure(fig_count)
-        sgtitle('Estimation error - components')
-
-        for i=1:length(obj.setup.plot_vars)
-            subplot(length(obj.setup.plot_vars),1,i);
-            hold on
-            grid on
-            box on
-
-            % plot
-            est_error = obj.init.X(1).val(obj.setup.plot_vars(i),:) - obj.init.X_est(1).val(obj.setup.plot_vars(i),:);
-
-            log_flag = 1;
-            if ~log_flag
-                plot(obj.setup.time,est_error,'k','LineWidth',2);
-            else
-                % log 
-%                     set(gca, 'XScale', 'log')
-                set(gca, 'YScale', 'log')
-                plot(obj.setup.time,abs(est_error),'k','LineWidth',2);
-            end
-
-            set(gca,'fontsize', fontsize)
-            xlabel('time [s]')
-            ylabel(['\delta x_',num2str(obj.setup.plot_vars(i))])
-        end
-    end
-    
-    %%%% plot parameters estimation error %%%
-    if 1 || strcmp(obj.setup.DataType,'simulated')
-        if ~isempty(obj.setup.plot_params)                    
-            fig_count = fig_count+1;
-            figure(fig_count)
-            sgtitle('Estimation error - parameters')
-
-            for i=1:length(obj.setup.plot_params)
-                subplot(length(obj.setup.plot_params),1,i);
-                hold on
-                grid on
-                box on
-
-                % plot
-                est_error = obj.init.X(1).val(obj.setup.plot_params(i),:) - obj.init.X_est(1).val(obj.setup.plot_params(i),:);
-
-                log_flag = 1;
-                if ~log_flag
-                    plot(obj.setup.time,est_error,'b','LineWidth',2);
-                else
-                    % log 
-%                     set(gca, 'XScale', 'log')
-                    set(gca, 'YScale', 'log')
-                    plot(obj.setup.time,abs(est_error),'b','LineWidth',2);
-                end
-
-                set(gca,'fontsize', fontsize)
-                xlabel('time [s]')
-                ylabel(['\delta x_',num2str(obj.setup.plot_params(i))])
-            end
-        end
-    end
-    
-    %%%% plot state estimation error - norm%%%
-    if strcmp(obj.setup.DataType,'simulated')                
-        fig_count = fig_count+1;
-        figure(fig_count)
-        sgtitle('Estimation error state - norm')
-        hold on
-        grid on
-        box on
-
-        % plot
-        for iter=1:obj.setup.Niter
-            est_error_norm(iter) = norm(obj.init.X(1).val(obj.setup.plot_vars,iter) - obj.init.X_est(1).val(obj.setup.plot_vars,iter));
-        end
-
-        log_flag = 0;
-        if ~log_flag
-            plot(obj.setup.time,est_error_norm,'k','LineWidth',2);
-        else
-            % log 
-%                     set(gca, 'XScale', 'log')
-            set(gca, 'YScale', 'log')
-            plot(obj.setup.time,abs(est_error_norm),'r--','LineWidth',2);
-        end
-
-        set(gca,'fontsize', fontsize)
-        xlabel('time [s]')
-        ylabel('\delta x_norm') 
-    end
-    
-    %%%% plot params estimation error - norm%%%
-    if 1 || strcmp(obj.setup.DataType,'simulated')                
-        fig_count = fig_count+1;
-        figure(fig_count)
-        sgtitle('Estimation error params - norm')
-        hold on
-        grid on
-        box on
-
-        % plot
-        for iter=1:obj.setup.Niter
-            est_error_norm(iter) = norm(obj.init.X(1).val(obj.setup.plot_params,iter) - obj.init.X_est(1).val(obj.setup.plot_params,iter));
-        end
-
-        log_flag = 0;
-        if ~log_flag
-            plot(obj.setup.time,est_error_norm,'r','LineWidth',2);
-        else
-            % log 
-%                     set(gca, 'XScale', 'log')
-            set(gca, 'YScale', 'log')
-            plot(obj.setup.time,abs(est_error_norm),'b--','LineWidth',2);
-        end
-
-        set(gca,'fontsize', fontsize)
-        xlabel('time [s]')
-        ylabel('\delta x_norm') 
-    end
-
-    %%%% plot filters %%%%%            
-    fig_count = fig_count+1;
-    figure(fig_count)
-    sgtitle('Filters on measures')            
-    ax = zeros(1,3);
-    for k=1:obj.setup.J_nterm
-        
-        % number fo subplots depending on the Nterm
-        n_subplot = obj.setup.J_nterm;
-        
-        % indicize axes
-        ax_index = k;
-        ax(ax_index)=subplot(n_subplot,1,ax_index);                
-        hold on
-        grid on
-
-        % plot                
-        for traj=1:obj.setup.Ntraj
-            for dim=1:length(obj.setup.params.dim_out_plot)
-                y_plot = obj.setup.J_temp_scale(k)*reshape(obj.init.Y_full_story(traj).val(k,obj.setup.params.dim_out_plot(dim),:),size(obj.setup.time));
-                if strcmp(obj.setup.DataType,'simulated')
-                    ytrue_plot = obj.setup.J_temp_scale(k)*reshape(obj.init.Ytrue_full_story(traj).val(k,obj.setup.params.dim_out_plot(dim),:),size(obj.setup.time));
-                end
-                yhat_plot = obj.setup.J_temp_scale(k)*reshape(obj.init.Yhat_full_story(traj).val(k,obj.setup.params.dim_out_plot(dim),:),size(obj.setup.time));
-                if 1
-                    if strcmp(obj.setup.DataType,'simulated')
-                        plot(obj.setup.time,y_plot,'b--');
-                    end
-                    plot(obj.setup.time,yhat_plot,'r--','LineWidth',2);
-                    plot(obj.setup.time,y_plot,'k:','LineWidth',2);                            
-                else
-                    plot(obj.setup.time,abs(y_plot-yhat_plot));
-                    set(gca, 'YScale', 'log')
-                end
-            end
-            
-            if strcmp(obj.setup.DataType,'simulated')
-                legend('meas','estimation','target')
-            else
-                legend('meas','est')
-            end
-            
-            set(gca,'fontsize', fontsize)
-            ylabel(strcat('y_{filter}^',num2str(k)));
-            xlabel('simulation time [s]');            
-        end            
-        
-    end
-    linkaxes(ax,'x');
+    end      
     
     
     %%%% plot windowed data %%%%            
@@ -294,17 +108,20 @@ function plot_rover(obj,varargin)
     end
     linkaxes(ax(1:n_subplot-1),'x');
 
-    %%% rover trakectory
+    %%% rover trajectory
     fig_count = fig_count+1;
     figure(fig_count)
     hold on
     grid on
     % plot anchors
+    P_a(1,:) = obj.init.params.pos_anchor(1):2:obj.init.params.pos_anchor(end);
+    P_a(2,:) = obj.init.params.pos_anchor(2):2:obj.init.params.pos_anchor(end); 
     for i=1:obj.setup.params.Nanchor
-        plot(obj.init.X_est(1).val(5+(i-1),:),obj.init.X_est(1).val(6+(i-1),:),'ko','MarkerSize',10);
+        plot(obj.init.X_est(1).val(P_a(1,i),:),obj.init.X_est(1).val(P_a(2,i),:),'ko','MarkerSize',10);
     end
     % plot rover
-    plot(obj.init.X_est(1).val(1,:),obj.init.X_est(1).val(2,:),'b--');
+    plot(obj.init.X_est(1).val(1,:),obj.init.X_est(1).val(2,:),'r--');
+    plot(obj.init.X(1).val(1,:),obj.init.X(1).val(2,:),'k');    
     xlabel('X')
     ylabel('Y')
     set(gca,'fontsize', fontsize)
@@ -315,13 +132,13 @@ function plot_rover(obj,varargin)
     for n=1:obj.init.params.Nanchor
         ax(n) = subplot(obj.init.params.Nanchor,1,n);
         hold on
-        grid on        
-        plot(obj.setup.time,obj.init.d_true(n,:));
-        plot(obj.setup.time,obj.init.d_noise(n,:));
-        plot(obj.setup.time,obj.init.d_est(n,:));
+        grid on                
+        plot(obj.setup.time(obj.init.params.UWB_pos),squeeze(obj.init.Y_full_story.val(1,obj.init.params.pos_dist(n),obj.init.params.UWB_pos)),'LineWidth',2);
+        plot(obj.setup.time(obj.init.params.UWB_pos),squeeze(obj.init.Yhat_full_story.val(1,obj.init.params.pos_dist(n),obj.init.params.UWB_pos)),'LineWidth',2);
+        plot(obj.setup.time(obj.init.params.UWB_pos),squeeze(obj.init.Ytrue_full_story.val(1,obj.init.params.pos_dist(n),obj.init.params.UWB_pos)),'LineWidth',2);
         xlabel('time [s]')
         ylabel(['d_',num2str(n)])
-        legend('true','meas','opt');
+        legend('meas','opt','true');
         set(gca,'fontsize', fontsize)
     end    
 
