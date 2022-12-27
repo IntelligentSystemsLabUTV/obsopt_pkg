@@ -31,16 +31,14 @@ function x_dot = model_rover_reference(tspan,x,params,obs)
     x_dot(2) = x(3) + params.u(1);
     x_dot(3) = x(4);
     x_dot(4) = 0;
-    x_dot(5) = 0;
-    x_dot(6) = 0;
+    x_dot(5) = 0;    
     
     % y axis
-    x_dot(7) = x(8);
-    x_dot(8) = x(9) + params.u(2);
-    x_dot(9) = x(10);
-    x_dot(10) = 0;
-    x_dot(11) = 0;
-    x_dot(12) = 0;
+    x_dot(6) = x(7);
+    x_dot(7) = x(8) + params.u(2);
+    x_dot(8) = x(9);
+    x_dot(9) = 0;
+    x_dot(10) = 0;    
 
     % all the remaining are the anchors
     

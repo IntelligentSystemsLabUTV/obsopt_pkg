@@ -27,7 +27,8 @@ function y = measure_rover(x,params,tspan,u,obs)
     
         %%% get the IMU accelerations
         xd = obs.setup.model([t t+params.Ts],x(:,k),params,obs);
-        IMU_true = xd(params.pos_v);
+        IMU_true = xd(params.pos_v);        
+        V_true = x(params.observed_state,k);        
     
         %%% get distances        
         if mod(pos,params.UWB_samp) == 0            
@@ -43,7 +44,7 @@ function y = measure_rover(x,params,tspan,u,obs)
         end
     
         % add noise
-        % noise on UWB + IMU
-        y(:,k) = [D; IMU_true];                 
+        % noise on UWB + IMU        
+        y(:,k) = [D; V_true; IMU_true];                 
     end
 end

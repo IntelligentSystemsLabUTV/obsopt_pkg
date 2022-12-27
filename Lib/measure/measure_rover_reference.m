@@ -23,6 +23,7 @@ function [y, obs] = measure_rover_reference(x,params,t,u,obs)
     %%% get the IMU accelerations
     xd = obs.setup.model_reference([t t+params.Ts],x,params,obs);
     IMU_true = xd(params.pos_v);
+    V_true = x(params.observed_state);
 
     % different sampling times
     if mod(pos,params.UWB_samp) == 0
@@ -44,12 +45,12 @@ function [y, obs] = measure_rover_reference(x,params,t,u,obs)
 
     % add noise
     % noise on UWB + IMU
-    y_true = [D; IMU_true];
+    y_true = [D; V_true; IMU_true];
     noise = obs.setup.noise*(params.noise_mat(:,1).*randn(obs.setup.dim_out,1) + params.noise_mat(:,3));
     y = y_true + noise;
     
     % store
-    obs.init.Ytrue_full_story(1).val(1,:,pos) = y_true;    
-    obs.init.noise_story(1).val(:,pos) = noise;
-    obs.init.Y_full_story(1).val(1,:,pos) = y;
+    obs.init.Ytrue_full_story(obs.init.traj).val(1,:,pos) = y_true;    
+    obs.init.noise_story(obs.init.traj).val(:,pos) = noise;
+    obs.init.Y_full_story(obs.init.traj).val(1,:,pos) = y;
 end

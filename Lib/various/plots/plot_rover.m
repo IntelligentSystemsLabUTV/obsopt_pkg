@@ -29,7 +29,7 @@ function plot_rover(obj,varargin)
         
         for traj=1:obj.setup.Ntraj            
             plot(obj.setup.time,obj.init.X(traj).val(obj.setup.plot_vars(i),:),'b--','LineWidth',2);
-            plot(obj.setup.time,obj.init.X_est(traj).val(obj.setup.plot_vars(i),:),'r.','LineWidth',2);                                                             
+            plot(obj.setup.time,obj.init.X_est(traj).val(obj.setup.plot_vars(i),:),'r','LineWidth',2);                                                             
             legend('True','Est')            
         end
         
@@ -120,8 +120,10 @@ function plot_rover(obj,varargin)
         plot(obj.init.X_est(1).val(P_a(1,i),:),obj.init.X_est(1).val(P_a(2,i),:),'ko','MarkerSize',10);
     end
     % plot rover
-    plot(obj.init.X_est(1).val(1,:),obj.init.X_est(1).val(2,:),'r--');
-    plot(obj.init.X(1).val(1,:),obj.init.X(1).val(2,:),'k');    
+    for traj=1:obj.setup.Ntraj 
+        plot(obj.init.X_est(traj).val(1,:),obj.init.X_est(traj).val(2,:),'r--');
+        plot(obj.init.X(traj).val(1,:),obj.init.X(traj).val(2,:),'k');    
+    end
     xlabel('X')
     ylabel('Y')
     set(gca,'fontsize', fontsize)
@@ -132,10 +134,12 @@ function plot_rover(obj,varargin)
     for n=1:obj.init.params.Nanchor
         ax(n) = subplot(obj.init.params.Nanchor,1,n);
         hold on
-        grid on                
-        plot(obj.setup.time(obj.init.params.UWB_pos),squeeze(obj.init.Y_full_story.val(1,obj.init.params.pos_dist(n),obj.init.params.UWB_pos)),'LineWidth',2);
-        plot(obj.setup.time(obj.init.params.UWB_pos),squeeze(obj.init.Yhat_full_story.val(1,obj.init.params.pos_dist(n),obj.init.params.UWB_pos)),'LineWidth',2);
-        plot(obj.setup.time(obj.init.params.UWB_pos),squeeze(obj.init.Ytrue_full_story.val(1,obj.init.params.pos_dist(n),obj.init.params.UWB_pos)),'LineWidth',2);
+        grid on  
+        for traj=1:obj.setup.Ntraj
+            plot(obj.setup.time(obj.init.params.UWB_pos),squeeze(obj.init.Y_full_story(traj).val(1,obj.init.params.pos_dist(n),obj.init.params.UWB_pos)),'LineWidth',2);
+            plot(obj.setup.time(obj.init.params.UWB_pos),squeeze(obj.init.Yhat_full_story(traj).val(1,obj.init.params.pos_dist(n),obj.init.params.UWB_pos)),'LineWidth',2);
+            plot(obj.setup.time(obj.init.params.UWB_pos),squeeze(obj.init.Ytrue_full_story(traj).val(1,obj.init.params.pos_dist(n),obj.init.params.UWB_pos)),'LineWidth',2);
+        end
         xlabel('time [s]')
         ylabel(['d_',num2str(n)])
         legend('meas','opt','true');

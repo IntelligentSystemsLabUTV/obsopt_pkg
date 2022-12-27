@@ -12,17 +12,17 @@ function [obs,params] = simulation_rover
 % close all
     
 % init observer buffer (see https://doi.org/10.48550/arXiv.2204.09359)
-Nw = 15;
-Nts = 10;
+Nw = 1000;
+Nts = 1;
 
 % set sampling time
 Ts = 5e-3;
 
 % set initial and final time instant
 t0 = 0;
-tend = 10;
+% tend = 20;
 % uncomment to test the MHE with a single optimisation step
-%tend = 1*(Nw*Nts-1)*Ts;
+tend = 1*(Nw*Nts-1)*Ts;
 
 %%%% params init function %%%%
 params_init = @params_rover;
@@ -66,10 +66,10 @@ noise_mat = params.noise_mat;
 
 % create observer class instance. For more information on the setup
 % options check directly the class constructor in obsopt.m
-obs = obsopt('DataType', 'simulated', 'optimise', 0, 'MultiStart', 0, 'J_normalise', 1, 'MaxOptTime', Inf, ... 
+obs = obsopt('DataType', 'simulated', 'optimise', 1  , 'MultiStart', 0, 'J_normalise', 1, 'MaxOptTime', Inf, ... 
           'Nw', Nw, 'Nts', Nts, 'ode', ode, 'PE_maxiter', 0, 'WaitAllBuffer', 1, 'params',params, 'filters', filterScale,'filterTF', filter, ...
           'model_reference',model_reference, 'measure_reference',measure_reference, ...
-          'Jdot_thresh',0.95,'MaxIter', 5, 'Jterm_store', 1, 'AlwaysOpt', 1 , 'print', 0 , 'SafetyDensity', 2, 'AdaptiveFreqMin', [1.5], ...
+          'Jdot_thresh',0.95,'MaxIter', 500, 'Jterm_store', 1, 'AlwaysOpt', 1 , 'print', 1 , 'SafetyDensity', 2, 'AdaptiveFreqMin', [1.5], ...
           'AdaptiveSampling',0, 'FlushBuffer', 1, 'opt', @fminsearchcon, 'terminal', 0, 'terminal_states', terminal_states, 'terminal_weights', terminal_weights, 'terminal_normalise', 1, ...
           'ConPos', [], 'LBcon', [], 'UBcon', [],'Bounds', 0);
 
@@ -101,55 +101,36 @@ for i = 1:obs.setup.Niter
     %%%% PROPAGATION %%%%
     % forward propagation of the previous estimate    
         
-    % update traj
-    obs.init.traj = 1;
-             
-    % propagate only if the time gets over the initial time instant
-    if(obs.init.ActualTimeIndex > 1)                
+    for traj = 1:obs.setup.Ntraj
         
-        % true system - correct initial condition and no noise
-        % considered                 
-        X = obs.setup.ode(@(t,x)obs.setup.model_reference(t, x, obs.setup.params, obs), tspan, obs.init.X(1).val(:,startpos),params.odeset); 
-        obs.init.X(1).val(:,startpos:stoppos) = [X.y(:,1),X.y(:,end)];
-
-        % real system - initial condition perturbed             
-        X = obs.setup.ode(@(t,x)obs.setup.model(t, x, obs.init.params, obs), tspan, obs.init.X_est(1).val(:,startpos),params.odeset);
-        obs.init.X_est(1).val(:,startpos:stoppos) = [X.y(:,1),X.y(:,end)]; 
-                  
+        % update traj
+        obs.init.traj = traj;
+             
+        % propagate only if the time gets over the initial time instant
+        if(obs.init.ActualTimeIndex > 1)                
+            
+            % true system - correct initial condition and no noise
+            % considered                 
+            X = obs.setup.ode(@(t,x)obs.setup.model_reference(t, x, obs.setup.params, obs), tspan, obs.init.X(traj).val(:,startpos),params.odeset); 
+            obs.init.X(traj).val(:,startpos:stoppos) = [X.y(:,1),X.y(:,end)];
+    
+            % real system - initial condition perturbed             
+            X = obs.setup.ode(@(t,x)obs.setup.model(t, x, obs.init.params, obs), tspan, obs.init.X_est(traj).val(:,startpos),params.odeset);
+            obs.init.X_est(traj).val(:,startpos:stoppos) = [X.y(:,1),X.y(:,end)]; 
+                      
+        end
+        
+        %%%% REAL MEASUREMENT %%%%
+        % here the noise is noise added aggording to noise_spec
+        [y_meas(traj).val, obs] = obs.setup.measure_reference(obs.init.X(traj).val(:,stoppos),obs.init.params,obs.setup.time(stoppos),...
+                                                                            obs.init.input_story_ref(traj).val(:,max(1,startpos)),obs);          
     end
     
-    %%%% REAL MEASUREMENT %%%%
-    % here the noise is noise added aggording to noise_spec
-    [y_meas(1).val, obs] = obs.setup.measure_reference(obs.init.X(1).val(:,stoppos),obs.init.params,obs.setup.time(stoppos),...
-                                                                        obs.init.input_story_ref(1).val(:,max(1,startpos)),obs);     
-
     %%%% MHE OBSERVER (SAVE MEAS) %%%%
     t1 = tic;    
     obs = obs.observer(obs.init.X_est,y_meas);
-    obs.init.iter_time(obs.init.ActualTimeIndex) = toc(t1);                                
+    obs.init.iter_time(obs.init.ActualTimeIndex) = toc(t1);                                                
     
-    %%% OBSERVER %%%
-    if (obs.init.ActualTimeIndex > 1) && 0                    
-        
-        % update position - UWB rate
-        if mod(obs.init.ActualTimeIndex,params.IMU_samp) == 0
-
-            %%% UWB OPT %%%
-            tj = tic;                      
-            params.Phat(:,stoppos) = uwb_est_v2(p_r,P_a,params.d_noise(:,stoppos),obs.setup.params);
-            params.d_est(:,stoppos) = get_dist(params.Phat(:,stoppos),P_a);
-    
-            %%% JUMP MAP %%%
-            params.Xo(5:6,startpos) = params.Phat(params.pos_p,stoppos);
-            params.Xo(1:2,startpos) = params.Phat(params.pos_p,stoppos);
-            params.time_J = [params.time_J toc(tj)];
-        end
-        
-
-        % integrate observer
-        X = obs.setup.ode(@(t,x)model_observer(t, x, y, obs.init.params, obs), tspan, params.Xo(:,startpos) ,params.odeset);
-            params.Xo(:,startpos:stoppos) = [X.y(:,1),X.y(:,end)]; 
-    end
     
 
 end
