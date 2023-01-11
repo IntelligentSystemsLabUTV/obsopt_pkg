@@ -1455,14 +1455,14 @@ classdef obsopt < handle
                                     list = obj.init.params.tpoints.list;
                                     for pp = 1:obj.init.params.tpoints.NumStartPoints
                                         problem.x0 = list(pp,:);
-                                        [J_before(i), obj_tmp] = obj.setup.cost_run(problem.x0,obj.init.temp_x0_nonopt,obj.init.temp_x0_filters,obj.init.target);   
+                                        [J_before(pp), obj_tmp] = obj.setup.cost_run(problem.x0,obj.init.temp_x0_nonopt,obj.init.temp_x0_filters,obj.init.target);   
                                         try
                                             [NewXopt(pp,:), J(pp,:)] = obj.setup.fmin(problem);
                                         catch
                                             [NewXopt(pp,:), J(pp,:)] = obj.setup.fmin(problem.objective,problem.x0,problem.lb,problem.ub,problem.Aeq,problem.beq,problem.nonlcon,problem.options);
                                         end
                                     end
-                                    J_improve = J./J_before;
+                                    J_improve = J./J_before';
                                     [J,pos] = min(J_improve);
                                     NewXopt = NewXopt(pos,:);
                                 end
