@@ -410,14 +410,14 @@ classdef obsopt < handle
                     obj.setup.Bcon_eq = [];                
                 end
                 if any(strcmp(varargin,'LBcon'))
-                    obj.setup.LBcon = -Inf*ones(1,length(obj.setup.opt_vars));
+                    obj.setup.LBcon = double(-Inf*ones(1,length(obj.setup.opt_vars)));
                     pos = find(strcmp(varargin,'LBcon'));
                     obj.setup.LBcon(obj.setup.ConPos) = varargin{pos+1};
                 else
                     obj.setup.LBcon = zeros(1,length(obj.setup.opt_vars));                
                 end
                 if any(strcmp(varargin,'UBcon'))
-                    obj.setup.UBcon = Inf*ones(1,length(obj.setup.opt_vars));
+                    obj.setup.UBcon = double(Inf*ones(1,length(obj.setup.opt_vars)));
                     pos = find(strcmp(varargin,'UBcon'));
                     obj.setup.UBcon(obj.setup.ConPos) = varargin{pos+1};
                 else
@@ -1339,13 +1339,16 @@ classdef obsopt < handle
                             range = 1:obj.init.ActualTimeIndex;
                             for filt=1:obj.setup.J_nterm
                                 for dim=1:length(obj.setup.dim_out_compare)
-                                    E = (obj.init.Yhat_full_story(traj).val(filt,obj.setup.dim_out_compare(dim),range) - ...
-                                        obj.init.Y_full_story(traj).val(filt,obj.setup.dim_out_compare(dim),range)).^2;
-                                    E = reshape(E,1,size(E,3));
-                                    Emax = max(E);
-                                    if Emax == 0 || (abs(Emax) < 1e-15)
-                                        Emax = 1;
+                                    for traj=1:obj.setup.Ntraj
+                                        E = (obj.init.Yhat_full_story(traj).val(filt,obj.setup.dim_out_compare(dim),range) - ...
+                                            obj.init.Y_full_story(traj).val(filt,obj.setup.dim_out_compare(dim),range)).^2;
+                                        E = reshape(E,1,size(E,3));
+                                        Emax(traj) = max(E);
+                                        if Emax(traj) == 0 || (abs(Emax(traj)) < 1e-15)
+                                            Emax(traj) = 1;
+                                        end                                        
                                     end
+                                    Emax = max(Emax);
                                     obj.init.scale_factor_scaled(obj.setup.dim_out_compare(dim),filt) = obj.init.scale_factor(obj.setup.dim_out_compare(dim),filt)/Emax;
                                 end
                             end        
@@ -1422,6 +1425,8 @@ classdef obsopt < handle
                                     problem.solver = 'patternsearch';   
                                     obj.init.myoptioptions.ConstraintTolerance = 1e-10;
                                     obj.init.myoptioptions.ScaleMesh = 'off';
+                                    obj.init.myoptioptions.MaxMeshSize = 10;
+                                    obj.init.myoptioptions.InitialMeshSize = 10;
                                     obj.init.myoptioptions.Display = 'iter';
                                     obj.init.myoptioptions.Algorithm = 'nups';
                                     obj.init.myoptioptions.UseParallel = false;
@@ -1450,8 +1455,12 @@ classdef obsopt < handle
                                     list = obj.init.params.tpoints.list;
                                     for pp = 1:obj.init.params.tpoints.NumStartPoints
                                         problem.x0 = list(pp,:);
-                                        [J_before, obj_tmp] = obj.setup.cost_run(problem.x0,obj.init.temp_x0_nonopt,obj.init.temp_x0_filters,obj.init.target);     
-                                        [NewXopt(pp,:), J(pp,:)] = obj.setup.fmin(problem);
+                                        [J_before, obj_tmp] = obj.setup.cost_run(problem.x0,obj.init.temp_x0_nonopt,obj.init.temp_x0_filters,obj.init.target);   
+                                        try
+                                            [NewXopt(pp,:), J(pp,:)] = obj.setup.fmin(problem);
+                                        catch
+                                            [NewXopt(pp,:), J(pp,:)] = obj.setup.fmin(problem.objective,problem.x0,problem.lb,problem.ub,problem.Aeq,problem.beq,problem.nonlcon,problem.options);
+                                        end
                                     end
                                     [J,pos] = min(J);
                                     NewXopt = NewXopt(pos,:);

@@ -161,7 +161,7 @@ function params = model_init(varargin)
             
             % randomly define the percentage (bool flag, see below)
             randflag = 0; 
-            noise_std = 2e-1;
+            noise_std = 1e0;
 
             % if case: random perturbation percentage - optimised vars            
             if randflag

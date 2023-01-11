@@ -25,26 +25,29 @@ function y = measure_rover(x,params,tspan,u,obs)
             pos(i) = max(1,pos(i));        
         end
     
-        %%% get the IMU accelerations
-        xd = obs.setup.model([t t+params.Ts],x(:,k),params,obs);
-        IMU_true = xd(params.pos_v);        
-        V_true = x(params.observed_state,k);        
+        %%% get the IMU accelerations        
+        IMU_true = zeros(length(params.pos_v),1);        
+        V_true = x(params.observed_state,k);  
+        P_true = x(params.pos_p,k);
     
         %%% get distances        
-        if mod(pos,params.UWB_samp) == 0            
-            % true position
-            p = x(params.pos_p);
+        if mod(pos,params.UWB_samp) == 0                                    
             % adjacency matrix
             Pa(1,:) = x(params.pos_anchor(1):2:params.pos_anchor(end));
             Pa(2,:) = x(params.pos_anchor(2):2:params.pos_anchor(end));
             % true distances
-            D = get_dist(p,Pa);       
+            D = get_dist(P_true,Pa);       
         else
-            D = 0*zeros(params.Nanchor,1);
+            try
+                D = 1*obs.init.Yhat_full_story(obs.init.traj).val(1,1:params.Nanchor,pos(k)-1);
+                D = reshape(D,params.Nanchor,1);
+            catch
+                D = zeros(params.Nanchor,1);
+            end
         end
     
         % add noise
         % noise on UWB + IMU        
-        y(:,k) = [D; V_true; IMU_true];                 
+        y(:,k) = [D; P_true; V_true; IMU_true];                 
     end
 end

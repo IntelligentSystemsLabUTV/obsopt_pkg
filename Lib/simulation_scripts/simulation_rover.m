@@ -10,17 +10,19 @@ function [obs,params] = simulation_rover
 %%%% Init Section %%%%
 % uncomment to close previously opened figures
 % close all
+rng('default');
+% rng(42);
     
 % init observer buffer (see https://doi.org/10.48550/arXiv.2204.09359)
-Nw = 1000;
-Nts = 1;
+Nw = 50;
+Nts = 25;
 
 % set sampling time
-Ts = 5e-3;
+Ts = 1e-2;
 
 % set initial and final time instant
 t0 = 0;
-% tend = 20;
+% tend = 12;
 % uncomment to test the MHE with a single optimisation step
 tend = 1*(Nw*Nts-1)*Ts;
 
@@ -43,7 +45,7 @@ measure_reference = @measure_rover_reference;
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 %%%% filters %%%%
-[filter, filterScale] = filter_define(Ts,Nts);
+[filter, filterScale] = filter_define(Ts,1);
 
 %%%% integration method %%%%
 ode = @odeEuler;
@@ -66,11 +68,11 @@ noise_mat = params.noise_mat;
 
 % create observer class instance. For more information on the setup
 % options check directly the class constructor in obsopt.m
-obs = obsopt('DataType', 'simulated', 'optimise', 1  , 'MultiStart', 0, 'J_normalise', 1, 'MaxOptTime', Inf, ... 
+obs = obsopt('DataType', 'simulated', 'optimise', 1, 'MultiStart', 1, 'J_normalise', 0, 'MaxOptTime', Inf, ... 
           'Nw', Nw, 'Nts', Nts, 'ode', ode, 'PE_maxiter', 0, 'WaitAllBuffer', 1, 'params',params, 'filters', filterScale,'filterTF', filter, ...
           'model_reference',model_reference, 'measure_reference',measure_reference, ...
           'Jdot_thresh',0.95,'MaxIter', 500, 'Jterm_store', 1, 'AlwaysOpt', 1 , 'print', 1 , 'SafetyDensity', 2, 'AdaptiveFreqMin', [1.5], ...
-          'AdaptiveSampling',0, 'FlushBuffer', 1, 'opt', @fminsearchcon, 'terminal', 0, 'terminal_states', terminal_states, 'terminal_weights', terminal_weights, 'terminal_normalise', 1, ...
+          'AdaptiveSampling',0, 'FlushBuffer', 1, 'opt', @fminunc, 'terminal', 0, 'terminal_states', terminal_states, 'terminal_weights', terminal_weights, 'terminal_normalise', 1, ...
           'ConPos', [], 'LBcon', [], 'UBcon', [],'Bounds', 0);
 
 %% %%%% SIMULATION %%%%

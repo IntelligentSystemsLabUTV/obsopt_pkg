@@ -34,10 +34,10 @@ function plot_rover(obj,varargin)
         end
         
         % labels
-        set(gca,'fontsize', fontsize) 
-        xlabel(['time [s]'])
+        set(gca,'fontsize', fontsize)         
         ylabel(['x_',num2str(obj.setup.plot_vars(i))])
     end
+    xlabel(['time [s]'])
     
     %%%% plot parameters estimation %%%
     if ~isempty(obj.setup.plot_params)                
@@ -52,15 +52,15 @@ function plot_rover(obj,varargin)
 
             for traj=1:obj.setup.Ntraj
                 plot(obj.setup.time,obj.init.X(traj).val(obj.setup.plot_params(i),:),'b--','LineWidth',2);                
-                plot(obj.setup.time,obj.init.X_est(traj).val(obj.setup.plot_params(i),:),'g--','LineWidth',2);                                      
-                legend('True','Est')                
+                plot(obj.setup.time,obj.init.X_est(traj).val(obj.setup.plot_params(i),:),'g--','LineWidth',2);                                                      
             end
 
             % labels
-            set(gca,'fontsize', fontsize) 
-            xlabel(['time [s]'])
+            set(gca,'fontsize', fontsize)             
             ylabel(['x_',num2str(obj.setup.plot_params(i))])
         end
+        xlabel(['time [s]'])
+        legend('True','Est')                
     end      
     
     
@@ -89,7 +89,9 @@ function plot_rover(obj,varargin)
         for traj=1:obj.setup.Ntraj
             % plot true values
             y_meas = reshape(obj.init.Y_full_story(traj).val(1,obj.setup.params.dim_out_plot(k),:),size(obj.setup.time));
+            y_true = reshape(obj.init.Ytrue_full_story(traj).val(1,obj.setup.params.dim_out_plot(k),:),size(obj.setup.time));
             plot(obj.setup.time,y_meas,'m:','LineWidth',2)
+            plot(obj.setup.time,y_true,'k:','LineWidth',2)
 
             % plot target values    
             try
@@ -100,12 +102,11 @@ function plot_rover(obj,varargin)
             end
 
             set(gca,'fontsize', fontsize)
-            ylabel(strcat('y_',num2str(k)));
-            xlabel('simulation time [s]');
-            legend('meas','sampled')
-
+            ylabel(strcat('y_',num2str(k)));            
         end
     end
+    xlabel('simulation time [s]');
+    legend('meas','true','sampled')
     linkaxes(ax(1:n_subplot-1),'x');
 
     %%% rover trajectory
@@ -120,9 +121,10 @@ function plot_rover(obj,varargin)
         plot(obj.init.X_est(1).val(P_a(1,i),:),obj.init.X_est(1).val(P_a(2,i),:),'ko','MarkerSize',10);
     end
     % plot rover
+    pos_p = obj.init.params.pos_p;
     for traj=1:obj.setup.Ntraj 
-        plot(obj.init.X_est(traj).val(1,:),obj.init.X_est(traj).val(2,:),'r--');
-        plot(obj.init.X(traj).val(1,:),obj.init.X(traj).val(2,:),'k');    
+        plot(obj.init.X_est(traj).val(pos_p(1),:),obj.init.X_est(traj).val(pos_p(2),:),'r--');
+        plot(obj.init.X(traj).val(pos_p(1),:),obj.init.X(traj).val(pos_p(2),:),'k');    
     end
     xlabel('X')
     ylabel('Y')
@@ -139,13 +141,11 @@ function plot_rover(obj,varargin)
             plot(obj.setup.time(obj.init.params.UWB_pos),squeeze(obj.init.Y_full_story(traj).val(1,obj.init.params.pos_dist(n),obj.init.params.UWB_pos)),'LineWidth',2);
             plot(obj.setup.time(obj.init.params.UWB_pos),squeeze(obj.init.Yhat_full_story(traj).val(1,obj.init.params.pos_dist(n),obj.init.params.UWB_pos)),'LineWidth',2);
             plot(obj.setup.time(obj.init.params.UWB_pos),squeeze(obj.init.Ytrue_full_story(traj).val(1,obj.init.params.pos_dist(n),obj.init.params.UWB_pos)),'LineWidth',2);
-        end
-        xlabel('time [s]')
-        ylabel(['d_',num2str(n)])
-        legend('meas','opt','true');
+        end        
+        ylabel(['d_',num2str(n)])        
         set(gca,'fontsize', fontsize)
-    end    
-
-            
+    end   
+    xlabel('time [s]')
+    legend('meas','opt','true');            
     
 end

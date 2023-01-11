@@ -23,22 +23,16 @@ function x_dot = model_rover_reference(tspan,x,params,obs)
     
     % compute the control
     params.u = params.input(tspan,x,params);    
-    obs.init.input_story_ref(obs.init.traj).val(:,pos) = params.u;
+    obs.init.input_story_ref(obs.init.traj).val(:,pos(1)) = params.u(:,1);    
     
     % model dynamics
     % x axis
     x_dot(1) = x(2);
-    x_dot(2) = x(3) + params.u(1);
-    x_dot(3) = x(4);
-    x_dot(4) = 0;
-    x_dot(5) = 0;    
+    x_dot(2) = x(3) + params.u(1,1);    
     
     % y axis
     x_dot(6) = x(7);
-    x_dot(7) = x(8) + params.u(2);
-    x_dot(8) = x(9);
-    x_dot(9) = 0;
-    x_dot(10) = 0;    
+    x_dot(7) = x(8) + params.u(2,1);    
 
     % all the remaining are the anchors
     

@@ -22,44 +22,45 @@ function x_dot = model_rover(tspan,x,params,obs)
     end    
     
     % compute the control
-    params.u = params.input(tspan,x,params);
-    obs.init.input_story(obs.init.traj).val(:,pos) = params.u;    
+    % use input from reference
+    params.u = obs.init.input_story_ref(obs.init.traj).val(:,pos);
+    obs.init.input_story(obs.init.traj).val(:,pos(1)) = params.u(:,1);           
 
     % meas available
     y = obs.init.Y_full_story(obs.init.traj).val(1,:,pos(1));
     a = y(params.pos_acc);    
-    D_meas = y(params.pos_dist);    
+    D_meas = y(params.pos_dist);        
     
     % model dynamics
     % x axis
     x_dot(1) = x(2) + params.L(1)*params.G(1)*(x(5)-x(1));
-    x_dot(2) = x(3) -params.alpha*x(2) + params.L(1)^2*params.G(2)*(x(5)-x(1)) + params.u(1);
-    x_dot(3) = x(4) + params.K(1)*params.C(1)*(a(1)-x(3));
-    x_dot(4) = params.K(1)^2*params.C(2)*(a(1)-x(3));
+    x_dot(2) = x(3) - params.alpha*x(2) + params.L(1)^2*params.G(2)*(x(5)-x(1)) + params.u(1,1);
+    x_dot(3) = x(4) + params.K(1)*params.C(1)*(a(1)-x_dot(2));
+    x_dot(4) = params.K(1)^2*params.C(2)*(a(1)-x_dot(2));
     x_dot(5) = 0;    
     
     % y axis
     x_dot(6) = x(7) + params.L(2)*params.G(3)*(x(10)-x(6));
-    x_dot(7) = x(8) - params.alpha*x(7) + params.L(2)^2*params.G(4)*(x(10)-x(6)) + params.u(2);
-    x_dot(8) = x(9) + params.K(2)*params.C(3)*(a(2)-x(9));
-    x_dot(9) = params.K(2)^2*params.C(4)*(a(2)-x(9));
+    x_dot(7) = x(8) - params.alpha*x(7) + params.L(2)^2*params.G(4)*(x(10)-x(6)) + params.u(2,1);
+    x_dot(8) = x(9) + params.K(2)*params.C(3)*(a(2)-x_dot(7));
+    x_dot(9) = params.K(2)^2*params.C(4)*(a(2)-x_dot(7));
     x_dot(10) = 0;    
 
     % Jump
-    if mod(pos(1),params.UWB_samp) == 0 
+    if mod(pos(1),params.UWB_samp) == 0   
+
         % adjacency matrix
         Pa(1,:) = x(params.pos_anchor(1):2:params.pos_anchor(end));
         Pa(2,:) = x(params.pos_anchor(2):2:params.pos_anchor(end));
-        p_jump = uwb_est_v2(x(params.pos_p),Pa,D_meas,obs.setup.params);
+
+        %%% TEST %%%
+%         p_jump = uwb_est_v2(x(params.pos_p),Pa,D_meas,obs.setup.params);
 %         p_jump = obs.init.X(obs.init.traj).val(params.pos_p,pos(1));
+        p_jump = fminunc(@(x)J_dist(x,Pa,D_meas),x(params.pos_p),obs.setup.params.dist_optoptions);
 
         % jump map        
         x_dot(5) = (-x(5) + p_jump(1))/params.Ts;                
-        x_dot(10) = (-x(10) + p_jump(2))/params.Ts;   
-
-        % test only - jump easy
-        %x_dot(1) = (-x(1) + params.beta(1)*p_jump(1))/params.Ts; 
-        %x_dot(7) = (-x(7) + params.beta(2)*p_jump(2))/params.Ts;
+        x_dot(10) = (-x(10) + p_jump(2))/params.Ts;          
     end
     
 end
