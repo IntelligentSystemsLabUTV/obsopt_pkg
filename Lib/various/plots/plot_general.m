@@ -214,7 +214,7 @@ function plot_general(obj,varargin)
         grid on
         
         for traj=1:obj.setup.Ntraj
-            for dim=1:obj.setup.dim_out
+            for dim=obj.setup.dim_out_compare
                 y_plot = obj.setup.J_temp_scale(k)*reshape(obj.init.Y_full_story(traj).val(k,dim,:),size(obj.setup.time));
                 if strcmp(obj.setup.DataType,'simulated')
                     ytrue_plot = obj.setup.J_temp_scale(k)*reshape(obj.init.Ytrue_full_story(traj).val(k,dim,:),size(obj.setup.time));

@@ -37,14 +37,10 @@ function [y, obs] = measure_rover_reference(x,params,t,u,obs)
         D = get_dist(P_true,Pa);
         % save position buffer
         obs.init.params.UWB_pos(end+1) = pos;
-
+        obs.init.params.last_D_ref(obs.init.traj,:) = D;
     else
-        try
-            D = 1*obs.init.Ytrue_full_story(obs.init.traj).val(1,1:params.Nanchor,pos(1)-1);
-            D = reshape(D,params.Nanchor,1);
-        catch
-            D = zeros(params.Nanchor,1);
-        end
+%         D = zeros(params.Nanchor,1);
+        D = reshape(obs.init.params.last_D_ref(obs.init.traj,:),params.Nanchor,1);
     end    
 
     % add noise
@@ -52,7 +48,11 @@ function [y, obs] = measure_rover_reference(x,params,t,u,obs)
     y_true = [D; P_true; V_true; IMU_true];
     noise = obs.setup.noise*(params.noise_mat(:,1).*randn(obs.setup.dim_out,1) + params.noise_mat(:,3));
     if mod(pos,params.UWB_samp) ~= 0
-        noise(1:params.Nanchor) = 0;
+        try
+            noise(1:params.Nanchor) = obs.init.noise_story(obs.init.traj).val(1:params.Nanchor,pos(1)-1);
+        catch
+            noise(1:params.Nanchor) = 0;
+        end
     end
     y = y_true + noise;    
     

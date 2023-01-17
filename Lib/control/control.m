@@ -30,9 +30,4 @@ function u = control(t,drive,params,obs)
 %         u(2,:) = params.Ku*(vy-drive(7));
     end
 
-    %Test
-    if any(u > 50)
-a=1;
-    end
-
 end

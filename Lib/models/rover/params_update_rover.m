@@ -17,6 +17,6 @@ function params_out = params_update_rover(params,x)
     params_out.C = x(params.pos_Gamma(3:6));
     params_out.L = x(params.pos_Gamma(7:8));
     params_out.G = x(params.pos_Gamma(9:12));
-    params_out.alpha = x(params.pos_Gamma(13));    
+    params_out.alpha = x(params.pos_Gamma(13:end));     
     
 end

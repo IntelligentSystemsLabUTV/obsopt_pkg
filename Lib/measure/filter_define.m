@@ -20,7 +20,7 @@ function [filter, filterScale, reference] = filter_define(Ts,Nts)
     filter = [];
     
     %%% derivative filter %%%
-    fil1 = 0;
+    fil1 = 1;
     if fil1
     i = i+1;   
     eps1 = 1e-0;    
@@ -34,7 +34,7 @@ function [filter, filterScale, reference] = filter_define(Ts,Nts)
     filter(i).D = D.D;
     filter(i).G = G;
     filter(i).dim = size(D.B,1);
-    filterScale(i+1)= 1;
+    filterScale(i+1)= 0.1;
     end
 
     %%%% integral filter %%%%

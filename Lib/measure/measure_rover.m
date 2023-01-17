@@ -27,7 +27,7 @@ function y = measure_rover(x,params,tspan,u,obs)
     
         %%% get the IMU accelerations        
         IMU_true = zeros(length(params.pos_v),1);        
-        V_true = x(params.observed_state,k);  
+        V_true = x(params.pos_v,k);  
         P_true = x(params.pos_p,k);
     
         %%% get distances        
@@ -36,14 +36,11 @@ function y = measure_rover(x,params,tspan,u,obs)
             Pa(1,:) = x(params.pos_anchor(1):2:params.pos_anchor(end));
             Pa(2,:) = x(params.pos_anchor(2):2:params.pos_anchor(end));
             % true distances
-            D = get_dist(P_true,Pa);       
+            D = get_dist(P_true,Pa);   
+            obs.init.params.last_D(obs.init.traj,:) = D;
         else
-            try
-                D = 1*obs.init.Yhat_full_story(obs.init.traj).val(1,1:params.Nanchor,pos(k)-1);
-                D = reshape(D,params.Nanchor,1);
-            catch
-                D = zeros(params.Nanchor,1);
-            end
+%             D = zeros(params.Nanchor,1);        
+            D = reshape(obs.init.params.last_D(obs.init.traj,:),params.Nanchor,1);
         end
     
         % add noise
