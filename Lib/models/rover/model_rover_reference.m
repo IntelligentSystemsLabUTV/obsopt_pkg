@@ -22,7 +22,7 @@ function x_dot = model_rover_reference(tspan,x,params,obs)
     end    
     
     % compute the control
-    params.u = params.input(tspan,x,params);    
+    params.u = params.input(tspan,x,params,obs);    
     obs.init.input_story_ref(obs.init.traj).val(:,pos(1)) = params.u(:,1);    
     
     % model dynamics

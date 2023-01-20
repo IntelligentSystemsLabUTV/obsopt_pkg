@@ -6,12 +6,15 @@ function u = control(t,drive,params,obs)
     if params.input_enable
 
         % 2nd order system
-        u(1,:) = params.eps_u*(-2*params.rhox*params.wnx*drive(2,:) - 1*params.wnx^2*drive(1,:));
-        u(2,:) = params.eps_u*(-2*params.rhoy*params.wny*drive(7,:) - 1*params.wny^2*drive(6,:));
-
-        % sine on x - drift on y
-%         u(1,:) = params.eps_u*(-2*params.rhox*params.wnx*drive(2) - 1*params.wnx^2*drive(1));
-%         u(2,:) = params.amp_uy;
+%         u(1,:) = params.Ax(1)*sin(params.wnx(1).*t + params.phi(1)) + params.Ax(2)*sin(params.wnx(2).*t + params.phi(1));
+%         u(2,:) = params.Ay(1)*sin(params.wny(1).*t + params.phi(2)) + params.Ay(2)*sin(params.wny(2).*t + params.phi(2));
+        
+        % sum of sines (position)
+        target(1,:) = params.Ax(1)*sin(params.wnx(1).*t + params.phi(1)) + params.Ax(2)*sin(params.wnx(2).*t + params.phi(1));
+        target(2,:) = params.Ay(1)*sin(params.wny(1).*t + params.phi(2)) + params.Ay(2)*sin(params.wny(2).*t + params.phi(2));
+        u(1,:) = params.Ku(1)*(target(1,:)-drive(2,:));
+        u(2,:) = params.Ku(2)*(target(2,:)-drive(7,:));
+        
 
         % vines  
 %         T = t(1);

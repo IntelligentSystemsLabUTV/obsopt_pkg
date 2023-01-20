@@ -14,8 +14,8 @@ rng('default');
 % rng(42);
     
 % init observer buffer (see https://doi.org/10.48550/arXiv.2204.09359)
-Nw =50;
-Nts = 160;
+Nw =40;
+Nts = 150;
 
 % set sampling time
 Ts = 1e-2;
@@ -31,7 +31,6 @@ params_init = @params_rover;
 
 %%%% params update function %%%%
 params_update = @params_update_rover;
-
 
 %%%% model function %%%%
 model = @model_rover;
@@ -54,7 +53,7 @@ ode = @odeEuler;
 input_law = @control;
 
 %%%% params init %%%%
-params = model_init('Ts',Ts,'T0',[t0, tend],'noise',1, 'params_update', params_update, ...
+params = model_init('Ts',Ts,'T0',[t0, tend],'noise',0, 'params_update', params_update, ...
             'model',model,'measure',measure,'ode',ode, 'odeset', [1e-3 1e-6], ...
             'input_enable',1,'input_law',input_law,'params_init',params_init);
              
@@ -71,9 +70,9 @@ noise_mat = params.noise_mat;
 obs = obsopt('DataType', 'simulated', 'optimise', 1, 'MultiStart', params.multistart, 'J_normalise', 1, 'MaxOptTime', Inf, ... 
           'Nw', Nw, 'Nts', Nts, 'ode', ode, 'PE_maxiter', 0, 'WaitAllBuffer', 1, 'params',params, 'filters', filterScale,'filterTF', filter, ...
           'model_reference',model_reference, 'measure_reference',measure_reference, ...
-          'Jdot_thresh',0.95,'MaxIter', 3, 'Jterm_store', 1, 'AlwaysOpt', 1 , 'print', 1 , 'SafetyDensity', 2, 'AdaptiveFreqMin', [1.5], ...
+          'Jdot_thresh',0.95,'MaxIter', 500, 'Jterm_store', 1, 'AlwaysOpt', 1 , 'print', 1 , 'SafetyDensity', 2, 'AdaptiveFreqMin', [1.5], ...
           'AdaptiveSampling',0, 'FlushBuffer', 1, 'opt', @patternsearch, 'terminal', 0, 'terminal_states', terminal_states, 'terminal_weights', terminal_weights, 'terminal_normalise', 1, ...
-          'ConPos', [], 'LBcon', [], 'UBcon', [],'Bounds', 0);
+          'ConPos', [], 'LBcon', [], 'UBcon', [],'Bounds', 0,'NONCOLcon',@nonlcon_fcn_rover);
 
 %% %%%% SIMULATION %%%%
 % obs.init.X.val(params.pos_other,1) = 0;

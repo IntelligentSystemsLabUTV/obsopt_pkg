@@ -16,16 +16,18 @@ function params = params_rover
     
     % control parameters
     % 2nd order system
-    params.wnx = 0.04;
-    params.wny = 0.09;
-    params.rhox = 0.01;
-    params.rhoy = 0.01; 
-    params.eps_u = 20;
+    params.wnx = [0.2 1];
+    params.wny = [0.2 1];
+    params.Ax = -[0.5 0.5];
+    params.Ay = -[0.5 0.5];     
+    params.Ax_tot = sum(params.Ax);
+    params.Ay_tot = sum(params.Ay);
+    params.phi = [0 pi/2];
     % vines
     params.freq_u = 2;    
     params.amp_ux = -8;
     params.amp_uy = -1;
-    params.Ku = 50;
+    params.Ku = [10 10];
 
     % params uwb
     params.display_uwb = false;
@@ -35,24 +37,27 @@ function params = params_rover
     params.grad_Niter = 1;    
 
     % number of reference trajectories (under development)
-    params.Ntraj = 4;
+    params.Ntraj = 1;
     
     % state dimension
     params.space_dim = 2;   % 2D or 3D space for the rover 
 
-    % observer params    
+    % multistart
     params.multistart = 0;
+
+    % observer params    
+
+%     params.K = 0*[1];
+%     params.C = 0*[1 1];
+%     params.L = 0*[1];
+%     params.G = 0*[1 1];    
+%     params.alpha = 0*[1 1];
+
     params.K = 0*[1 1];
     params.C = 0*[1 1 1 1];
     params.L = 0*[1 1];
     params.G = 0*[1 1 1 1];    
-    params.alpha = 0*[1 1];
-
-%     params.K = 1*[-0.2192    0.4626];
-%     params.C = 1*[0.9986    1.3185    4.3863    6.3437];
-%     params.L = 1*[19.6993    2.9125];
-%     params.G = 1*[14.9582   69.7367   66.7096   17.1527];    
-%     params.alpha = 0*[1 1 1 1];
+    params.alpha = 0*[1 1 1 1];
 
     params.dim_Gamma = length(params.K) + length(params.C) + length(params.L) + length(params.G) + length(params.alpha);
 
@@ -76,7 +81,7 @@ function params = params_rover
     params.OutDim_compare = [params.pos_p_out params.pos_v_out];   % distances
     % sampling
     params.IMU_samp = 1;
-    params.UWB_samp = 20;
+    params.UWB_samp = 1;
     params.UWB_pos = []; 
 
     % chore
@@ -86,9 +91,9 @@ function params = params_rover
     % noise (on distances + acceleration)
     params.noise_mat = 0*ones(params.OutDim,3);
     params.noise_mat(params.pos_acc,3) = 0;        % noise on IMU - bias 
-    params.noise_mat(params.pos_dist,3) = 1*7e-2;  % noise on UWB - bias
-    params.noise_mat(params.pos_acc,1) = 1*5e-2;   % noise on IMU - mean
-    params.noise_mat(params.pos_dist,1) = 1*2e-1;  % noise on UWB - mean
+    params.noise_mat(params.pos_dist,3) = 0*7e-2;  % noise on UWB - bias
+    params.noise_mat(params.pos_acc,1) = 0*5e-2;   % noise on IMU - mean
+    params.noise_mat(params.pos_dist,1) = 0*2e-1;  % noise on UWB - mean
     params.bias = params.noise_mat(:,2);
     params.mean = params.noise_mat(:,1);
 
@@ -100,7 +105,7 @@ function params = params_rover
     
     % initial condition
     params.X(1).val(:,1) = 1*[3;0;0;0;0; ...              % x pos
-                              3;0;0;0;0; ...              % y pos
+                              0;0;0;0;0; ...              % y pos
                               -4;-4;-4;4;4;4;4;-4; ...    % anchors                              
                               params.K'; ...              % params
                               params.C'; ...                              
@@ -157,7 +162,7 @@ function params = params_rover
     % too many, consider to use only the true state components)
     params.plot_vars = [params.pos_p params.pos_v];
     params.plot_params = [3 8];
-    params.dim_out_plot = [params.OutDim_compare params.pos_acc];       
+    params.dim_out_plot = [params.pos_v_out params.pos_acc];       
 
     %%% J sym analysis
     syms x y    

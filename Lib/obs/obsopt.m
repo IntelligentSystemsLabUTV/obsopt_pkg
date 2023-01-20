@@ -835,7 +835,7 @@ classdef obsopt < handle
                 buf_dist = diff(tspan_pos);
                 n_iter = sum(buf_dist);
                 % initial condition
-                x_start = x(1:obj.setup.dim_state);      
+                x_start = x(1:obj.setup.dim_state,:);      
                 % reset buffer for Y during drive computation (control design)
                 obj.init.Y_buffer_control(traj).val = [];
                 for i=1:obj.setup.Nfilt
@@ -1428,8 +1428,10 @@ classdef obsopt < handle
                                     obj.init.myoptioptions.MaxMeshSize = 100;
                                     obj.init.myoptioptions.InitialMeshSize = 100;
                                     obj.init.myoptioptions.Display = 'iter';
-                                    obj.init.myoptioptions.Algorithm = 'nups';
+                                    obj.init.myoptioptions.Algorithm = 'classic';                                    
                                     obj.init.myoptioptions.UseParallel = true;
+                                    obj.init.myoptimoptions.UseVectorized = false;
+                                    obj.init.myoptimoptions.UseCompletePoll = true;
                                 elseif strcmp(func2str(obj.setup.fmin),'fminsearchcon')   
                                     problem = createOptimProblem('fmincon','objective',@(x)obj.setup.cost_run(x,obj.init.temp_x0_nonopt,obj.init.temp_x0_filters,obj.init.target,1),...
                                                                             'x0',  obj.init.temp_x0_opt, 'lb', obj.setup.LBcon, 'ub', obj.setup.UBcon, 'Aeq', obj.setup.Acon_eq, 'beq', obj.setup.Bcon_eq, ...
@@ -1437,6 +1439,7 @@ classdef obsopt < handle
                                     problem = rmfield(problem,'bineq');
                                     problem = rmfield(problem,'Aineq');   
                                     obj.init.myoptioptions.ConstraintTolerance = 1e-10;
+                                    obj.init.myoptimoptions.UseParallel = false;
                                     problem.options = obj.init.myoptioptions;
                                     problem.solver = 'fminsearchcon';                                    
                                 else    
@@ -1616,33 +1619,4 @@ classdef obsopt < handle
                                     obj.init.Jstory(1,end+1) = J;
                                     if obj.setup.Jterm_store
                                         obj.init.Jterm_story(:,end+1) = obj_tmp.init.Jterm_store;
-                                    end                              
-                                end
-                            else
-                                % on each trajectory
-                                for traj=1:obj.setup.Ntraj
-                                    obj.init.traj = traj;
-                                    % keep the initial guess
-                                    obj.init.X_est(traj).val(obj.setup.opt_vars,obj.init.BackIterIndex) = obj.init.temp_x0_opt;
-                                end
-
-                                % restore params
-                                obj.init.params = obj.setup.params.params_update(obj.init.params,obj.init.temp_x0(traj).val);                                                        
-                            end
-
-                            % stop time counter
-                            obj.init.opt_time(end+1) = toc(opt_time);
-
-                        end
-                    end
-
-                end
-
-                if obj.setup.print
-                    clc;
-                end                
-            else
-            end            
-        end
-    end
-end
+                                    end       

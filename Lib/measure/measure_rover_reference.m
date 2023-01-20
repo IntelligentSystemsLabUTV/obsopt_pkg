@@ -23,7 +23,7 @@ function [y, obs] = measure_rover_reference(x,params,t,u,obs)
     %%% get the IMU accelerations
     xd = obs.setup.model_reference([t t+params.Ts],x,params,obs);
     IMU_true = xd(params.pos_v);
-    V_true = x(params.observed_state);
+    V_true = x(params.pos_v);
     P_true = x(params.pos_p);
 
     % different sampling times
