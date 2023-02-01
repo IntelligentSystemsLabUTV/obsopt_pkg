@@ -1428,7 +1428,7 @@ classdef obsopt < handle
                                     obj.init.myoptioptions.MaxMeshSize = 100;
                                     obj.init.myoptioptions.InitialMeshSize = 100;
                                     obj.init.myoptioptions.Display = 'iter';
-                                    obj.init.myoptioptions.Algorithm = 'classic';
+                                    obj.init.myoptioptions.Algorithm = 'nups-gps';
                                     obj.init.myoptioptions.UseParallel = true;                                    
                                     obj.init.myoptimoptions.UseCompletePoll = true;
                                 elseif strcmp(func2str(obj.setup.fmin),'fminsearchcon')   
