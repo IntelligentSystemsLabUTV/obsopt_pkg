@@ -16,51 +16,60 @@ function params = params_rover
     
     % control parameters
     % 2nd order system
-    params.wnx = 0.4;
-    params.wny = 0.9;
-    params.rhox = 0.005;
-    params.rhoy = 0.005; 
-    params.eps_u = 20;
+%     params.wnx = [0.2 1];
+%     params.wny = [0.2 1];
+    params.wnx = [0.4];
+    params.wny = [0.9];
+    params.Ax = -[0.5 1];
+    params.Ay = -[0.5 1];     
+    params.Ax_tot = sum(params.Ax);
+    params.Ay_tot = sum(params.Ay);
+    params.phi = [0 pi/2];
+    params.rhox = 0.01;
+    params.rhoy = 0.01;
     % vines
-    params.freq_u = 2;    
-    params.amp_ux = -8;
-    params.amp_uy = -1;
-    params.Ku = 50;
+    params.freq_u = 48;    
+    params.amp_ux = -1/2;
+    params.amp_uy = -1/6;
+    params.Ku = [10 10];
 
     % params uwb
     params.display_uwb = false;
     params.bias = false;
     params.epsilon = 1e-4;
     params.method = 0;  
-    params.grad_Niter = 1;
+    params.grad_Niter = 1;    
 
     % number of reference trajectories (under development)
-    params.Ntraj = 4;
+    params.Ntraj = 1;
+    
+    % different omega for trajectories
+    for traj = 2:params.Ntraj
+        params.wnx(traj) = params.wnx(1)*(1+rand());        
+        params.wny(traj) = params.wny(1)*(1+rand());
+    end
     
     % state dimension
     params.space_dim = 2;   % 2D or 3D space for the rover 
 
+    % multistart
+    params.multistart = 0;
+
     % observer params    
-    multistart = 1;
-    params.K = 5*[1 1];
-    params.C = 5*[1 1 1 1];
-    params.L = 5*[1 1];
-    params.G = 5*[1 1 1 1];    
-    params.alpha = 5*1;
+    params.alpha = 0*[1];
+    params.beta = 0*[1 1];
+    params.C = 0*[1 1];
+    params.theta = 1*[1 1 1 1];
+   
+%     %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-%     params.K = 1*[-0.0048 -0.0852];
-%     params.C = 1*[-0.02 -0.0154 0.0885 -0.0414 ];
-%     params.L = 1*[-0.0537 -0.0332];
-%     params.G = 1*[-0.1925 0.0688 0.0069 -0.0348];    
-%     params.alpha = 1*0.1882;
+%     params.dim_Gamma = length(params.K) + length(params.C) + length(params.L) + length(params.G) + length(params.alpha);
+    params.dim_Gamma = length(params.C) + length(params.theta) + +length(params.beta) + length(params.alpha);
 
-    params.dim_Gamma = length(params.K) + length(params.C) + length(params.alpha) + length(params.L) + length(params.G);
-
-    params.dim_state = 5*params.space_dim + params.Nanchor*params.space_dim + params.dim_Gamma;    % done on the observer model (easier to compare)
-    params.pos_p = [1 6];   % see mode_rover.m
-    params.pos_v = [2 7];   % see mode_rover.m
-    params.pos_other = [5 10];
-    params.pos_anchor = [5*params.space_dim+1:params.dim_state-params.dim_Gamma];    % after all the double integrators come the anchors   
+    params.dim_state = 4*params.space_dim + params.Nanchor*params.space_dim + params.dim_Gamma;    % done on the observer model (easier to compare)
+    params.pos_p = [1 5];   % see mode_rover.m
+    params.pos_v = [2 6];   % see mode_rover.m    
+    params.pos_anchor = [4*params.space_dim+1:params.dim_state-params.dim_Gamma];    % after all the double integrators come the anchors   
     params.pos_Gamma = [params.pos_anchor(end)+1:params.dim_state];
 
     % input dim
@@ -77,14 +86,28 @@ function params = params_rover
     % sampling
     params.IMU_samp = 1;
     params.UWB_samp = 20;
-    params.UWB_pos = [];    
+    params.UWB_pos = []; 
+
+    % chore
+    params.last_D = zeros(params.Ntraj,params.Nanchor);
+    params.last_D_ref = zeros(params.Ntraj,params.Nanchor);
+
+    % derivative of the pjump
+    for traj = 1:params.Ntraj
+        params.p_jump_time = [];
+        params.p_jump(traj).val = [];
+        params.p_jump_der(traj).val = [];
+    end
+    clear PseudoDer
+    params.wlen = 4;
+    params.buflen = 10;
 
     % noise (on distances + acceleration)
     params.noise_mat = 0*ones(params.OutDim,3);
-    params.noise_mat(params.pos_acc,3) = 0;        % noise on IMU - bias 
-    params.noise_mat(params.pos_dist,3) = 0*7e-2;  % noise on UWB - bias
-    params.noise_mat(params.pos_acc,1) = 0*1e0;   % noise on IMU - mean
-    params.noise_mat(params.pos_dist,1) = 0*2e-1;  % noise on UWB - mean
+    params.noise_mat(params.pos_acc,3) = 1*1e-2;   % noise on IMU - bias 
+    params.noise_mat(params.pos_dist,3) = 1*7e-2;  % noise on UWB - bias
+    params.noise_mat(params.pos_acc,1) = 1*1e-1;   % noise on IMU - sigma
+    params.noise_mat(params.pos_dist,1) = 1*2e-1;  % noise on UWB - sigma
     params.bias = params.noise_mat(:,2);
     params.mean = params.noise_mat(:,1);
 
@@ -95,14 +118,13 @@ function params = params_rover
     params.d_est = zeros(params.Nanchor,1);
     
     % initial condition
-    params.X(1).val(:,1) = 1*[3;0;0;0;0; ...              % x pos
-                              3;0;0;0;0; ...              % y pos
-                              -4;-4;-4;4;4;4;4;-4; ...    % anchors                              
-                              params.K'; ...              % params
-                              params.C'; ...                              
-                              params.L'; ...
-                              params.G'; ...
-                              params.alpha];    
+    params.X(1).val(:,1) = 1*[3;0;0;0; ...                % x pos
+                              3;0;0;0; ...                % y pos
+                              -4;-4;-4;4;4;4;4;-4; ...    % anchors                                                                          
+                              params.C'; ...              % params                              
+                              params.theta'; ...
+                              params.beta'; ...
+                              params.alpha'];    
     
     % position in the state vector of the estimated parameters
     params.estimated_params = params.pos_Gamma;
@@ -119,39 +141,40 @@ function params = params_rover
     params.nonopt_vars = tmp_idx;
 
     % multistart
-    if multistart
+    if params.multistart
         Npoints = 3;
-        decades = linspace(0,10,Npoints);
+        decades = linspace(0,4,Npoints);
     
         for i=1:Npoints 
-            params.MULTISTART(i,:) = repmat(decades(i),1,length(params.opt_vars));            
+            params.MULTISTART(i,:) = repmat(decades(i),1,length(params.opt_vars));   
+            params.MULTISTART(i,end-1:end) = params.X(1).val(params.opt_vars(end-1:end),1);
         end 
         params.tpoints = CustomStartPointSet(params.MULTISTART(:,1:end));
-        params.X(1).val(params.opt_vars,1) = params.MULTISTART(1,:);
+        params.X(1).val(params.opt_vars(1:end),1) = params.MULTISTART(1,1:end);
     end
 
 
     % same initial condition for all the trajectories (under development)
-    pos_init = [3,3;  ...
-                3 -3; ...
+    params.multi_traj_var = [params.pos_p params.pos_v]; 
+    pos_init = [3 3;  ...
                 -3 3; ...
-                -3 -3];
+                -3 -3; ...
+                3 -3];
     for traj=2:params.Ntraj
         params.X(traj).val(:,1) = params.X(1).val(:,1);
 
         % random
-        params.X(traj).val(params.nonopt_vars,1) = params.X(1).val(params.nonopt_vars,1).*(1 + 1*5e-1*randn(length(params.nonopt_vars),1));
+        params.X(traj).val(params.multi_traj_var,1) = params.X(1).val(params.multi_traj_var,1).*(1 + 0*5e-1*randn(length(params.multi_traj_var),1));
 
         % from starting positions
-        params.X(traj).val(params.pos_p,1) = pos_init(traj,:);
-    end
+%         params.X(traj).val(params.pos_p,1) = pos_init(traj,:);
+    end    
     
     % plot vars (used to plot the state estimation. When the parameters are
     % too many, consider to use only the true state components)
     params.plot_vars = [params.pos_p params.pos_v];
-    params.plot_params = [3 8];
-    params.dim_out_plot = [params.OutDim_compare params.pos_acc];
-    params.multi_traj_var = [params.pos_p params.pos_v];    
+    params.plot_params = [3 7];
+    params.dim_out_plot = [params.pos_p_out params.pos_v_out];       
 
     %%% J sym analysis
     syms x y    

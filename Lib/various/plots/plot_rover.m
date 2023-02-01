@@ -28,8 +28,9 @@ function plot_rover(obj,varargin)
         box on
         
         for traj=1:obj.setup.Ntraj            
-            plot(obj.setup.time,obj.init.X(traj).val(obj.setup.plot_vars(i),:),'b--','LineWidth',2);
-            plot(obj.setup.time,obj.init.X_est(traj).val(obj.setup.plot_vars(i),:),'r','LineWidth',2);                                                             
+            plot(obj.setup.time,obj.init.X(traj).val(obj.setup.plot_vars(i),:),'--','LineWidth',2);
+            set(gca,'ColorOrderIndex',traj)
+            plot(obj.setup.time,obj.init.X_est(traj).val(obj.setup.plot_vars(i),:),'LineWidth',2);                                                             
             legend('True','Est')            
         end
         
@@ -51,8 +52,9 @@ function plot_rover(obj,varargin)
             box on
 
             for traj=1:obj.setup.Ntraj
-                plot(obj.setup.time,obj.init.X(traj).val(obj.setup.plot_params(i),:),'b--','LineWidth',2);                
-                plot(obj.setup.time,obj.init.X_est(traj).val(obj.setup.plot_params(i),:),'g--','LineWidth',2);                                                      
+                plot(obj.setup.time,obj.init.X(traj).val(obj.setup.plot_params(i),:),'--','LineWidth',2);                
+                set(gca,'ColorOrderIndex',traj)
+                plot(obj.setup.time,obj.init.X_est(traj).val(obj.setup.plot_params(i),:),'LineWidth',2);                                                      
             end
 
             % labels
@@ -90,13 +92,15 @@ function plot_rover(obj,varargin)
             % plot true values
             y_meas = reshape(obj.init.Y_full_story(traj).val(1,obj.setup.params.dim_out_plot(k),:),size(obj.setup.time));
             y_true = reshape(obj.init.Ytrue_full_story(traj).val(1,obj.setup.params.dim_out_plot(k),:),size(obj.setup.time));
-            plot(obj.setup.time,y_meas,'m:','LineWidth',2)
-            plot(obj.setup.time,y_true,'k:','LineWidth',2)
+            plot(obj.setup.time,y_meas,':','LineWidth',2)
+            set(gca,'ColorOrderIndex',traj)
+            plot(obj.setup.time,y_true,'LineWidth',2)
+            set(gca,'ColorOrderIndex',traj)
 
             % plot target values    
             try
                 data = reshape(obj.init.target_story(traj).val(1,obj.setup.params.dim_out_plot(k),obj.init.temp_time),1,length(WindowTime));
-                plot(WindowTime,data,'bo','MarkerSize',5);
+                plot(WindowTime,data,'o','MarkerSize',5);
             catch 
                 disp('CHECK T_END OR AYELS CONDITION - LOOKS LIKE NO OPTIMISATION HAS BEEN RUN')
             end
@@ -123,8 +127,9 @@ function plot_rover(obj,varargin)
     % plot rover
     pos_p = obj.init.params.pos_p;
     for traj=1:obj.setup.Ntraj 
-        plot(obj.init.X_est(traj).val(pos_p(1),:),obj.init.X_est(traj).val(pos_p(2),:),'r--');
-        plot(obj.init.X(traj).val(pos_p(1),:),obj.init.X(traj).val(pos_p(2),:),'k');    
+        plot(obj.init.X_est(traj).val(pos_p(1),:),obj.init.X_est(traj).val(pos_p(2),:),'--');
+        set(gca,'ColorOrderIndex',traj)
+        plot(obj.init.X(traj).val(pos_p(1),:),obj.init.X(traj).val(pos_p(2),:));    
     end
     xlabel('X')
     ylabel('Y')
@@ -139,8 +144,10 @@ function plot_rover(obj,varargin)
         grid on  
         for traj=1:obj.setup.Ntraj
             plot(obj.setup.time(obj.init.params.UWB_pos),squeeze(obj.init.Y_full_story(traj).val(1,obj.init.params.pos_dist(n),obj.init.params.UWB_pos)),'LineWidth',2);
-            plot(obj.setup.time(obj.init.params.UWB_pos),squeeze(obj.init.Yhat_full_story(traj).val(1,obj.init.params.pos_dist(n),obj.init.params.UWB_pos)),'LineWidth',2);
-            plot(obj.setup.time(obj.init.params.UWB_pos),squeeze(obj.init.Ytrue_full_story(traj).val(1,obj.init.params.pos_dist(n),obj.init.params.UWB_pos)),'LineWidth',2);
+            set(gca,'ColorOrderIndex',traj)
+            plot(obj.setup.time(obj.init.params.UWB_pos),squeeze(obj.init.Yhat_full_story(traj).val(1,obj.init.params.pos_dist(n),obj.init.params.UWB_pos)),':','LineWidth',2);
+            set(gca,'ColorOrderIndex',traj)
+            plot(obj.setup.time(obj.init.params.UWB_pos),squeeze(obj.init.Ytrue_full_story(traj).val(1,obj.init.params.pos_dist(n),obj.init.params.UWB_pos)),'--','LineWidth',2);
         end        
         ylabel(['d_',num2str(n)])        
         set(gca,'fontsize', fontsize)

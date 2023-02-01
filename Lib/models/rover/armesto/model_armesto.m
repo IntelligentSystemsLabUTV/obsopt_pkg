@@ -9,7 +9,7 @@
 % obs: observer class instance (may be not used)
 % OUTPUT:
 % x_dot: dynamics equations
-function [x_dot, x] = model_rover_reference(tspan,x,params,obs)
+function [x_dot, x] = model_armesto(tspan,x,params,obs)
 
     % init the dynamics 
     x_dot = zeros(length(x),1);
@@ -24,15 +24,20 @@ function [x_dot, x] = model_rover_reference(tspan,x,params,obs)
     % compute the control
     params.u = params.input(tspan,x,params,obs);    
     obs.init.input_story_ref(obs.init.traj).val(:,pos(1)) = params.u(:,1);    
+    obs.init.input_story(obs.init.traj).val(:,pos(1)) = params.u(:,1);           
+
+    % Skew matrix
+    q = x(params.pos_quat);
+    S = [q(1) -q(2) -q(3) -q(4); ...
+         q(2) q(1) q(4) -q(3); ...
+         q(3) -q(4) q(1) q(2); ...
+         q(4) q(3) -q(2) q(1)];
     
-    % model dynamics
-    % x axis
-    x_dot(1) = x(2);
-    x_dot(2) = params.u(1,1);    
-    
-    % y axis
-    x_dot(5) = x(6);
-    x_dot(6) = params.u(2,1);    
+    % model dynamics - fc    
+    x_dot(params.pos_p) = x(params.pos_p) + params.Ts*x(params.pos_v) + 0.5*params.Ts^2*x(params.pos_acc);
+    x_dot(params.pos_v) = x(params.pos_v) + params.Ts*x(params.pos_acc);
+    x_dot(params.pos_acc) = x(params.pos_acc);
+    x_dot(params.pos_bias) = x(params.pos_bias);                
 
     % all the remaining are the anchors
     

@@ -27,20 +27,21 @@ function plot_general(obj,varargin)
             if 1 || strcmp(obj.setup.DataType,'simulated')
                 plot(obj.setup.time,obj.init.X(traj).val(obj.setup.plot_vars(i),:),'b--','LineWidth',2);
             end
-            plot(obj.setup.time,obj.init.X_est(traj).val(obj.setup.plot_vars(i),:),'r--','LineWidth',2);                                      
+            plot(obj.setup.time,obj.init.X_est(traj).val(obj.setup.plot_vars(i),:),'r--','LineWidth',2);                                                  
+        end    
 
-            if strcat(obj.setup.DataType,'simulated')
-                legend('True','Est')
-            else
-                legend('Stored','Est','Runtime')
-            end
-        end
-        
         % labels
         set(gca,'fontsize', fontsize) 
-        xlabel(['time [s]'])
         ylabel(['x_',num2str(obj.setup.plot_vars(i))])
     end
+    % legend
+    if strcat(obj.setup.DataType,'simulated')
+        legend('True','Est')
+    else
+        legend('Stored','Est','Runtime')
+    end    
+    xlabel(['time [s]'])
+    
     
     %%%% plot parameters estimation %%%
     if ~isempty(obj.setup.plot_params)                
@@ -57,20 +58,20 @@ function plot_general(obj,varargin)
                 if 1 || strcmp(obj.setup.DataType,'simulated')
                     plot(obj.setup.time,obj.init.X(traj).val(obj.setup.plot_params(i),:),'b--','LineWidth',2);
                 end
-                plot(obj.setup.time,obj.init.X_est(traj).val(obj.setup.plot_params(i),:),'g--','LineWidth',2);                                      
-
-                if strcat(obj.setup.DataType,'simulated')
-                    legend('True','Est')
-                else
-                    legend('Stored','Est','Runtime')
-                end
+                plot(obj.setup.time,obj.init.X_est(traj).val(obj.setup.plot_params(i),:),'g--','LineWidth',2);                                                      
             end
 
             % labels
-            set(gca,'fontsize', fontsize) 
-            xlabel(['time [s]'])
+            set(gca,'fontsize', fontsize)             
             ylabel(['x_',num2str(obj.setup.plot_params(i))])
         end
+
+        if strcat(obj.setup.DataType,'simulated')
+            legend('True','Est')
+        else
+            legend('Stored','Est','Runtime')
+        end
+        xlabel(['time [s]'])
     end
     
     %%%% plot state estimation error %%%
@@ -96,12 +97,12 @@ function plot_general(obj,varargin)
 %                     set(gca, 'XScale', 'log')
                 set(gca, 'YScale', 'log')
                 plot(obj.setup.time,abs(est_error),'k','LineWidth',2);
-            end
+            end            
 
             set(gca,'fontsize', fontsize)
-            xlabel('time [s]')
             ylabel(['\delta x_',num2str(obj.setup.plot_vars(i))])
-        end
+        end        
+        xlabel('time [s]')        
     end
     
     %%%% plot parameters estimation error %%%
@@ -130,10 +131,10 @@ function plot_general(obj,varargin)
                     plot(obj.setup.time,abs(est_error),'b','LineWidth',2);
                 end
 
-                set(gca,'fontsize', fontsize)
-                xlabel('time [s]')
+                set(gca,'fontsize', fontsize)                
                 ylabel(['\delta x_',num2str(obj.setup.plot_params(i))])
             end
+            xlabel('time [s]')
         end
     end
     
@@ -214,7 +215,7 @@ function plot_general(obj,varargin)
         grid on
         
         for traj=1:obj.setup.Ntraj
-            for dim=1:obj.setup.dim_out
+            for dim=obj.setup.dim_out_compare
                 y_plot = obj.setup.J_temp_scale(k)*reshape(obj.init.Y_full_story(traj).val(k,dim,:),size(obj.setup.time));
                 if strcmp(obj.setup.DataType,'simulated')
                     ytrue_plot = obj.setup.J_temp_scale(k)*reshape(obj.init.Ytrue_full_story(traj).val(k,dim,:),size(obj.setup.time));
@@ -230,18 +231,17 @@ function plot_general(obj,varargin)
                     plot(obj.setup.time,abs(y_plot-yhat_plot));
                     set(gca, 'YScale', 'log')
                 end
-            end
-            
-            if strcmp(obj.setup.DataType,'simulated')
-                legend('meas','estimation','target')
-            else
-                legend('meas','est')
-            end
-            
-            set(gca,'fontsize', fontsize)
-            ylabel(strcat('y_{filter}^',num2str(k)));
-            xlabel('simulation time [s]');
-        end            
+            end                        
+        end    
+        if strcmp(obj.setup.DataType,'simulated')
+            legend('meas','estimation','target')
+        else
+            legend('meas','est')
+        end
+        
+        set(gca,'fontsize', fontsize)
+        ylabel(strcat('y_{filter}^',num2str(k)));
+        xlabel('simulation time [s]');
         
     end
     linkaxes(ax,'x');
@@ -280,15 +280,13 @@ function plot_general(obj,varargin)
                 plot(WindowTime,data,'bo','MarkerSize',5);
             catch 
                 disp('CHECK T_END OR AYELS CONDITION - LOOKS LIKE NO OPTIMISATION HAS BEEN RUN')
-            end
-
-            set(gca,'fontsize', fontsize)
-            ylabel(strcat('y_',num2str(k)));
-            xlabel('simulation time [s]');
-            legend('meas','sampled')
-
+            end            
         end
+        set(gca,'fontsize', fontsize)
+        ylabel(strcat('y_',num2str(k)));        
     end
+    xlabel('simulation time [s]');
+    legend('meas','sampled')
     linkaxes(ax(1:n_subplot-1),'x');
     %%% plot adaptive sampling            
     ax(n_subplot) = subplot(n_subplot,1,n_subplot);

@@ -1425,11 +1425,12 @@ classdef obsopt < handle
                                     problem.solver = 'patternsearch';   
                                     obj.init.myoptioptions.ConstraintTolerance = 1e-10;
                                     obj.init.myoptioptions.ScaleMesh = 'off';
-                                    obj.init.myoptioptions.MaxMeshSize = 10;
-                                    obj.init.myoptioptions.InitialMeshSize = 10;
+                                    obj.init.myoptioptions.MaxMeshSize = 100;
+                                    obj.init.myoptioptions.InitialMeshSize = 100;
                                     obj.init.myoptioptions.Display = 'iter';
-                                    obj.init.myoptioptions.Algorithm = 'nups';
-                                    obj.init.myoptioptions.UseParallel = false;
+                                    obj.init.myoptioptions.Algorithm = 'nups-gps';
+                                    obj.init.myoptioptions.UseParallel = true;                                    
+                                    obj.init.myoptimoptions.UseCompletePoll = true;
                                 elseif strcmp(func2str(obj.setup.fmin),'fminsearchcon')   
                                     problem = createOptimProblem('fmincon','objective',@(x)obj.setup.cost_run(x,obj.init.temp_x0_nonopt,obj.init.temp_x0_filters,obj.init.target,1),...
                                                                             'x0',  obj.init.temp_x0_opt, 'lb', obj.setup.LBcon, 'ub', obj.setup.UBcon, 'Aeq', obj.setup.Acon_eq, 'beq', obj.setup.Bcon_eq, ...
@@ -1462,8 +1463,9 @@ classdef obsopt < handle
                                             [NewXopt(pp,:), J(pp,:)] = obj.setup.fmin(problem.objective,problem.x0,problem.lb,problem.ub,problem.Aeq,problem.beq,problem.nonlcon,problem.options);
                                         end
                                     end
-                                    J_improve = J./J_before';
-                                    [J,pos] = min(J_improve);
+                                    %J_improve = J./J_before';
+                                    [J,pos] = min(J);
+                                    J_before = J_before(pos);
                                     NewXopt = NewXopt(pos,:);
                                 end
                             end
@@ -1578,7 +1580,7 @@ classdef obsopt < handle
                                     for j =1:n_iter_propagate                                                                                
 
                                         % back time
-                                        back_time = obj.init.BackIterIndex+j-1;                                        
+                                        back_time = obj.init.BackIterIndex+j;                                        
 
                                         % how do you handle the input?
                                         obj.init.params.ActualTimeIndex = back_time; % here you have the -1 because BackIterIndex is differently set up than in measure_function                                          
@@ -1594,7 +1596,7 @@ classdef obsopt < handle
                                         % NB: the output storage has to be done in
                                         % back_time+1 as the propagation has been
                                         % performed 
-                                        Yhat = obj.setup.measure(x_propagate,obj.init.params,obj.setup.time(back_time),obj.init.input_story(traj).val(:,back_time),obj);
+                                        Yhat = obj.setup.measure(x_propagate,obj.init.params,obj.setup.time(back_time),obj.init.input_story(traj).val(:,back_time-1),obj);
                                         % get filters - yhat
                                         obj.init.Yhat_full_story(traj).val(1,:,back_time) = Yhat;            
                                         tspan_pos = [max(1,back_time-1), back_time];
