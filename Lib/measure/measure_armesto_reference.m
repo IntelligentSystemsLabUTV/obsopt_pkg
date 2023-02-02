@@ -28,7 +28,7 @@ function [y, obs] = measure_armesto_reference(x,params,t,u,obs)
 
     % noise
     noise = obs.setup.noise*(params.noise_mat(:,2).*randn(obs.setup.dim_out,1) + params.noise_mat(:,1));
-    noise(params.pos_p_out) = noise(params.pos_p_out) + x(params.pos_bias);
+    noise(params.pos_biased_out) = noise(params.pos_biased_out) + x(params.pos_bias);
     y = y_true + noise;
     y(params.pos_quat_out) = quatnormalize(y(params.pos_quat_out)');
 

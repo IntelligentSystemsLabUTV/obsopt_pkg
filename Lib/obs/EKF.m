@@ -42,7 +42,7 @@ function obs = EKF(obs,xhat_kk_1,y_k)
     if mod(k,params.CAM_samp) == 0
         posH_row = [posH_row, [params.pos_p_out params.pos_quat_out]];
         yhat_ks = [yhat_ks; yhat_k([params.pos_p_out params.pos_quat_out])];
-        y_ks = [y_ks; y_k([params.pos_p_out params.pos_quat_out])];
+        y_ks = [y_ks; y_k([params.pos_p_out params.pos_quat_out])];        
     end
 
     % get downsampling - IMU
@@ -66,12 +66,19 @@ function obs = EKF(obs,xhat_kk_1,y_k)
         Ks = (Phat_kk_1*GHs')*(pinv(GHs*Phat_kk_1*GHs' + params.R(posH_row,posH_row)));        
 
         % correction step (eq. 14-15)
-        obs.init.X_est(traj).val(:,k) = xhat_k + Ks*(y_ks-yhat_ks);
-        obs.init.params.Phat(traj).val(k,:,:) = Phat_kk_1 - Ks*GHs*Phat_kk_1;
+        xnew = xhat_k + Ks*(y_ks-yhat_ks);
+        Pnew = Phat_kk_1 - Ks*GHs*Phat_kk_1;
     else
-        obs.init.X_est(traj).val(:,k) = xhat_k;
-        obs.init.params.Phat(traj).val(k,:,:) = Phat_kk_1;
+        xnew = xhat_k;
+        Pnew = Phat_kk_1;
     end
+
+    %%% TEST %%%    
+    xnew(params.pos_bias) = xnew(params.pos_bias);
+
+    % update
+    obs.init.X_est(traj).val(:,k) = xnew;
+    obs.init.params.Phat(traj).val(k,:,:) = Pnew;
 
 end
 
@@ -88,7 +95,7 @@ function [GFx, GFw, GHx] = G(x,T,y)
     GFx = [eye(3)       T*eye(3)   0.5*T^2*eye(3)     zeros(3)      zeros(3,4)    zeros(3)      zeros(3)    zeros(3)   zeros(3);   ... P
            zeros(3)     eye(3)     T*eye(3)           zeros(3)      zeros(3,4)    zeros(3)      zeros(3)    zeros(3)   zeros(3);   ... V
            zeros(3)     zeros(3)   eye(3)             zeros(3)      zeros(3,4)    zeros(3)      zeros(3)    zeros(3)   zeros(3);   ... ACC
-           zeros(3)     zeros(3)   zeros(3)           eye(3)        zeros(3,4)    zeros(3)      zeros(3)    zeros(3)   T*eye(3);   ... B
+           zeros(3)     zeros(3)   zeros(3)           1*eye(3)        zeros(3,4)    zeros(3)      zeros(3)    zeros(3)   zeros(3); ... B
            zeros(4,3)   zeros(4,3) zeros(4,3)         zeros(4,3)    zeros(4)      zeros(4,3)    zeros(4,3)  zeros(4,3) zeros(4,3); ... Q
            zeros(3)     zeros(3)   zeros(3)           zeros(3)      zeros(3,4)    zeros(3)      zeros(3)    zeros(3)   zeros(3);   ... OMEGA
            zeros(3)     zeros(3)   zeros(3)           zeros(3)      zeros(3,4)    zeros(3)      zeros(3)    zeros(3)   zeros(3);   ... JERK
@@ -113,7 +120,7 @@ function [GFx, GFw, GHx] = G(x,T,y)
     %      P            V          ACC                B             Q             W             J           ALPHA      B'    
     GHx = [eye(3)       zeros(3)   zeros(3)           1*eye(3)      zeros(3,4)    zeros(3)      zeros(3)    zeros(3)   zeros(3);    ... P
            zeros(4,3)   zeros(4,3) zeros(4,3)         zeros(4,3)    eye(4)        zeros(4,3)    zeros(4,3)  zeros(4,3) zeros(4,3);  ... Q
-           zeros(3)     zeros(3)   eye(3)             zeros(3)      zeros(3,4)    zeros(3)      zeros(3)    zeros(3)   zeros(3);    ... ACC
+           zeros(3)     zeros(3)   eye(3)             0*eye(3)      zeros(3,4)    zeros(3)      zeros(3)    zeros(3)   zeros(3);    ... ACC
            zeros(3)     zeros(3)   zeros(3)           zeros(3)      zeros(3,4)    eye(3)        zeros(3)    zeros(3)   zeros(3);    ... OMEGA
         ];
 

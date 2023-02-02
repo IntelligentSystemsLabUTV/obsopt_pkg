@@ -19,20 +19,20 @@ function u = control(t,drive,params,obs)
         
 
         % vines  
-%         T = t(1);
-%         vx = 0;
-%         vy = 0;
-%         if mod(T,params.freq_u) < 0.25*params.freq_u
-%             vx = params.amp_ux;
-%         elseif mod(T,params.freq_u) < 0.5*params.freq_u
-%             vy = params.amp_uy;
-%         elseif mod(T,params.freq_u) < 0.75*params.freq_u
-%             vx = -params.amp_ux;
-%         else
-%             vy = params.amp_uy;
-%         end
-%         u(1,:) = params.Ku(1)*(vx-drive(2));
-%         u(2,:) = params.Ku(2)*(vy-drive(6));
+        T = t(1);
+        vx = 0;
+        vy = 0;
+        if mod(T,params.freq_u) < 0.25*params.freq_u
+            vx = params.amp_ux;
+        elseif mod(T,params.freq_u) < 0.5*params.freq_u
+            vy = params.amp_uy;
+        elseif mod(T,params.freq_u) < 0.75*params.freq_u
+            vx = -params.amp_ux;
+        else
+            vy = params.amp_uy;
+        end
+        u(1,:) = params.Ku(1)*(vx-drive(2));
+        u(2,:) = params.Ku(2)*(vy-drive(6));
     end
 
 end

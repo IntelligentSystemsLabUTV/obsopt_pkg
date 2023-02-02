@@ -23,23 +23,21 @@ function [x_dot, x] = model_rover(tspan,x,params,obs)
     
     % compute the control
     % use input from reference
-    params.u = obs.init.input_story_ref(obs.init.traj).val(:,pos);
+    params.u = obs.init.input_story_ref(obs.init.traj).val(:,max(1,pos(1)));
     obs.init.input_story(obs.init.traj).val(:,pos(1)) = params.u(:,1);           
 
     % meas available
     y = obs.init.Y_full_story(obs.init.traj).val(1,:,pos(1));
-    a = y(params.pos_acc);    
-    D_meas = y(params.pos_dist);  
+    a = y(params.pos_acc);        
 
-    % Jump
-    if mod(pos(1),params.UWB_samp) == 0   
+    % Jump - only on the UWB
+    if (mod(pos(1),params.UWB_samp) == 0) && (~params.EKF) && 1
 
         % adjacency matrix
         Pa(1,:) = x(params.pos_anchor(1):2:params.pos_anchor(end));
         Pa(2,:) = x(params.pos_anchor(2):2:params.pos_anchor(end));        
 
         %%% TEST %%%
-%         p_jump = obs.init.X(obs.init.traj).val(params.pos_p,pos(1));
         p_jump = obs.init.params.p_jump(obs.init.traj).val(:,pos(1)/params.UWB_samp);
         p_jump_der = obs.init.params.p_jump_der(obs.init.traj).val(:,pos(1)/params.UWB_samp);
         
@@ -69,31 +67,5 @@ function [x_dot, x] = model_rover(tspan,x,params,obs)
     x_dot(6) = x(7) + params.alpha(1)*x(6);
     x_dot(7) = x(8) + params.beta(1)*a(2);
     x_dot(8) = params.C(1)*x(7) + params.C(2)*x(8) + params.beta(2)*a(2);
-    
-%     %%%% OLD DYNAMICS - HIGH GAIN %%%
-%     % model dynamics
-%     % x axis
-%     x_dot(1) = x(2) + params.L(1)*params.G(1)*(x(5)-x(1));
-%     x_dot(2) = x(3) + params.L(1)^2*params.G(2)*(x(5)-x(1)) + params.alpha(1)*x(2); 
-%     x_dot(3) = x(4) + params.K(1)*params.C(1)*(a(1)-x(3));
-%     x_dot(4) = params.K(1)^2*params.C(2)*(a(1)-x(3));
-%     x_dot(5) = 0;    
-% 
-%     % y axis - different params
-%     x_dot(6) = x(7) + params.L(1)*params.G(1)*(x(10)-x(6));
-%     x_dot(7) = x(8) + params.L(1)^2*params.G(2)*(x(10)-x(6)) + params.alpha(1)*x(7);
-%     x_dot(8) = x(9) + params.K(1)*params.C(1)*(a(2)-x(8));
-%     x_dot(9) = params.K(1)^2*params.C(2)*(a(2)-x(8));
-%     x_dot(10) = 0;     
-
-%     % y axis - different params
-%     x_dot(6) = x(7) + params.L(2)*params.G(3)*(x(10)-x(6));
-%     x_dot(7) = x(8) + params.L(2)^2*params.G(4)*(x(10)-x(6)) + params.alpha(2)*x(7);
-%     x_dot(8) = x(9) + params.K(2)*params.C(3)*(a(2)-x(8));
-%     x_dot(9) = params.K(2)^2*params.C(4)*(a(2)-x(8));
-%     x_dot(10) = 0; 
-%     %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-
-    
     
 end

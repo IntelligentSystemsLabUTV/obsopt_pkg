@@ -143,11 +143,11 @@ function plot_rover(obj,varargin)
         hold on
         grid on  
         for traj=1:obj.setup.Ntraj
-            plot(obj.setup.time(obj.init.params.UWB_pos),squeeze(obj.init.Y_full_story(traj).val(1,obj.init.params.pos_dist(n),obj.init.params.UWB_pos)),'LineWidth',2);
+            plot(obj.setup.time(obj.init.params.UWB_pos),squeeze(obj.init.Y_full_story(traj).val(1,obj.init.params.pos_dist_out(n),obj.init.params.UWB_pos)),'LineWidth',2);
             set(gca,'ColorOrderIndex',traj)
-            plot(obj.setup.time(obj.init.params.UWB_pos),squeeze(obj.init.Yhat_full_story(traj).val(1,obj.init.params.pos_dist(n),obj.init.params.UWB_pos)),':','LineWidth',2);
+            plot(obj.setup.time(obj.init.params.UWB_pos),squeeze(obj.init.Yhat_full_story(traj).val(1,obj.init.params.pos_dist_out(n),obj.init.params.UWB_pos)),':','LineWidth',2);
             set(gca,'ColorOrderIndex',traj)
-            plot(obj.setup.time(obj.init.params.UWB_pos),squeeze(obj.init.Ytrue_full_story(traj).val(1,obj.init.params.pos_dist(n),obj.init.params.UWB_pos)),'--','LineWidth',2);
+            plot(obj.setup.time(obj.init.params.UWB_pos),squeeze(obj.init.Ytrue_full_story(traj).val(1,obj.init.params.pos_dist_out(n),obj.init.params.UWB_pos)),'--','LineWidth',2);
         end        
         ylabel(['d_',num2str(n)])        
         set(gca,'fontsize', fontsize)

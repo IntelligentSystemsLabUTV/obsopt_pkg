@@ -7,14 +7,7 @@
 % INPUT: none
 % OUTPUT:
 % params: structure with all the necessary parameters
-function params = params_armesto
-
-    % system parameters
-    params.m = 1;
-    params.eps = 5;    
-    params.Nanchor = 4;
-    params.g = 0*-9.81;
-    params.C = 0*diag([0 0 -10]);
+function params = params_armesto    
     
     % control parameters   
     params.Ts = 1e-2;
@@ -53,10 +46,9 @@ function params = params_armesto
     params.pos_omega = [17:19];     % see mode_rover.m    
     params.pos_jerk = [20:22];      % see mode_rover.m    
     params.pos_alpha = [23:25];     % see mode_rover.m    
-    params.pos_bias_vel = [26:28];  % see mode_rover.m   
+    params.pos_bias_dyn = [26:28];  % see mode_rover.m   
     params.pos_fc = [params.pos_p params.pos_v params.pos_acc params.pos_bias];
     params.dim_state_est = numel(params.pos_fc);
-
 
     % input dim
     params.dim_input = 3;           % input on each dimension + orientation
@@ -88,36 +80,37 @@ function params = params_armesto
     params.noise_mat(params.pos_p_out,1) = 0*1e-2;          % noise on cam pos - bias 
     params.noise_mat(params.pos_quat_out,1) = 0*1e-2;       % noise on cam quat - bias 
     params.noise_mat(params.pos_acc_out,1) = 0*1e-3;        % noise on IMU acc - bias 
-    params.noise_mat(params.pos_omega_out,1) = 1*1e-3;      % noise on IMU gyro - bias 
+    params.noise_mat(params.pos_omega_out,1) = 0*1e-3;      % noise on IMU gyro - bias 
     % sigma
-    params.noise_mat(params.pos_p_out,2) = 0*1e-2;          % noise on cam pos - sigma 
+    params.noise_mat(params.pos_p_out,2) = 0*1e-3;          % noise on cam pos - sigma 
     params.noise_mat(params.pos_quat_out,2) = 0*1e-2;       % noise on cam quat - sigma
-    params.noise_mat(params.pos_acc_out,2) = 0*1e-3;        % noise on IMU acc - sigma
+    params.noise_mat(params.pos_acc_out,2) = 0*1e-4;        % noise on IMU acc - sigma
     params.noise_mat(params.pos_omega_out,2) = 0*1e-2;      % noise on IMU gyro - sigma
 
     % enable noise
     params.EKF = 1;
     params.jerk_enable = 1;
     params.alpha_enable = 0;
-    params.bias_vel_enable = 0;
+    params.bias_dyn_enable = 1;
+    params.pos_biased_out = params.pos_p_out;
 
     %%% noise matrices
     % measurement noise
-    params.R = diag([params.noise_mat(params.pos_p_out)*eye(3), ...         % CAM POS
-                     params.noise_mat(params.pos_quat_out)*eye(4), ...      % CAM QUAT
-                     params.noise_mat(params.pos_acc_out)*eye(3), ...       % IMU ACC
-                     params.noise_mat(params.pos_omega_out)*eye(3), ...     % IMU OMEGA
+    params.R = diag([params.noise_mat(params.pos_p_out).^2*eye(3), ...         % CAM POS
+                     params.noise_mat(params.pos_quat_out).^2*eye(4), ...      % CAM QUAT
+                     params.noise_mat(params.pos_acc_out).^2*eye(3), ...       % IMU ACC
+                     params.noise_mat(params.pos_omega_out).^2*eye(3), ...     % IMU OMEGA
         ]);      
     
     % process noise - centripetal model
-    params.Q = diag([1e1 1e1 1e1,   ... % JERK
-                     1e1 1e1 1e1,   ... % ACC
-                     1e0 1e0 1e0;   ... % BIAS VEL
+    params.Q = diag([1e0 1e0 1e0,    ... % JERK
+                     1e0 1e0 1e0,    ... % ALPHA
+                     1e5 1e5 1e5,    ... % BIAS VEL
         ]);
 
     % EKF covariance matrix
     for traj=1:params.Ntraj
-        params.Phat(traj).val(1,:,:) = eye(params.dim_state);
+        params.Phat(traj).val(1,:,:) = 1e0*eye(params.dim_state);
     end
 
     % observer stuff
@@ -136,7 +129,7 @@ function params = params_armesto
                               0;0;0;        ... % omega
                               0;0;0;        ... % jerk
                               0;0;0;        ... % alpha
-                              5;0;0;        ... % bias vel
+                              0;0;0;        ... % bias vel
                               ];
     
     % position in the state vector of the estimated parameters
@@ -168,7 +161,7 @@ function params = params_armesto
 
 
     % same initial condition for all the trajectories (under development)
-    params.multi_traj_var = [params.pos_p params.pos_v];     
+    params.multi_traj_var = [params.pos_p params.pos_v params.pos_acc params.pos_bias];     
     for traj=2:params.Ntraj
         params.X(traj).val(:,1) = params.X(1).val(:,1);
 
@@ -180,7 +173,7 @@ function params = params_armesto
     % plot vars (used to plot the state estimation. When the parameters are
     % too many, consider to use only the true state components)
     params.plot_vars = [params.pos_p params.pos_v params.pos_acc];
-    params.plot_params = [params.pos_bias params.pos_jerk params.pos_alpha params.pos_bias_vel];
+    params.plot_params = [params.pos_bias params.pos_jerk params.pos_alpha params.pos_bias_dyn];
     params.dim_out_plot = params.OutDim;       
         
 end

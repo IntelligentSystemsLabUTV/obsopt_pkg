@@ -15,6 +15,9 @@ function y = measure_rover(x,params,tspan,u,obs)
     % define y
     y = zeros(params.OutDim,length(tspan));
 
+    % get traj
+    traj = obs.init.traj;
+
     for k=1:length(tspan)
         t = tspan(k);
         % compute the time index
@@ -25,8 +28,7 @@ function y = measure_rover(x,params,tspan,u,obs)
             pos(i) = max(1,pos(i));        
         end
     
-        %%% get the IMU accelerations        
-        IMU_true = zeros(length(params.pos_v),1);        
+        %%% get the output mismatch terms           
         V_true = x(params.pos_v,k);  
         P_true = x(params.pos_p,k);
     
@@ -37,10 +39,18 @@ function y = measure_rover(x,params,tspan,u,obs)
             Pa(2,:) = x(params.pos_anchor(2):2:params.pos_anchor(end));
             % true distances
             D = get_dist(P_true,Pa);   
-            obs.init.params.last_D(obs.init.traj,:) = D;
-        else
-%             D = zeros(params.Nanchor,1);        
-            D = reshape(obs.init.params.last_D(obs.init.traj,:),params.Nanchor,1);
+            obs.init.params.last_D(traj,:) = D;
+        else   
+            D = reshape(obs.init.params.last_D(traj,:),params.Nanchor,1);
+        end
+
+        %%% get the IMU accelerations
+        if mod(pos,params.IMU_samp) == 0                                    
+            xd = obs.setup.model([t t+params.Ts],x,params,obs);
+            IMU_true = xd(params.pos_v);          
+            obs.init.params.last_IMU_acc(traj,:) = IMU_true;
+        else       
+            IMU_true = reshape(obs.init.params.last_IMU_acc(traj,:),params.space_dim,1);
         end
     
         % add noise

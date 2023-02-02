@@ -13,11 +13,11 @@ function params_out = params_update_rover(params,x)
     % assign params
     params_out = params; 
 
-    params_out.C(1:2) = x(params.pos_Gamma(1:2));
-    params_out.theta(1:4) = x(params.pos_Gamma(3:6));
-    params_out.beta(1) = 1;
-    params_out.beta(2) = -params_out.C(2);
-    params_out.alpha = x(params.pos_Gamma(9:end));     
+%     params_out.C(1:2) = x(params.pos_Gamma(1:2));
+%     params_out.theta(1:4) = x(params.pos_Gamma(3:6));
+%     params_out.beta(1) = 1;
+%     params_out.beta(2) = -params_out.C(2);
+%     params_out.alpha = x(params.pos_Gamma(9:end));     
     
 %     %%% old - high gain %%%
 %     params_out.K = x(params.pos_Gamma(1));

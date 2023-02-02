@@ -22,38 +22,38 @@ Ts = 1e-2;
 
 % set initial and final time instant
 t0 = 0;
-tend = 20;
+tend = 30;
 % uncomment to test the MHE with a single optimisation step
 % tend = 1*(Nw*Nts-1)*Ts;
 
 %%%% params init function %%%%
-params_init = @params_armesto;
+params_init = @params_rover;
 
 %%%% params update function %%%%
-params_update = @params_update_armesto;
+params_update = @params_update_rover;
 
 %%%% model function %%%%
-model = @model_armesto;
+model = @model_rover;
 
 %%%% model reference function %%%%
-model_reference = @model_armesto_reference;
+model_reference = @model_rover_reference;
 
 %%%% measure function %%%%
-measure = @measure_armesto;
-measure_reference = @measure_armesto_reference;
+measure = @measure_rover;
+measure_reference = @measure_rover_reference;
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 %%%% filters %%%%
 [filter, filterScale] = filter_define(Ts,1);
 
 %%%% integration method %%%%
-ode = @odeDD;
+ode = @odeEuler;
 
 %%%% input law %%%
 input_law = @control;
 
 %%%% params init %%%%
-params = model_init('Ts',Ts,'T0',[t0, tend],'noise',1, 'params_update', params_update, ...
+params = model_init('Ts',Ts,'T0',[t0, tend],'noise',0, 'params_update', params_update, ...
             'model',model,'measure',measure,'ode',ode, 'odeset', [1e-3 1e-6], ...
             'input_enable',1,'input_law',input_law,'params_init',params_init);
              
@@ -62,12 +62,9 @@ params = model_init('Ts',Ts,'T0',[t0, tend],'noise',1, 'params_update', params_u
 terminal_states = params.opt_vars;
 terminal_weights = 1e-1*ones(size(terminal_states));
 
-%%% noise %%%
-noise_mat = params.noise_mat;
-
 % create observer class instance. For more information on the setup
 % options check directly the class constructor in obsopt.m
-obs = obsopt('DataType', 'simulated', 'optimise', 1, 'MultiStart', params.multistart, 'J_normalise', 1, 'MaxOptTime', Inf, ... 
+obs = obsopt('DataType', 'simulated', 'optimise', 0, 'MultiStart', params.multistart, 'J_normalise', 1, 'MaxOptTime', Inf, ... 
           'Nw', Nw, 'Nts', Nts, 'ode', ode, 'PE_maxiter', 0, 'WaitAllBuffer', 1, 'params',params, 'filters', filterScale,'filterTF', filter, ...
           'model_reference',model_reference, 'measure_reference',measure_reference, ...
           'Jdot_thresh',0.95,'MaxIter', 10, 'Jterm_store', 1, 'AlwaysOpt', 1 , 'print', 0 , 'SafetyDensity', 2, 'AdaptiveFreqMin', [1.5], ...
@@ -128,9 +125,9 @@ for i = 1:obs.setup.Niter
     end
     
     %%%% MHE OBSERVER (SAVE MEAS) %%%%
-%     t1 = tic;    
-%     obs = obs.observer(obs.init.X_est,y_meas);
-%     obs.init.iter_time(obs.init.ActualTimeIndex) = toc(t1);                                                
+    t1 = tic;    
+    obs = obs.observer(obs.init.X_est,y_meas);
+    obs.init.iter_time(obs.init.ActualTimeIndex) = toc(t1);                                                
 
     %%%% EKF OBSERVER %%%%
     if(obs.init.ActualTimeIndex > 1) && params.EKF   
@@ -146,14 +143,8 @@ end
 
 %%%% SNR %%%
 % the SNR is computed on the mesurements https://ieeexplore.ieee.org/document/9805818 
-% for i=1:obs.setup.dim_out
-%     obs.init.SNR(1).val(i) = 10*log(sum(obs.init.Ytrue_full_story(1).val(1,i,:).^2)/sum(obs.init.noise_story(1).val(i,:).^2));
-% end
-
-%%% JUNK %%%
-for traj=1:params.Ntraj
-    obs.init.params.angles_true(traj).val = rad2deg(quat2eul(obs.init.X(traj).val(params.pos_quat,:)'));
-    obs.init.params.angles_est(traj).val = rad2deg(quat2eul(obs.init.X_est(traj).val(params.pos_quat,:)'));
+for i=1:obs.setup.dim_out
+    obs.init.SNR(1).val(i) = 10*log(sum(obs.init.Ytrue_full_story(1).val(1,i,:).^2)/sum(obs.init.noise_story(1).val(i,:).^2));
 end
 
 

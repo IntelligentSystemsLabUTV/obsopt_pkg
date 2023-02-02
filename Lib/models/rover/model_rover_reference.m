@@ -28,11 +28,11 @@ function [x_dot, x] = model_rover_reference(tspan,x,params,obs)
     % model dynamics
     % x axis
     x_dot(1) = x(2);
-    x_dot(2) = params.u(1,1);    
+    x_dot(2) = params.u(1,1) + params.jerk_enable*params.Ts*randn();    
     
     % y axis
     x_dot(5) = x(6);
-    x_dot(6) = params.u(2,1);    
+    x_dot(6) = params.u(2,1) + params.jerk_enable*params.Ts*randn();    
 
     % all the remaining are the anchors
     

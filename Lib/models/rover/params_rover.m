@@ -31,14 +31,7 @@ function params = params_rover
     params.freq_u = 48;    
     params.amp_ux = -1/2;
     params.amp_uy = -1/6;
-    params.Ku = [10 10];
-
-    % params uwb
-    params.display_uwb = false;
-    params.bias = false;
-    params.epsilon = 1e-4;
-    params.method = 0;  
-    params.grad_Niter = 1;    
+    params.Ku = [10 10];    
 
     % number of reference trajectories (under development)
     params.Ntraj = 1;
@@ -60,17 +53,29 @@ function params = params_rover
     params.beta = 0*[1 1];
     params.C = 0*[1 1];
     params.theta = 1*[1 1 1 1];
-   
-%     %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-%     params.dim_Gamma = length(params.K) + length(params.C) + length(params.L) + length(params.G) + length(params.alpha);
+    % observer params    
+%     params.alpha = 1*[-3.6427e-02];
+%     params.beta = 1*[1.0000e+00   4.5015e+01];
+%     params.C = 1*[6.4985e+01  -4.5015e+01];
+%     params.theta = 1*[5.7089e-01   8.3038e-01   3.4082e-01   7.1296e+00];
+
+    
+   
+    %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+    % hyb obs parameters
     params.dim_Gamma = length(params.C) + length(params.theta) + +length(params.beta) + length(params.alpha);
 
+    % model parameters
     params.dim_state = 4*params.space_dim + params.Nanchor*params.space_dim + params.dim_Gamma;    % done on the observer model (easier to compare)
     params.pos_p = [1 5];   % see mode_rover.m
-    params.pos_v = [2 6];   % see mode_rover.m    
+    params.pos_v = [2 6];   % see mode_rover.m  
+    params.pos_acc = [3 7];
+    params.pos_jerk = [4 8];
     params.pos_anchor = [4*params.space_dim+1:params.dim_state-params.dim_Gamma];    % after all the double integrators come the anchors   
     params.pos_Gamma = [params.pos_anchor(end)+1:params.dim_state];
+    params.pos_fc = [params.pos_p params.pos_v];
+    params.dim_state_est = numel(params.pos_fc);
 
     % input dim
     params.dim_input = params.space_dim;   % input on each dimension
@@ -78,19 +83,23 @@ function params = params_rover
     % output dim
     params.OutDim = params.Nanchor + params.space_dim + 2*params.space_dim;  % distances + accelerations + velocity (only for learning) + position (only for learning)    
     params.observed_state = [params.pos_v];   % not reading the state    
-    params.pos_dist = 1:params.Nanchor;
-    params.pos_acc = [params.Nanchor + 2*params.space_dim + 1:params.OutDim];
+    params.pos_dist_out = 1:params.Nanchor;
+    params.pos_acc_out = [params.Nanchor + 2*params.space_dim + 1:params.OutDim];
     params.pos_v_out = [params.Nanchor + params.space_dim + 1:params.Nanchor + 2*params.space_dim];
     params.pos_p_out = [params.Nanchor + 1:params.Nanchor + params.space_dim];
     params.OutDim_compare = [params.pos_p_out params.pos_v_out];   % distances
+    
     % sampling
     params.IMU_samp = 1;
     params.UWB_samp = 20;
     params.UWB_pos = []; 
 
-    % chore
+    % memory
+    params.last_noise = zeros(params.Ntraj,params.OutDim);
     params.last_D = zeros(params.Ntraj,params.Nanchor);
     params.last_D_ref = zeros(params.Ntraj,params.Nanchor);
+    params.last_IMU_acc = zeros(params.Ntraj,numel(params.pos_acc_out));
+    params.last_IMU_acc_ref = zeros(params.Ntraj,numel(params.pos_acc_out));
 
     % derivative of the pjump
     for traj = 1:params.Ntraj
@@ -104,18 +113,45 @@ function params = params_rover
 
     % noise (on distances + acceleration)
     params.noise_mat = 0*ones(params.OutDim,3);
-    params.noise_mat(params.pos_acc,3) = 1*1e-2;   % noise on IMU - bias 
-    params.noise_mat(params.pos_dist,3) = 1*7e-2;  % noise on UWB - bias
-    params.noise_mat(params.pos_acc,1) = 1*1e-1;   % noise on IMU - sigma
-    params.noise_mat(params.pos_dist,1) = 1*2e-1;  % noise on UWB - sigma
-    params.bias = params.noise_mat(:,2);
-    params.mean = params.noise_mat(:,1);
+    % bias 
+    params.noise_mat(params.pos_acc_out,1) = 0*1e-2;   % noise on IMU - bias 
+    params.noise_mat(params.pos_dist_out,1) = 0*7e-2;  % noise on UWB - bias
+    params.bias = params.noise_mat(:,1);
+    % sigma
+    params.noise_mat(params.pos_acc_out,2) = 1*1e-1;   % noise on IMU - sigma
+    params.noise_mat(params.pos_dist_out,2) = 1*2e-1;  % noise on UWB - sigma    
+    params.mean = params.noise_mat(:,2);
 
+    %%% process noise %%%
+    params.jerk_enable = 0;
+
+    %%%%%% EKF %%%%%
+    % enable noise
+    params.EKF = 0;        
+
+    %%% noise matrices
+    % measurement noise
+    params.R = diag([params.noise_mat(params.pos_dist_out).^2*eye(params.Nanchor), ...  % UWB                      
+                     params.noise_mat(params.pos_acc_out).^2*eye(params.space_dim), ... % IMU ACC                     
+        ]);      
+    
+    % process noise - centripetal model
+    params.Q = diag([1e0 1e0,    ... % JERK                     
+        ]);
+
+    % EKF covariance matrix
+    for traj=1:params.Ntraj
+        params.Phat(traj).val(1,:,:) = 1e0*eye(params.dim_state);
+    end
+    %%%%%%%%%%%%%%%%
+
+    %%%%%% GENERAL OBS %%%%%
     % observer stuff
     params.time_J = [];
     params.d_true = zeros(params.Nanchor,1);
     params.d_noise = zeros(params.Nanchor,1);
     params.d_est = zeros(params.Nanchor,1);
+    %%%%%%%%%%%%%%%%%%%%%%%%
     
     % initial condition
     params.X(1).val(:,1) = 1*[3;0;0;0; ...                % x pos
@@ -176,24 +212,6 @@ function params = params_rover
     params.plot_params = [3 7];
     params.dim_out_plot = [params.pos_p_out params.pos_v_out];       
 
-    %%% J sym analysis
-    syms x y    
-    syms D_vec [1 params.Nanchor]    
-    params.x = x;
-    params.y = y;
-    params.D_vec = D_vec;
-    params.symList = [x y D_vec];
-    params.Nsyms = length(params.symList);
-    tmp = params.X(1).val(params.pos_anchor,1);
-    params.P_a(1,:) = tmp(1:2:end);
-    params.P_a(2,:) = tmp(2:2:end);
-    P_a = params.P_a;
-
+    % fminunc
     params.dist_optoptions = optimoptions('fminunc', 'MaxIter', 1, 'display','off');
-
-    params.J = @(x,y,P_a,D_vec)sum((sqrt( (P_a(1,:)-x).^2 + (P_a(2,:)-y).^2 ) - D_vec).^2);
-    tmp = simplify(gradient(params.J(x,y,P_a,D_vec),[x y]));
-    params.GJ = @(x,y,P_a,D_vec,params)double(subs(tmp,params.symList,[x y D_vec]));
-    tmp = simplify(hessian(params.J(x,y,P_a,D_vec),[x y]));
-    params.HJ = @(x,y,P_a,D_vec,params)double(subs(tmp,params.symList,[x y D_vec]));
 end
