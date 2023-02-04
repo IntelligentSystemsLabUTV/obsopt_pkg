@@ -28,7 +28,7 @@ function [y, obs] = measure_rover_reference(x,params,t,u,obs)
     P_true = x(params.pos_p);
 
     % different sampling times
-    if mod(pos,params.UWB_samp) == 0
+    if mod(pos(end),params.UWB_samp) == 0
         %%% get distances        
         % adjacency matrix
         Pa(1,:) = x(params.pos_anchor(1):2:params.pos_anchor(end));
@@ -36,15 +36,17 @@ function [y, obs] = measure_rover_reference(x,params,t,u,obs)
         % true distances
         D = get_dist(P_true,Pa);
         % save position buffer
-        obs.init.params.UWB_pos(end+1) = pos;
+        obs.init.params.UWB_pos(end+1) = pos(end);
         obs.init.params.last_D_ref(traj,:) = D;
     else
         D = reshape(obs.init.params.last_D_ref(traj,:),params.Nanchor,1);
     end    
 
     %%% get the IMU accelerations
-    if mod(pos,params.IMU_samp) == 0 
-        xd = obs.setup.model_reference([t t+params.Ts],x,params,obs);
+    if mod(pos(end),params.IMU_samp) == 0 
+        old_u = obs.init.input_story_ref.val(:,pos(1));
+        xd = obs.setup.model_reference(t,x,params,obs);
+        obs.init.input_story_ref.val(:,pos(1)) = old_u;
         IMU_true = xd(params.pos_v);
         obs.init.params.last_IMU_acc_ref(traj,:) = IMU_true;
     else       
@@ -54,10 +56,10 @@ function [y, obs] = measure_rover_reference(x,params,t,u,obs)
     %%% add noise
     % noise on UWB + IMU
     y_true = [D; P_true; V_true; IMU_true];
-    noise = obs.setup.noise*(params.noise_mat(:,1).*randn(obs.setup.dim_out,1) + params.noise_mat(:,3));
+    noise = obs.setup.noise*(params.noise_mat(:,2).*randn(obs.setup.dim_out,1) + params.noise_mat(:,1));
 
     %%% multi rate - UWB
-    if mod(pos,params.UWB_samp) ~= 0
+    if mod(pos(end),params.UWB_samp) ~= 0
         try
             noise(params.pos_dist_out) = obs.init.noise_story(traj).val(params.pos_dist_out,pos(1)-1);
         catch
@@ -66,7 +68,7 @@ function [y, obs] = measure_rover_reference(x,params,t,u,obs)
     end
 
     %%% multi rate - IMU
-    if mod(pos,params.IMU_samp) ~= 0
+    if mod(pos(end),params.IMU_samp) ~= 0
         try
             noise(params.pos_acc_out) = obs.init.noise_story(traj).val(params.pos_acc_out,pos(1)-1);
         catch
@@ -78,17 +80,17 @@ function [y, obs] = measure_rover_reference(x,params,t,u,obs)
     y = y_true + noise;    
 
     %%% OPT - pjump %%%
-    if mod(pos,params.UWB_samp) == 0    
+    if mod(pos(end),params.UWB_samp) == 0    
         D_meas = y(params.pos_dist_out);
         obs.init.params.p_jump(traj).val(:,end+1) = fminunc(@(x)J_dist(x,Pa,D_meas),x(params.pos_p),obs.setup.params.dist_optoptions);
         obs.init.params.p_jump_der(traj).val(:,end+1) = PseudoDer(params.Ts*params.UWB_samp,obs.init.params.p_jump(traj).val(:,end),params.wlen,params.buflen,params.space_dim,0,0,obs);
         if traj == 1
-            obs.init.params.p_jump_time(end+1) = pos(1);
+            obs.init.params.p_jump_time(end+1) = pos(end);
         end
     end
     
     % store
-    obs.init.Ytrue_full_story(traj).val(1,:,pos) = y_true;    
-    obs.init.noise_story(traj).val(:,pos) = noise;
-    obs.init.Y_full_story(traj).val(1,:,pos) = y;
+    obs.init.Ytrue_full_story(traj).val(1,:,pos(end)) = y_true;    
+    obs.init.noise_story(traj).val(:,pos(end)) = noise;
+    obs.init.Y_full_story(traj).val(1,:,pos(end)) = y;
 end

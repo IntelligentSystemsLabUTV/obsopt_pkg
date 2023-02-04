@@ -447,4 +447,28 @@ function plot_3Dobject(obj,varargin)
         fig_count = fig_count -1;
     end
     
+    try
+        %%% check distances %%%
+        fig_count = fig_count+1;
+        figure(fig_count)    
+        for n=1:obj.init.params.Nanchor
+            ax(n) = subplot(obj.init.params.Nanchor,1,n);
+            hold on
+            grid on  
+            for traj=1:obj.setup.Ntraj
+                plot(obj.setup.time(obj.init.params.UWB_pos),squeeze(obj.init.Y_full_story(traj).val(1,obj.init.params.pos_dist_out(n),obj.init.params.UWB_pos)),'LineWidth',2);
+                set(gca,'ColorOrderIndex',traj)
+                plot(obj.setup.time(obj.init.params.UWB_pos),squeeze(obj.init.Yhat_full_story(traj).val(1,obj.init.params.pos_dist_out(n),obj.init.params.UWB_pos)),':','LineWidth',2);
+                set(gca,'ColorOrderIndex',traj)
+                plot(obj.setup.time(obj.init.params.UWB_pos),squeeze(obj.init.Ytrue_full_story(traj).val(1,obj.init.params.pos_dist_out(n),obj.init.params.UWB_pos)),'--','LineWidth',2);
+            end        
+            ylabel(['d_',num2str(n)])        
+            set(gca,'fontsize', fontsize)
+        end   
+        xlabel('time [s]')
+        legend('meas','opt','true');
+    catch
+        clf
+        fig_count = fig_count -1;
+    end
 end

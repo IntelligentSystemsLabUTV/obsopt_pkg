@@ -22,7 +22,7 @@ Ts = 1e-2;
 
 % set initial and final time instant
 t0 = 0;
-tend = 30;
+tend = 60;
 % uncomment to test the MHE with a single optimisation step
 % tend = 1*(Nw*Nts-1)*Ts;
 
@@ -53,7 +53,7 @@ ode = @odeEuler;
 input_law = @control;
 
 %%%% params init %%%%
-params = model_init('Ts',Ts,'T0',[t0, tend],'noise',0, 'params_update', params_update, ...
+params = model_init('Ts',Ts,'T0',[t0, tend],'noise',1, 'params_update', params_update, ...
             'model',model,'measure',measure,'ode',ode, 'odeset', [1e-3 1e-6], ...
             'input_enable',1,'input_law',input_law,'params_init',params_init);
              
@@ -120,22 +120,26 @@ for i = 1:obs.setup.Niter
         
         %%%% REAL MEASUREMENT %%%%
         % here the noise is noise added aggording to noise_spec
-        [y_meas(traj).val, obs] = obs.setup.measure_reference(obs.init.X(traj).val(:,stoppos),obs.init.params,obs.setup.time(stoppos),...
+        [y_meas(traj).val, obs] = obs.setup.measure_reference(obs.init.X(traj).val(:,stoppos),obs.init.params,obs.setup.time(startpos:stoppos),...
                                                                             obs.init.input_story_ref(traj).val(:,max(1,startpos)),obs);          
     end
     
     %%%% MHE OBSERVER (SAVE MEAS) %%%%
     t1 = tic;    
-    obs = obs.observer(obs.init.X_est,y_meas);
-    obs.init.iter_time(obs.init.ActualTimeIndex) = toc(t1);                                                
+    if ~params.EKF && params.hyb
+        obs = obs.observer(obs.init.X_est,y_meas);
+        obs.init.iter_time(obs.init.ActualTimeIndex) = toc(t1);                                                
+    end
 
     %%%% EKF OBSERVER %%%%
-    if(obs.init.ActualTimeIndex > 1) && params.EKF   
+    t1 = tic;  
+    if (obs.init.ActualTimeIndex > 1) && params.EKF && ~params.hyb
         for traj=1:params.Ntraj
             obs.init.traj = traj;
-            obs = EKF(obs,obs.init.X_est(traj).val(:,startpos),y_meas(traj).val);
+            obs = EKF_rover(obs,obs.init.X_est(traj).val(:,startpos),y_meas(traj).val);
         end
     end
+    obs.init.iter_time(obs.init.ActualTimeIndex) = toc(t1);                                                
     
     
 
