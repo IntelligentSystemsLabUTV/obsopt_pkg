@@ -10,7 +10,7 @@ function [params_s,obs_s,SimParams,params,out] = simulation_multiMHE_realdata(mo
 rng default
 
 % MHE
-fast = 0;
+fast = 1;
 slow = 1;
 update_slow = 0;
 update_fast = 0;

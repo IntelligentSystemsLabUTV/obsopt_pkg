@@ -133,6 +133,13 @@ function params = params_battery_tushar
     
     % state dimension
     params.dim_state = 30;
+
+    % output dimension
+    params.OutDim = 1;
+    params.OutDim_compare = 1;
+
+    % dim input
+    params.dim_input = 1;
     
     % initial condition
     params.X(1).val(:,1) = [x10; x20; ...

@@ -10,7 +10,7 @@
 % t: time instant (may be not used)
 % OUTPUT:
 % y: output measurement
-function y = measure_battery_tushar(x,params,t)
+function y = measure_battery_tushar(x,params,t,u)
 
     % compute the control - I
     params.u = params.input(t,x,params);    
