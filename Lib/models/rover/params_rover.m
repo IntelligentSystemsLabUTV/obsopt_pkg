@@ -34,7 +34,7 @@ function params = params_rover
     params.Ku = [10 10];    
 
     % number of reference trajectories (under development)
-    params.Ntraj = 1;
+    params.Ntraj = 2;
     
     % different omega for trajectories
     for traj = 2:params.Ntraj
@@ -58,9 +58,7 @@ function params = params_rover
     params.alpha = 1*[-3.6427e-02];
     params.beta = 1*[1.0000e+00   4.5015e+01];
     params.C = 1*[6.4985e+01  -4.5015e+01];
-    params.theta = 1*[5.7089e-01   8.3038e-01   3.4082e-01   7.1296e+00];
-
-    
+    params.theta = 1*[5.7089e-01   8.3038e-01   3.4082e-01   7.1296e+00];    
    
     %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
     % hyb obs parameters
@@ -124,12 +122,12 @@ function params = params_rover
     params.noise_mat = 1*params.noise_mat_original;
 
     %%% process noise %%%
-    params.jerk_enable = 0;
+    params.jerk_enable = 1;
 
     %%%%%% EKF %%%%%
     % enable noise
-    params.EKF = 0;        
-    params.hyb = 1;
+    params.EKF = 1;        
+    params.hyb = 0;
 
     %%% noise matrices
     % measurement noise
@@ -194,7 +192,7 @@ function params = params_rover
 
 
     % same initial condition for all the trajectories (under development)
-    params.multi_traj_var = [params.pos_p params.pos_v]; 
+    params.multi_traj_var = [params.pos_p params.pos_v params.pos_acc]; 
     pos_init = [3 3;  ...
                 -3 3; ...
                 -3 -3; ...

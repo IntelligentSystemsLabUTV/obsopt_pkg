@@ -16,11 +16,11 @@ Nw = 15;
 Nts = 10;
 
 % set sampling time
-Ts = 1e-2;
+Ts = 1e-1;
 
 % set initial and final time instant
 t0 = 0;
-tend = 20;
+tend = 100;
 % uncomment to test the MHE with a single optimisation step
 %tend = 1*(Nw*Nts-1)*Ts;
 
@@ -33,7 +33,7 @@ tend = 20;
 % model equations. e.g. for a mechanical system
 % params.M = mass
 % params.b = friction coefficient
-params_init = @params_oscillator_VDP;
+params_init = @params_VolterraLotka;
 
 %%%% params update function %%%%
 % remark: this file is used if the MHE is set to estimate mode parameters
@@ -45,7 +45,7 @@ params_init = @params_oscillator_VDP;
 % x: state vector
 % OUTPUT: 
 % params_out: updated structure with the new model parameters 
-params_update = @params_update_oscillator_VDP;
+params_update = @params_update_VolterraLotka;
 
 
 %%%% model function %%%%
@@ -58,7 +58,7 @@ params_update = @params_update_oscillator_VDP;
 % obs: instance of the obsopt observer class
 % OUTPUT:
 % xdot:output of the state space model
-model = @model_oscillator_VDP;
+model = @model_VolterraLotka;
 
 %%%% model reference function %%%%
 % remark: !DEVEL! this function is used to generate the reference
@@ -74,7 +74,7 @@ model = @model_oscillator_VDP;
 % OUTPUT:
 % xdot:output of the state space model
 % model_reference = @model_reference;
-model_reference = @model_oscillator_VDP;
+model_reference = @model_VolterraLotka;
 
 %%%% measure function %%%%
 % function: this file shall be in the following form:   
@@ -106,7 +106,7 @@ measure_reference = @measure_general;
 
 %%%% integration method %%%%
 % ode45-like integration method. For discrete time systems use @odeDD
-ode = @oderk4_fast;
+ode = @odeEuler;
 
 %%%% input law %%%
 % function: defines the input law used. Remember to check the @model
@@ -132,7 +132,7 @@ noise_mat = 0*ones(5,2);
 % important is the 'params_init' option, which takes as input the function 
 % handle to the previously defined @params_init. For more information see 
 % directly the model_init.m file.
-params = model_init('Ts',Ts,'T0',[t0, tend],'noise',1, 'noise_spec', noise_mat, 'params_update', params_update, ...
+params = model_init('Ts',Ts,'T0',[t0, tend],'noise',0, 'noise_spec', noise_mat, 'params_update', params_update, ...
             'model',model,'measure',measure,'ode',ode, 'odeset', [1e-3 1e-6], ...
             'input_enable',1,'input_law',input_law,'params_init',params_init);
              
@@ -140,15 +140,15 @@ params = model_init('Ts',Ts,'T0',[t0, tend],'noise',1, 'noise_spec', noise_mat, 
 % defien arrival cost
 terminal_states = params.opt_vars;
 terminal_weights = 1e-1*ones(size(terminal_states));
-terminal_weights(3:5) = 10*terminal_weights(3);
+%terminal_weights(3:5) = 10*terminal_weights(3);
 
 % create observer class instance. For more information on the setup
 % options check directly the class constructor in obsopt.m
-obs = obsopt('DataType', 'simulated', 'optimise', 1, 'MultiStart', 0, 'J_normalise', 1, 'MaxOptTime', Inf, ... 
+obs = obsopt('DataType', 'simulated', 'optimise', 0, 'MultiStart', 0, 'J_normalise', 1, 'MaxOptTime', Inf, ... 
           'Nw', Nw, 'Nts', Nts, 'ode', ode, 'PE_maxiter', 0, 'WaitAllBuffer', 1, 'params',params, 'filters', filterScale,'filterTF', filter, ...
           'model_reference',model_reference, 'measure_reference',measure_reference, ...
           'Jdot_thresh',0.95,'MaxIter', 5, 'Jterm_store', 1, 'AlwaysOpt', 1 , 'print', 0 , 'SafetyDensity', 2, 'AdaptiveFreqMin', [1.5], ...
-          'AdaptiveSampling',1, 'FlushBuffer', 1, 'opt', @fminsearchcon, 'terminal', 1, 'terminal_states', terminal_states, 'terminal_weights', terminal_weights, 'terminal_normalise', 1, ...
+          'AdaptiveSampling',0, 'FlushBuffer', 1, 'opt', @fminsearchcon, 'terminal', 0, 'terminal_states', terminal_states, 'terminal_weights', terminal_weights, 'terminal_normalise', 1, ...
           'ConPos', [], 'LBcon', [], 'UBcon', [],'Bounds', 0);
 
 %% %%%% SIMULATION %%%%

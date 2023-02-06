@@ -33,6 +33,13 @@ function u = control(t,drive,params,obs)
         end
         u(1,:) = params.Ku(1)*(vx-drive(2));
         u(2,:) = params.Ku(2)*(vy-drive(6));
+
+        % Volterra Lotka
+%         u(1,:) = params.K1*(drive(1)-params.target(1));
+%         u(2,:) = params.K2*(drive(1)-params.target(1));
+%         % sat
+%         u(1,:) = min(max(-params.umax,u(1,:)),params.umax);
+%         u(2,:) = min(max(-params.umax,u(2,:)),params.umax);
     end
 
 end
