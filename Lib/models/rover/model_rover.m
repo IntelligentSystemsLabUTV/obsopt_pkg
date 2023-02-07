@@ -44,18 +44,24 @@ function [x_dot, x] = model_rover(tspan,x,params,obs)
             %%% TEST %%%
             p_jump = obs.init.params.p_jump(obs.init.traj).val(:,pos(1)/params.UWB_samp);
             p_jump_der = obs.init.params.p_jump_der(obs.init.traj).val(:,pos(1)/params.UWB_samp);
+
+            % gamma
+            normx = norm(x([params.pos_p(1) params.pos_v(1)]));
+            normy = norm(x([params.pos_p(2) params.pos_v(2)]));
+            gamma(1) = params.theta(1) + params.theta(2)*normx;
+            gamma(2) = params.theta(1) + params.theta(2)*normy;
             
             % jump map - x
-            x(1) = params.theta(1)*x(1) + (1-params.theta(1))*p_jump(1);
-            x(2) = params.theta(2)*x(2) + (1-params.theta(2))*p_jump_der(1);
-            x(3) = params.theta(3)*x(3);
-            x(4) = params.theta(4)*x(4);
+            x(1) = gamma(1)*x(1) + (1-gamma(1))*p_jump(1);
+            x(2) = params.theta(3)*x(2) + (1-params.theta(3))*p_jump_der(1);
+            x(3) = params.theta(4)*x(3);
+            x(4) = params.theta(5)*x(4);
     
             % jump map - y
-            x(5) = params.theta(1)*x(5) + (1-params.theta(1))*p_jump(2);
-            x(6) = params.theta(2)*x(6) + (1-params.theta(2))*p_jump_der(2);
-            x(7) = params.theta(3)*x(7);
-            x(8) = params.theta(4)*x(8);
+            x(5) = gamma(2)*x(5) + (1-gamma(2))*p_jump(2);
+            x(6) = params.theta(3)*x(6) + (1-params.theta(3))*p_jump_der(2);
+            x(7) = params.theta(4)*x(7);
+            x(8) = params.theta(5)*x(8);
         end
     
         %%%% OBSERVER DYNAMICS %%%

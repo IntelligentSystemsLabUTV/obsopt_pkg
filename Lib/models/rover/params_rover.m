@@ -29,8 +29,8 @@ function params = params_rover
     params.rhoy = 0.01;
     % vines
     params.freq_u = 48;    
-    params.amp_ux = -1/2;
-    params.amp_uy = -1/6;
+    params.amp_ux = -1/3;
+    params.amp_uy = -1/3;
     params.Ku = [10 10];    
 
     % number of reference trajectories (under development)
@@ -52,13 +52,13 @@ function params = params_rover
     params.alpha = 0*[1 1];
     params.beta = 0*[1 1];
     params.C = 0*[1 1];
-    params.theta = 0*[1 1 1 1];
+    params.theta = 0*[1 1 1 1 1];
 
     % observer params    
-    params.alpha = 1*[ -2.3167 0.0673];
-    params.beta = 1*[1.0000   39.7342];
-    params.C = 1*[ -148.4165  -39.7342];
-    params.theta = 1*[0.4225         0   -0.0117  -17.2938];    
+%     params.alpha = 1*[ -2.3167 0.0673];
+%     params.beta = 1*[1.0000   39.7342];
+%     params.C = 1*[ -148.4165  -39.7342];
+%     params.theta = 1*[0.4225         0   -0.0117  -17.2938];    
    
     %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
     % hyb obs parameters
@@ -119,10 +119,10 @@ function params = params_rover
     params.noise_mat_original(params.pos_acc_out,2) = 1*1e-1;   % noise on IMU - sigma
     params.noise_mat_original(params.pos_dist_out,2) = 1*2e-1;  % noise on UWB - sigma    
     params.mean = params.noise_mat_original(:,2);
-    params.noise_mat = 1*params.noise_mat_original;
+    params.noise_mat = 0*params.noise_mat_original;
 
     %%% process noise %%%
-    params.jerk_enable = 1;
+    params.jerk_enable = 0;
 
     %%%%%% EKF %%%%%
     % enable noise
@@ -156,9 +156,9 @@ function params = params_rover
     %%%%%%%%%%%%%%%%%%%%%%%%
     
     % initial condition
-    params.X(1).val(:,1) = 1*[3;0;0;0; ...                % x pos
-                              3;0;0;0; ...                % y pos
-                              -4;-4;-4;4;4;4;4;-4; ...    % anchors                                                                          
+    params.X(1).val(:,1) = 1*[2;0;0;0; ...                % x pos
+                              4;0;0;0; ...                % y pos
+                              -6;-6;-6;6;6;6;6;-6; ...    % anchors                                                                          
                               params.C'; ...              % params                              
                               params.theta'; ...
                               params.beta'; ...

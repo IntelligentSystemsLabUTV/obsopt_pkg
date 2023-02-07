@@ -173,7 +173,7 @@ classdef obsopt < handle
                 obj.setup.AdaptiveSampling = 0;
             end
             obj.init.nfreqs = 2;
-            obj.init.wavelet_output_dim = 1;
+            obj.init.wavelet_output_dim = params.pos_acc_out;
             obj.init.freqs = zeros(obj.init.nfreqs,1);
             obj.init.wvname = 'amor';
             obj.init.Nv = 48;
@@ -1060,7 +1060,7 @@ classdef obsopt < handle
 
                 % get current buffer
                 [~, pos_hat] = find(obj.init.Y_space > 1);
-                buffer = squeeze(obj.init.Y_full_story.val(1,obj.init.wavelet_output_dim,obj.init.Y_space(min(pos_hat)):obj.init.Y_space(max(pos_hat)))); 
+                buffer = vecnorm(squeeze(obj.init.Y_full_story.val(1,obj.init.wavelet_output_dim,obj.init.Y_space(min(pos_hat)):obj.init.Y_space(max(pos_hat)))),2,1); 
                                                                 
                 % frequency constraint                                
                 %[WT, F] = cwt(buffer,obj.init.wvname,1/obj.setup.Ts,'VoicesPerOctave',obj.init.Nv,'FrequencyLimits',obj.init.FLIMITS);
@@ -1175,7 +1175,7 @@ classdef obsopt < handle
             F_min = 1/((obj.init.Y_space(end)-obj.init.Y_space(1))*obj.setup.Ts);
             % define selcted freq: freq_sel=1 MAX freq_sel=2 MIN
             freq_sel = 1;
-            % define bound on freq (at least 2 due to Nyquist
+            % define bound on freq (at least 2 due to Nyquist)
             freq_bound = 6;
             % set NtsVal depending on freqs
             if any(obj.init.freqs(:,end)) && (F_min < obj.init.Fmin)
@@ -1184,7 +1184,7 @@ classdef obsopt < handle
                 Ts_wv = 1/(freq); % s
                 distance_min = max(1,ceil(Ts_wv/obj.setup.Ts));
             else
-                if 1 && (obj.setup.AdaptiveSampling)                    
+                if 0 && (obj.setup.AdaptiveSampling)                    
                     Tmin = 1/(freq_bound*obj.init.Fmin);
                     distance_min = max(obj.setup.NtsVal(NtsPos),ceil(Tmin/obj.setup.Ts));
                 else
