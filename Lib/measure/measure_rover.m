@@ -57,7 +57,7 @@ function y = measure_rover(x,params,tspan,u,obs)
     
         %%% get the IMU accelerations
         if mod(pos(k)+offset_UWBsamp,params.IMU_samp) == 0                 
-            xd = obs.setup.model([t t+params.Ts],x,params,obs);        
+            xd = obs.setup.model([t(k) t(k)+params.Ts],x,params,obs);        
             IMU_true = reshape(xd(params.pos_v,:),numel(params.pos_v),1);          
             obs.init.params.last_IMU_acc(traj,:) = IMU_true;
         else       

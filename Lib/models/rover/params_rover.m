@@ -55,10 +55,10 @@ function params = params_rover
     params.theta = 0*[1 1 1 1];
 
     % observer params    
-%     params.alpha = 1*[-3.6427e-02];
-%     params.beta = 1*[1.0000e+00   4.5015e+01];
-%     params.C = 1*[6.4985e+01  -4.5015e+01];
-%     params.theta = 1*[5.7089e-01   8.3038e-01   3.4082e-01   7.1296e+00];    
+    params.alpha = 1*[ -2.3167 0.0673];
+    params.beta = 1*[1.0000   39.7342];
+    params.C = 1*[ -148.4165  -39.7342];
+    params.theta = 1*[0.4225         0   -0.0117  -17.2938];    
    
     %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
     % hyb obs parameters
@@ -138,7 +138,7 @@ function params = params_rover
         ]);      
     
     % process noise - centripetal model
-    params.Q = 1*diag([1e0 1e0,... % JERK                     
+    params.Q = 1e0*diag([1e0 1e0,... % JERK                     
         ]);
 
     % EKF covariance matrix
@@ -193,7 +193,7 @@ function params = params_rover
 
 
     % same initial condition for all the trajectories (under development)
-    params.multi_traj_var = [params.pos_p params.pos_v params.pos_acc]; 
+    params.multi_traj_var = [params.pos_p]; 
     pos_init = [3 3;  ...
                 -3 3; ...
                 -3 -3; ...
