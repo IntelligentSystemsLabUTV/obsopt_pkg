@@ -28,7 +28,7 @@ function [x_dot, x] = model_rover(tspan,x,params,obs)
 
     %%%%%%%%%%% HYBRID OBSERVER MODEL %%%%%%%%%%%%%
 
-    if params.hyb && ~params.EKF
+    if (params.hyb && ~params.EKF) && ~params.dryrun
 
         % meas available
         y = obs.init.Y_full_story(obs.init.traj).val(1,:,pos(1));
@@ -62,20 +62,18 @@ function [x_dot, x] = model_rover(tspan,x,params,obs)
         % model dynamics
         % x axis
         x_dot(1) = x(2);
-        x_dot(2) = x(3) + params.alpha(1)*x(2);
+        x_dot(2) = x(3) + params.alpha(1)*x(2) + params.alpha(2)*abs(x(3))*x(3);
         x_dot(3) = x(4) + params.beta(1)*a(1);
         x_dot(4) = params.C(1)*x(3) + params.C(2)*x(4) + params.beta(2)*a(1);
     
         % x axis
         x_dot(5) = x(6);
-        x_dot(6) = x(7) + params.alpha(1)*x(6);
+        x_dot(6) = x(7) + params.alpha(1)*x(6) + params.alpha(2)*abs(x(7))*x(7);
         x_dot(7) = x(8) + params.beta(1)*a(2);
-        x_dot(8) = params.C(1)*x(7) + params.C(2)*x(8) + params.beta(2)*a(2);
-    end
-
+        x_dot(8) = params.C(1)*x(7) + params.C(2)*x(8) + params.beta(2)*a(2);  
 
     %%%%%%%%%%%%% EKF MODEL %%%%%%%%%%%%
-    if params.EKF && ~params.hyb
+    elseif (params.EKF && ~params.hyb) && ~params.dryrun
 
         % model dynamics
         % x axis
@@ -87,6 +85,16 @@ function [x_dot, x] = model_rover(tspan,x,params,obs)
         x_dot(5) = x(6);    
         x_dot(6) = x(7);   
         x_dot(7) = 0;
+
+    elseif params.dryrun
+
+    %%%%%%%%%%%%% REFERENCE MODEL %%%%%%%%%
+        x_dot = obs.setup.model_reference(tspan,x,params,obs);
+
+    else
+
+    %%%%%%%%%%%%% ERROR %%%%%%%%%
+        error('what do you wanna integrate mate?')
 
     end
 

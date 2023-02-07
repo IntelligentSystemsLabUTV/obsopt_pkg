@@ -24,8 +24,8 @@ function [y, obs] = measure_rover_reference(x,params,t,u,obs)
     traj = obs.init.traj;
 
     %%% get the output mismatch terms    
-    V_true = x(params.pos_v);
-    P_true = x(params.pos_p);
+    V_true = reshape(x(params.pos_v,:),numel(params.pos_v),size(x,2));
+    P_true = reshape(x(params.pos_p,:),numel(params.pos_p),size(x,2));
 
     % different sampling times
     if mod(pos(end),params.UWB_samp) == 0
@@ -47,7 +47,7 @@ function [y, obs] = measure_rover_reference(x,params,t,u,obs)
         old_u = obs.init.input_story_ref(traj).val(:,pos(1));
         xd = obs.setup.model_reference(t,x,params,obs);
         obs.init.input_story_ref(traj).val(:,pos(1)) = old_u;
-        IMU_true = xd(params.pos_v);
+        IMU_true = reshape(xd(params.pos_v,:),numel(params.pos_v),size(xd,2));
         obs.init.params.last_IMU_acc_ref(traj,:) = IMU_true;
     else       
         IMU_true = reshape(obs.init.params.last_IMU_acc_ref(traj,:),params.space_dim,1);

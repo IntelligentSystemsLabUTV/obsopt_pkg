@@ -12,13 +12,22 @@
 % y: output measurement
 function y = measure_rover(x,params,tspan,u,obs) 
 
+    %%% when do I stop? %%%
+    t = tspan;
+    if numel(t)>2
+        stopK = numel(t);
+        offset_UWBsamp = 0;
+    else
+        stopK = max(1,numel(t)-1);
+        offset_UWBsamp = 1;
+    end
+
     % define y
-    y = zeros(params.OutDim,1);
+    y = zeros(params.OutDim,stopK);
 
     % get traj
-    traj = obs.init.traj;
-    
-    t = tspan;
+    traj = obs.init.traj;       
+
     % compute the time index
     pos = zeros(1,length(t));
     for i=1:length(t)
@@ -26,33 +35,37 @@ function y = measure_rover(x,params,tspan,u,obs)
         pos(i) = find(abs(tdiff) == min(abs(tdiff)),1,'first');    
         pos(i) = max(1,pos(i));        
     end
-
-    %%% get the output mismatch terms           
-    V_true = x(params.pos_v);  
-    P_true = x(params.pos_p);
-
-    %%% get distances        
-    if mod(pos(end),params.UWB_samp) == 0                                    
-        % adjacency matrix
-        Pa(1,:) = x(params.pos_anchor(1):2:params.pos_anchor(end));
-        Pa(2,:) = x(params.pos_anchor(2):2:params.pos_anchor(end));
-        % true distances
-        D = get_dist(P_true,Pa);   
-        obs.init.params.last_D(traj,:) = D;
-    else   
-        D = reshape(obs.init.params.last_D(traj,:),params.Nanchor,1);
+    
+    for k=1:stopK
+        
+    
+        %%% get the output mismatch terms        
+        V_true = reshape(x(params.pos_v,k),numel(params.pos_v),1);
+        P_true = reshape(x(params.pos_p,k),numel(params.pos_p),1);
+    
+        %%% get distances        
+        if mod(pos(k)+offset_UWBsamp,params.UWB_samp) == 0                                    
+            % adjacency matrix
+            Pa(1,:) = x(params.pos_anchor(1):2:params.pos_anchor(end));
+            Pa(2,:) = x(params.pos_anchor(2):2:params.pos_anchor(end));
+            % true distances
+            D = get_dist(P_true,Pa);   
+            obs.init.params.last_D(traj,:) = D;
+        else   
+            D = reshape(obs.init.params.last_D(traj,:),params.Nanchor,1);
+        end
+    
+        %%% get the IMU accelerations
+        if mod(pos(k)+offset_UWBsamp,params.IMU_samp) == 0                 
+            xd = obs.setup.model([t t+params.Ts],x,params,obs);        
+            IMU_true = reshape(xd(params.pos_v,:),numel(params.pos_v),1);          
+            obs.init.params.last_IMU_acc(traj,:) = IMU_true;
+        else       
+            IMU_true = reshape(obs.init.params.last_IMU_acc(traj,:),params.space_dim,1);
+        end
+    
+        % add noise
+        % noise on UWB + IMU       
+        y(:,k) = [D; P_true; V_true; IMU_true];                     
     end
-
-    %%% get the IMU accelerations
-    if mod(pos(end),params.IMU_samp) == 0                 
-        xd = obs.setup.model([t t+params.Ts],x,params,obs);        
-        IMU_true = xd(params.pos_v);          
-        obs.init.params.last_IMU_acc(traj,:) = IMU_true;
-    else       
-        IMU_true = reshape(obs.init.params.last_IMU_acc(traj,:),params.space_dim,1);
-    end
-
-    % add noise
-    % noise on UWB + IMU        
-    y(:,1) = [D; P_true; V_true; IMU_true];                     
 end

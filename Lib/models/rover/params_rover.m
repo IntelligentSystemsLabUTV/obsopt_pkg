@@ -34,7 +34,7 @@ function params = params_rover
     params.Ku = [10 10];    
 
     % number of reference trajectories (under development)
-    params.Ntraj = 2;
+    params.Ntraj = 1;
     
     % different omega for trajectories
     for traj = 2:params.Ntraj
@@ -49,16 +49,16 @@ function params = params_rover
     params.multistart = 0;
 
     % observer params    
-    params.alpha = 0*[1];
+    params.alpha = 0*[1 1];
     params.beta = 0*[1 1];
     params.C = 0*[1 1];
-    params.theta = 1*[1 1 1 1];
+    params.theta = 0*[1 1 1 1];
 
     % observer params    
-    params.alpha = 1*[-3.6427e-02];
-    params.beta = 1*[1.0000e+00   4.5015e+01];
-    params.C = 1*[6.4985e+01  -4.5015e+01];
-    params.theta = 1*[5.7089e-01   8.3038e-01   3.4082e-01   7.1296e+00];    
+%     params.alpha = 1*[-3.6427e-02];
+%     params.beta = 1*[1.0000e+00   4.5015e+01];
+%     params.C = 1*[6.4985e+01  -4.5015e+01];
+%     params.theta = 1*[5.7089e-01   8.3038e-01   3.4082e-01   7.1296e+00];    
    
     %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
     % hyb obs parameters
@@ -112,8 +112,8 @@ function params = params_rover
     % noise (on distances + acceleration)
     params.noise_mat = 0*ones(params.OutDim,2);
     % bias 
-    params.noise_mat_original(params.pos_acc_out,1) = 0*1e-2;   % noise on IMU - bias 
-    params.noise_mat_original(params.pos_dist_out,1) = 0*7e-2;  % noise on UWB - bias
+    params.noise_mat_original(params.pos_acc_out,1) = 1*3e-1;   % noise on IMU - bias 
+    params.noise_mat_original(params.pos_dist_out,1) = 1*7e-2;  % noise on UWB - bias
     params.bias = params.noise_mat_original(:,1);
     % sigma
     params.noise_mat_original(params.pos_acc_out,2) = 1*1e-1;   % noise on IMU - sigma
@@ -126,8 +126,9 @@ function params = params_rover
 
     %%%%%% EKF %%%%%
     % enable noise
-    params.EKF = 1;        
-    params.hyb = 0;
+    params.EKF = 0;        
+    params.hyb = 1;
+    params.dryrun = 0;
 
     %%% noise matrices
     % measurement noise
