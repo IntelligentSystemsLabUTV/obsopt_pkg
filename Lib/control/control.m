@@ -29,7 +29,7 @@ function u = control(t,drive,params,obs)
         elseif mod(T,params.freq_u) < 0.75*params.freq_u
             vx = -params.amp_ux;
         else
-            vy = params.amp_uy;
+            vy = -params.amp_uy;
         end
         u(1,:) = params.Ku(1)*(vx-drive(2));
         u(2,:) = params.Ku(2)*(vy-drive(6));

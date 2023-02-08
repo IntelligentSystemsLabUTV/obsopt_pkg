@@ -99,7 +99,7 @@ function plot_rover(obj,varargin)
 
             % plot target values    
             try
-                data = reshape(obj.init.target_story(traj).val(1,obj.setup.params.dim_out_plot(k),obj.init.temp_time),1,length(WindowTime));
+                data = reshape(obj.init.Y_full_story(traj).val(1,obj.setup.params.dim_out_plot(k),obj.init.temp_time),1,length(WindowTime));
                 plot(WindowTime,data,'o','MarkerSize',5);
             catch 
                 disp('CHECK T_END OR AYELS CONDITION - LOOKS LIKE NO OPTIMISATION HAS BEEN RUN')

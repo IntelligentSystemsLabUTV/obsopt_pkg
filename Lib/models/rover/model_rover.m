@@ -46,8 +46,8 @@ function [x_dot, x] = model_rover(tspan,x,params,obs)
             p_jump_der = obs.init.params.p_jump_der(obs.init.traj).val(:,pos(1)/params.UWB_samp);
 
             % gamma
-            normx = norm(x([params.pos_p(1) params.pos_v(1)]));
-            normy = norm(x([params.pos_p(2) params.pos_v(2)]));
+            normx = norm(x(params.pos_p(1)));
+            normy = norm(x(params.pos_p(2)));
             gamma(1) = params.theta(1) + params.theta(2)*normx;
             gamma(2) = params.theta(1) + params.theta(2)*normy;
             

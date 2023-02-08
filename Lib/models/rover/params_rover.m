@@ -55,10 +55,10 @@ function params = params_rover
     params.theta = 0*[1 1 1 1 1];
 
     % observer params    
-%     params.alpha = 1*[ -2.3167 0.0673];
-%     params.beta = 1*[1.0000   39.7342];
-%     params.C = 1*[ -148.4165  -39.7342];
-%     params.theta = 1*[0.4225         0   -0.0117  -17.2938];    
+%     params.alpha = 1*[-1.9007    2.3938];
+%     params.beta = 1*[1.0000   99.6080];
+%     params.C = 1*[ -333.0070  -99.6080];
+%     params.theta = 1*[0.4135         0    0.6513   -0.0102  -52.9364];    
    
     %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
     % hyb obs parameters
@@ -112,17 +112,17 @@ function params = params_rover
     % noise (on distances + acceleration)
     params.noise_mat = 0*ones(params.OutDim,2);
     % bias 
-    params.noise_mat_original(params.pos_acc_out,1) = 1*3e-1;   % noise on IMU - bias 
-    params.noise_mat_original(params.pos_dist_out,1) = 1*7e-2;  % noise on UWB - bias
+    params.noise_mat_original(params.pos_acc_out,1) = 0*3e-1;   % noise on IMU - bias 
+    params.noise_mat_original(params.pos_dist_out,1) = 0*7e-2;  % noise on UWB - bias
     params.bias = params.noise_mat_original(:,1);
     % sigma
     params.noise_mat_original(params.pos_acc_out,2) = 1*1e-1;   % noise on IMU - sigma
     params.noise_mat_original(params.pos_dist_out,2) = 1*2e-1;  % noise on UWB - sigma    
     params.mean = params.noise_mat_original(:,2);
-    params.noise_mat = 0*params.noise_mat_original;
+    params.noise_mat = 1*params.noise_mat_original;
 
     %%% process noise %%%
-    params.jerk_enable = 0;
+    params.jerk_enable = 1;
 
     %%%%%% EKF %%%%%
     % enable noise
@@ -156,9 +156,11 @@ function params = params_rover
     %%%%%%%%%%%%%%%%%%%%%%%%
     
     % initial condition
+    an_dp = 2.5;
     params.X(1).val(:,1) = 1*[2;0;0;0; ...                % x pos
-                              4;0;0;0; ...                % y pos
-                              -6;-6;-6;6;6;6;6;-6; ...    % anchors                                                                          
+                              2;0;0;0; ...                % y pos
+                              -an_dp;-an_dp;-an_dp;an_dp;   ...
+                              an_dp;an_dp;an_dp;-an_dp;     ...    % anchors                                                                          
                               params.C'; ...              % params                              
                               params.theta'; ...
                               params.beta'; ...

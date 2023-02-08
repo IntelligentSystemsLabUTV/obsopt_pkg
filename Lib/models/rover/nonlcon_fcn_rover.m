@@ -27,10 +27,18 @@ function [c, ceq] = nonlcon_fcn_rover(xopt,xnonopt,obs)
 %     G = x(obs.init.params.pos_Gamma(5:6));    
 %     tmp(:,1) = real(roots([1, fliplr(C)'])) + tol;
 %     tmp(:,2) = real(roots([1, fliplr(G)'])) + tol;
-%     c = [c ; tmp(:,1); tmp(:,2)];    
+%     c = [c ; tmp(:,1); tmp(:,2)];   
 
-    theta_constr_up = x(obs.init.params.pos_Gamma(3:4)) - 1;
-    theta_constr_down = -x(obs.init.params.pos_Gamma(3:4));
+    tspan_pos = [obs.init.BackIterIndex, nonzeros(obs.init.Y_space)'];
+
+    normx = vecnorm(x(obs.init.params.pos_p(1)),2,1);
+    normy = vecnorm(x(obs.init.params.pos_p(2)),2,1);
+    gamma(:,1) = x(obs.init.params.pos_Gamma(1))+ x(obs.init.params.pos_Gamma(2))*normx;
+    gamma(:,2) = x(obs.init.params.pos_Gamma(1))+ x(obs.init.params.pos_Gamma(2))*normy;
+    theta2 = x(obs.init.params.pos_Gamma(3));
+
+    theta_constr_up = [gamma(:,1); gamma(:,2); theta2] - 1;
+    theta_constr_down = -[gamma(:,1); gamma(:,2); theta2];
     c = [c; theta_constr_up; theta_constr_down];
     
             
