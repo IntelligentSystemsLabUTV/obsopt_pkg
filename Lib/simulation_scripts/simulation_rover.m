@@ -14,7 +14,7 @@ rng('default');
 % rng(42);
     
 % init observer buffer (see https://doi.org/10.48550/arXiv.2204.09359)
-Nw = 10;
+Nw = 50;
 Nts = 100;
 
 % set sampling time

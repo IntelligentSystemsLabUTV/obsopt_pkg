@@ -1491,7 +1491,7 @@ classdef obsopt < handle
                                 if ~obj.setup.MultiStart
                                     try
                                         [NewXopt, J] = obj.setup.fmin(problem);
-                                    catch
+                                    catch ME
                                         [NewXopt, J] = obj.setup.fmin(problem.objective,problem.x0,problem.lb,problem.ub,problem.Aeq,problem.beq,problem.nonlcon,problem.options);
                                     end
                                 else
@@ -1501,7 +1501,7 @@ classdef obsopt < handle
                                         [J_before(pp), obj_tmp] = obj.setup.cost_run(problem.x0,obj.init.temp_x0_nonopt,obj.init.temp_x0_filters,obj.init.target);   
                                         try
                                             [NewXopt(pp,:), J(pp,:)] = obj.setup.fmin(problem);
-                                        catch
+                                        catch ME
                                             [NewXopt(pp,:), J(pp,:)] = obj.setup.fmin(problem.objective,problem.x0,problem.lb,problem.ub,problem.Aeq,problem.beq,problem.nonlcon,problem.options);
                                         end
                                     end
