@@ -55,10 +55,10 @@ function params = params_rover
     params.theta = 0*[1 1 1 1 1];
 
     % observer params    
-%     params.alpha = 1*[-1.9007    2.3938];
-%     params.beta = 1*[1.0000   99.6080];
-%     params.C = 1*[ -333.0070  -99.6080];
-%     params.theta = 1*[0.4135         0    0.6513   -0.0102  -52.9364];    
+    params.alpha = 1*[-0.0067    6.4999];
+    params.beta = 1*[1.0000   83.8996];
+    params.C = 1*[243.9468  -83.8996];
+    params.theta = 1*[0.9328   -0.1371    0.9731   -0.1163    7.3477];    
    
     %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
     % hyb obs parameters
@@ -126,8 +126,8 @@ function params = params_rover
 
     %%%%%% EKF %%%%%
     % enable noise
-    params.EKF = 0;        
-    params.hyb = 1;
+    params.EKF = 1;        
+    params.hyb = 0;
     params.dryrun = 0;
 
     %%% noise matrices
