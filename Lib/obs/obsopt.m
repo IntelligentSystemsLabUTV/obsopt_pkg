@@ -194,6 +194,11 @@ classdef obsopt < handle
                 obj.init.FNts = tmp(4);
                 obj.init.Fmin = tmp(5);
                 obj.init.wavelet_output_dim = tmp(6:end);
+            else
+                obj.init.FNts = 1;
+                obj.init.Fbuflen = 20;
+                obj.init.Fselect = 2;
+                obj.init.Fnyq = 2;
             end
             
             % enable or not the buffer flush on the adaptive sampling
@@ -1178,6 +1183,7 @@ classdef obsopt < handle
             % fisrt bunch of data - read Y every Nts and check if the signal is
             distance = obj.init.ActualTimeIndex-obj.init.Y_space(end);   
             NtsPos = mod(obj.init.Nsaved,obj.setup.w)+1;
+            obj.init.NtsPos = NtsPos;
 
             % if the current Nts is different from the standard one, than
             % it measn that a complete cycle has been done, and you should
