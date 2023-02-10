@@ -39,14 +39,14 @@ function obs = EKF_rover(obs,xhat_kk_1,y_k)
     y_ks = [];
 
     % get downsampling - CAM
-    if mod(k,params.UWB_samp) == 0
+    if mod(k,params.UWB_samp_EKF) == 0
         posH_row = [posH_row, [params.pos_dist_out]];
         yhat_ks = [yhat_ks; yhat_k([params.pos_dist_out])];
         y_ks = [y_ks; y_k([params.pos_dist_out])];        
     end
 
     % get downsampling - IMU
-    if mod(k,params.IMU_samp) == 0
+    if mod(k,params.IMU_samp_EKF) == 0
         posH_row = [posH_row, [params.pos_acc_out]];
         yhat_ks = [yhat_ks; yhat_k([params.pos_acc_out])];
         y_ks = [y_ks; y_k([params.pos_acc_out])];
@@ -63,7 +63,7 @@ function obs = EKF_rover(obs,xhat_kk_1,y_k)
     if ~isempty(posH_row)
 
         % correction term (eq. 13)        
-        Ks = (Phat_kk_1*GHs')*(pinv(GHs*Phat_kk_1*GHs' + params.R(posH_row,posH_row)));        
+        Ks = 1*(Phat_kk_1*GHs')*(pinv(GHs*Phat_kk_1*GHs' + params.R(posH_row,posH_row)));        
 
         % correction step (eq. 14-15)
         mismatch = (y_ks-yhat_ks);
@@ -96,41 +96,64 @@ function [GFx, GFw, GHx] = G(x,T,y,params)
     %%% alpha.
 
     % df/dx
-    %      x1   x2  x3  x4  x5  x6  x7  x8  xothers
-    GFx = [0    1   0   0   0   0   0   0   zeros(1,numel(9:numel(x))); ... x1
-           0    0   1   0   0   0   0   0   zeros(1,numel(9:numel(x))); ... x2
-           zeros(2,numel(x));                                           ... x3-x4
-           0    0   0   0   0   1   0   0   zeros(1,numel(9:numel(x))); ... x5
-           0    0   0   0   0   0   1   0   zeros(1,numel(9:numel(x))); ... x6
-           zeros(numel(7:numel(x)),numel(x));                           ... x7-xend
+    %      x1   x2  x3  x4  x5  x6  x7  x8  x9  x10 x11 x12 x13 x14 x15 xothers
+    GFx = [...
+    %     x dim
+           0    1   0   0   0   0   0   0   0   0   0   0   0   0   0   zeros(1,numel(16:numel(x))); ... x1
+           0    0   1   0   0   0   0   0   0   0   0   0   0   0   0   zeros(1,numel(16:numel(x))); ... x2
+           zeros(2,numel(x));                                                    ... x3-x4
+           0    0   0   0   0   0   0   0   0   0   0   0   0   0   0   zeros(1,numel(16:numel(x))); ... x5
+    %     y dim
+           0    0   0   0   0   0   1   0   0   0   0   0   0   0   0   zeros(1,numel(16:numel(x))); ... x6
+           0    0   0   0   0   0   0   1   0   0   0   0   0   0   0   zeros(1,numel(16:numel(x))); ... x7
+           zeros(2,numel(x));                                                    ... x8-x9
+           0    0   0   0   0   0   0   0   0   0   0   0   0   0   0   zeros(1,numel(16:numel(x))); ... x10
+    %     z dim
+           0    0   0   0   0   0   0   0   0   0   0   1   0   0   0   zeros(1,numel(16:numel(x))); ... x11
+           0    0   0   0   0   0   0   0   0   0   0   0   1   0   0   zeros(1,numel(16:numel(x))); ... x12
+           zeros(2,numel(x));                                                    ... x13-x14
+           0    0   0   0   0   0   0   0   0   0   0   0   0   0   0   zeros(1,numel(16:numel(x))); ... x15
+    %      remaining
+           zeros(numel(16:numel(x)),numel(x));                                   ... x16-xend
            ];
+
     % df/dw
-    %      w1   w2
-    GFw = [0    0;              ... x1
-           0    0;              ... x2
-           1    0;              ... x3
-           0    0;              ... x4
-           0    0;              ... x5
-           0    0;              ... x6
-           0    1;              ... x7
-           zeros(numel(8:numel(x)),2);          ... x8-xend
+    %      w1   w2  w3  w4  w5  w6
+    GFw = [0    0   0   0   0   0;              ... x1
+           0    0   0   0   0   0;              ... x2
+           1    0   0   0   0   0;              ... x3
+           0    0   0   0   0   0;              ... x4
+           0    0   0   0   0   0;              ... x5
+           0    0   0   0   0   0;              ... x6
+           0    0   0   0   0   0;              ... x7
+           0    1   0   0   0   0;              ... x8
+           0    0   0   0   0   0;              ... x9
+           0    0   0   0   0   0;              ... x10
+           0    0   0   0   0   0;              ... x11
+           0    0   0   0   0   0;              ... x12
+           0    0   1   0   0   0;              ... x13
+           0    0   0   0   0   0;              ... x14
+           0    0   0   0   0   0;              ... x15
+           zeros(numel(16:numel(x)),6);          ... x16-xend
            ];
 
     % dh/dx    
     % adjacency matrix
-    Pa(1,:) = x(params.pos_anchor(1):2:params.pos_anchor(end));
-    Pa(2,:) = x(params.pos_anchor(2):2:params.pos_anchor(end));
+    for dim=1:params.space_dim
+        Pa(dim,:) = x(params.pos_anchor(dim):params.space_dim:params.pos_anchor(end));            
+    end
     % get distances
     D = get_dist(x(params.pos_p),Pa);
     GHx = zeros(numel(y),numel(x));
-    %      x1               x2  x3  x4  x5              x6  x7  x8  A1x             A1y             A2x             A2y             A3x             A3y             A4x             A4y             
-    tmp = [dder(x,1,1,D)    0   0   0   dder(x,2,1,D)   0   0   0   -dder(x,1,1,D)  -dder(x,2,1,D)  0               0               0               0               0               0;               ... d1
-           dder(x,1,2,D)    0   0   0   dder(x,2,2,D)   0   0   0   0               0               -dder(x,1,2,D)  -dder(x,2,2,D)  0               0               0               0;               ... d2
-           dder(x,1,3,D)    0   0   0   dder(x,2,3,D)   0   0   0   0               0               0               0               -dder(x,1,3,D)  -dder(x,2,3,D)  0               0;               ... d3
-           dder(x,1,4,D)    0   0   0   dder(x,2,4,D)   0   0   0   0               0               0               0               0               0               -dder(x,1,4,D)  -dder(x,2,4,D);  ... d4
-           zeros(4,numel(1:params.pos_anchor(end)));                                                                                                                                                 ... P,V
-           0                0               1   0   0   0   0   0   0               0               0               0               0               0               0               0;               ... a1
-           0                0               0   0   0   0   1   0   0               0               0               0               0               0               0               0;               ... a2
+    %      x1               x2  x3  x4  x5  x6              x7  x8  x9  x10 x11             x12 x13 x14 x15  A1x    A1y A1z A2x A2y A2z A3x A3y A3z A4x A4y A4z             
+    tmp = [dder(x,1,1,D)    0   0   0   0   dder(x,2,1,D)   0   0   0   0   dder(x,3,1,D)   0   0   0   0    0      0   0   0   0   0   0   0   0   0   0   0;  ... d1
+           dder(x,1,2,D)    0   0   0   0   dder(x,2,2,D)   0   0   0   0   dder(x,3,2,D)   0   0   0   0    0      0   0   0   0   0   0   0   0   0   0   0;  ... d2
+           dder(x,1,3,D)    0   0   0   0   dder(x,2,3,D)   0   0   0   0   dder(x,3,3,D)   0   0   0   0    0      0   0   0   0   0   0   0   0   0   0   0;  ... d3
+           dder(x,1,4,D)    0   0   0   0   dder(x,2,4,D)   0   0   0   0   dder(x,3,4,D)   0   0   0   0    0      0   0   0   0   0   0   0   0   0   0   0;  ... d4
+           zeros(6,numel(1:params.pos_anchor(end)));                                                                                                            ... P,V
+           0                0   1   0   0   0               0   0   0   0   0               0   0   0   0   0       0   0   0   0   0   0   0   0   0   0   0;  ... a1
+           0                0   0   0   0   0               0   1   0   0   0               0   0   0   0   0       0   0   0   0   0   0   0   0   0   0   0;  ... a2
+           0                0   0   0   0   0               0   0   0   0   0               0   1   0   0   0       0   0   0   0   0   0   0   0   0   0   0;  ... a3
 
         ];
     GHx(:,1:params.pos_anchor(end)) = tmp;
@@ -141,12 +164,12 @@ end
 %%% jacobian of the distance
 function dd = dder(x,i,j,D)
 
-    pos_p = [1 5];
-    pos_anchor = [9:16];
+    pos_p = [1 6 11];
+    pos_anchor = [16:27];
 
     % get position coordinate
     xp = x(pos_p(i));
-    xa = x(pos_anchor((j-1)*2+i));
+    xa = x(pos_anchor((j-1)*3+i));
     dd = (xp-xa)/D(j);
 
 end

@@ -119,17 +119,18 @@ function plot_rover(obj,varargin)
     hold on
     grid on
     % plot anchors
-    P_a(1,:) = obj.init.params.pos_anchor(1):2:obj.init.params.pos_anchor(end);
-    P_a(2,:) = obj.init.params.pos_anchor(2):2:obj.init.params.pos_anchor(end); 
+    P_a(1,:) = obj.init.params.pos_anchor(1):3:obj.init.params.pos_anchor(end);
+    P_a(2,:) = obj.init.params.pos_anchor(2):3:obj.init.params.pos_anchor(end); 
+    P_a(3,:) = obj.init.params.pos_anchor(3):3:obj.init.params.pos_anchor(end); 
     for i=1:obj.setup.params.Nanchor
-        plot(obj.init.X_est(1).val(P_a(1,i),:),obj.init.X_est(1).val(P_a(2,i),:),'ko','MarkerSize',10);
+        plot3(obj.init.X_est(1).val(P_a(1,i),:),obj.init.X_est(1).val(P_a(2,i),:),obj.init.X_est(1).val(P_a(3,i),:),'ko','MarkerSize',10);
     end
     % plot rover
     pos_p = obj.init.params.pos_p;
     for traj=1:obj.setup.Ntraj 
-        plot(obj.init.X_est(traj).val(pos_p(1),:),obj.init.X_est(traj).val(pos_p(2),:),'--');
+        plot3(obj.init.X_est(traj).val(pos_p(1),:),obj.init.X_est(traj).val(pos_p(2),:),obj.init.X_est(traj).val(pos_p(3),:),'--');
         set(gca,'ColorOrderIndex',traj)
-        plot(obj.init.X(traj).val(pos_p(1),:),obj.init.X(traj).val(pos_p(2),:));    
+        plot3(obj.init.X(traj).val(pos_p(1),:),obj.init.X(traj).val(pos_p(2),:),obj.init.X_est(traj).val(pos_p(3),:));    
     end
     xlabel('X')
     ylabel('Y')

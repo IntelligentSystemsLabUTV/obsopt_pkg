@@ -13,6 +13,7 @@ function params = params_rover
     params.m = 1;
     params.eps = 5;    
     params.Nanchor = 4;
+    params.g = 0*0.1;
     
     % control parameters
     % 2nd order system
@@ -43,7 +44,7 @@ function params = params_rover
     end
     
     % state dimension
-    params.space_dim = 2;   % 2D or 3D space for the rover 
+    params.space_dim = 3;   % 2D or 3D space for the rover 
 
     % multistart
     params.multistart = 0;
@@ -52,7 +53,7 @@ function params = params_rover
     params.alpha = 0*[1 1];
     params.beta = 0*[1 1];
     params.C = 0*[1 1];
-    params.theta = 0*[1 1 1 1 1];
+    params.theta = 1*[1 0 1 1 1];
 
     % observer params    
 %     params.alpha = 1*[-1.9007    2.3938];
@@ -62,15 +63,21 @@ function params = params_rover
    
     %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
     % hyb obs parameters
-    params.dim_Gamma = length(params.C) + length(params.theta) + +length(params.beta) + length(params.alpha);
+    params.dim_Gamma = length(params.C) + length(params.theta) +length(params.beta) + length(params.alpha);
 
     % model parameters
-    params.dim_state = 4*params.space_dim + params.Nanchor*params.space_dim + params.dim_Gamma;    % done on the observer model (easier to compare)
-    params.pos_p = [1 5];   % see mode_rover.m
-    params.pos_v = [2 6];   % see mode_rover.m  
-    params.pos_acc = [3 7];
-    params.pos_jerk = [4 8];
-    params.pos_anchor = [4*params.space_dim+1:params.dim_state-params.dim_Gamma];    % after all the double integrators come the anchors   
+    params.dim_state = 5*params.space_dim + params.Nanchor*params.space_dim + params.dim_Gamma;    % done on the observer model (easier to compare)
+
+    % shared position (hyb and EKF)
+    params.pos_p = [1 6 11];   % see mode_rover.m
+    params.pos_v = [2 7 12];   % see mode_rover.m  
+    params.pos_acc = [3 8 13];
+    % positions for hyb
+    params.pos_jerk = [4 9 14];
+    % positions for biases
+    params.pos_bias = [5 10 15];   % IMU bias
+    % rest of stuff
+    params.pos_anchor = [5*params.space_dim+1:params.dim_state-params.dim_Gamma];    % after all the double integrators come the anchors   
     params.pos_Gamma = [params.pos_anchor(end)+1:params.dim_state];
     params.pos_fc = [params.pos_p params.pos_v];
     params.dim_state_est = numel(params.pos_fc);
@@ -79,8 +86,10 @@ function params = params_rover
     params.dim_input = params.space_dim;   % input on each dimension
 
     % output dim
-    params.OutDim = params.Nanchor + params.space_dim + 2*params.space_dim;  % distances + accelerations + velocity (only for learning) + position (only for learning)    
-    params.observed_state = [params.pos_v];   % not reading the state    
+    % distances + accelerations + velocity (only for learning) + position
+    % (only for learning)
+    params.OutDim = params.Nanchor + 3*params.space_dim;  
+    params.observed_state = [];   % not reading the state    
     params.pos_dist_out = 1:params.Nanchor;
     params.pos_acc_out = [params.Nanchor + 2*params.space_dim + 1:params.OutDim];
     params.pos_v_out = [params.Nanchor + params.space_dim + 1:params.Nanchor + 2*params.space_dim];
@@ -110,19 +119,16 @@ function params = params_rover
     params.buflen = 10;
 
     % noise (on distances + acceleration)
-    params.noise_mat = 0*ones(params.OutDim,2);
-    % bias 
-    params.noise_mat_original(params.pos_acc_out,1) = 0*3e-1;   % noise on IMU - bias 
-    params.noise_mat_original(params.pos_dist_out,1) = 0*7e-2;  % noise on UWB - bias
-    params.bias = params.noise_mat_original(:,1);
+    params.noise_mat = 0*ones(params.OutDim,2);    
     % sigma
-    params.noise_mat_original(params.pos_acc_out,2) = 1*1e-1;   % noise on IMU - sigma
-    params.noise_mat_original(params.pos_dist_out,2) = 1*2e-1;  % noise on UWB - sigma    
-    params.mean = params.noise_mat_original(:,2);
-    params.noise_mat = 1*params.noise_mat_original;
+    params.noise_mat_original(params.pos_acc_out,1) = 1*3e-1;   % noise on IMU - sigma
+    params.noise_mat_original(params.pos_dist_out,1) = 1*2e-1;  % noise on UWB - sigma    
+    params.mean = params.noise_mat_original(:,1);
+    params.noise_mat(:,1) = 1*params.noise_mat_original(:,1);
+    
 
     %%% process noise %%%
-    params.jerk_enable = 1;
+    params.jerk_enable = 0;
 
     %%%%%% EKF %%%%%
     % enable noise
@@ -132,13 +138,13 @@ function params = params_rover
 
     %%% noise matrices
     % measurement noise
-    params.R = diag([params.noise_mat_original(params.pos_dist_out,2).^2.*ones(params.Nanchor,1);     ...  % UWB         
+    params.R = diag([params.noise_mat_original(params.pos_dist_out,1).^2.*ones(params.Nanchor,1);     ...  % UWB         
                      zeros(numel([params.pos_p params.pos_v]),1);                           ...  % P,V
-                     params.noise_mat_original(params.pos_acc_out,2).^2.*ones(params.space_dim,1);    ... % IMU ACC                     
+                     params.noise_mat_original(params.pos_acc_out,1).^2.*ones(params.space_dim,1);    ... % IMU ACC                     
         ]);      
     
-    % process noise - centripetal model
-    params.Q = 1e0*diag([1e0 1e0,... % JERK                     
+    % process noise - model
+    params.Q = 1e0*diag([1e0 1e0 1e0 1e0 1e0 1e0,... % JERK                     
         ]);
 
     % EKF covariance matrix
@@ -157,10 +163,14 @@ function params = params_rover
     
     % initial condition
     an_dp = 2.5;
-    params.X(1).val(:,1) = 1*[2;0;0;0; ...                % x pos
-                              2;0;0;0; ...                % y pos
-                              -an_dp;-an_dp;-an_dp;an_dp;   ...
-                              an_dp;an_dp;an_dp;-an_dp;     ...    % anchors                                                                          
+    an_dz = 5;
+    params.X(1).val(:,1) = 1*[2;0;0;0;0; ...                % x pos + IMU bias
+                              2;0;0;0;0; ...                % y pos + IMU bias
+                              0;0;0;0;0; ...                % z pos + IMU bias
+                              -an_dp;-an_dp;an_dz;  ...
+                              -an_dp;an_dp;an_dz;   ...
+                              an_dp;an_dp;an_dz;    ...
+                              an_dp;-an_dp;an_dz;   ...    % anchors                                                                          
                               params.C'; ...              % params                              
                               params.theta'; ...
                               params.beta'; ...
@@ -171,6 +181,7 @@ function params = params_rover
     
     % which vars am I optimising
     params.opt_vars = [params.pos_Gamma];
+%     params.opt_vars = [params.pos_p params.pos_v params.pos_acc];
     
     % set the not optimised vars
     tmp = 1:length(params.X(1).val(:,1));

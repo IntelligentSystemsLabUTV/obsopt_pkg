@@ -31,8 +31,10 @@ function [y, obs] = measure_rover_reference(x,params,t,u,obs)
     if mod(pos(end),params.UWB_samp) == 0
         %%% get distances        
         % adjacency matrix
-        Pa(1,:) = x(params.pos_anchor(1):2:params.pos_anchor(end));
-        Pa(2,:) = x(params.pos_anchor(2):2:params.pos_anchor(end));
+        for dim=1:params.space_dim
+            Pa(dim,:) = x(params.pos_anchor(dim):params.space_dim:params.pos_anchor(end));            
+        end
+        
         % true distances
         D = get_dist(P_true,Pa);
         % save position buffer
@@ -56,7 +58,10 @@ function [y, obs] = measure_rover_reference(x,params,t,u,obs)
     %%% add noise
     % noise on UWB + IMU
     y_true = [D; P_true; V_true; IMU_true];
-    noise = obs.setup.noise*(params.noise_mat(:,2).*randn(obs.setup.dim_out,1) + params.noise_mat(:,1));
+    noise = obs.setup.noise*(params.noise_mat(:,1).*randn(obs.setup.dim_out,1));
+
+    % bias IMU
+    noise(params.pos_acc_out) = noise(params.pos_acc_out);
 
     %%% multi rate - UWB
     if mod(pos(end),params.UWB_samp) ~= 0
