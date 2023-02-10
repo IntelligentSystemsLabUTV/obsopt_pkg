@@ -31,8 +31,9 @@ function u = control(t,drive,params,obs)
         else
             vy = -params.amp_uy;
         end
-        u(1,:) = params.Ku(1)*(vx-drive(2));
-        u(2,:) = params.Ku(2)*(vy-drive(6));
+        u(1,:) = params.Ku(1)*(vx-drive(params.pos_v(1)));
+        u(2,:) = params.Ku(2)*(vy-drive(params.pos_v(2)));
+        u(3,:) = 0;
 
         % Volterra Lotka
 %         u(1,:) = params.K1*(drive(1)-params.target(1));

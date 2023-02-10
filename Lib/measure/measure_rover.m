@@ -46,8 +46,9 @@ function y = measure_rover(x,params,tspan,u,obs)
         %%% get distances        
         if mod(pos(k)+offset_UWBsamp,params.UWB_samp) == 0                                    
             % adjacency matrix
-            Pa(1,:) = x(params.pos_anchor(1):2:params.pos_anchor(end));
-            Pa(2,:) = x(params.pos_anchor(2):2:params.pos_anchor(end));
+            for dim=1:params.space_dim
+                Pa(dim,:) = x(params.pos_anchor(dim):params.space_dim:params.pos_anchor(end));            
+            end
             % true distances
             D = get_dist(P_true,Pa);   
             obs.init.params.last_D(traj,:) = D;
@@ -64,8 +65,10 @@ function y = measure_rover(x,params,tspan,u,obs)
             IMU_true = reshape(obs.init.params.last_IMU_acc(traj,:),params.space_dim,1);
         end
     
-        % add noise
-        % noise on UWB + IMU       
+        % add bias on IMU
+        IMU_true = IMU_true;
+
+        % final measure
         y(:,k) = [D; P_true; V_true; IMU_true];                     
     end
 end

@@ -16,7 +16,7 @@ function [c, ceq] = nonlcon_fcn_rover(xopt,xnonopt,obs)
 %     tspan = obs.setup.time(tspan_pos(1):tspan_pos(end));
 %     X = obs.setup.ode(@(t,x)obs.setup.model(t, x, obs.init.params, obs), tspan , x, obs.setup.odeset);
 %     X = X.y(:,obs.init.Y_space_full_story(2:end));
-% 
+
 %     normx = vecnorm(X(obs.init.params.pos_p(1),:),2,1);
 %     normy = vecnorm(X(obs.init.params.pos_p(2),:),2,1);
 %     gamma(:,1) = x(obs.init.params.pos_Gamma(3))+ x(obs.init.params.pos_Gamma(4))*normx;
@@ -27,7 +27,7 @@ function [c, ceq] = nonlcon_fcn_rover(xopt,xnonopt,obs)
 %     theta_constr_down = -[gamma(:,1); gamma(:,2); theta2];
 
     theta_constr_up = [theta2] - 1;
-    theta_constr_down = -[ theta2];
+    theta_constr_down = -[theta2];
     c = [c; theta_constr_up; theta_constr_down];
     
             

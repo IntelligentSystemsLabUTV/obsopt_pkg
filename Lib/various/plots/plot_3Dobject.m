@@ -48,7 +48,7 @@ function plot_3Dobject(obj,varargin)
         legend('True','Est')   
         xlabel(['time [s]']) 
     catch
-        clf
+        close
         fig_count = fig_count -1;
     end
 
@@ -81,7 +81,7 @@ function plot_3Dobject(obj,varargin)
         xlabel(['time [s]'])
         linkaxes(ax);
     catch
-        clf
+        close
         fig_count = fig_count -1;
     end
 
@@ -114,7 +114,7 @@ function plot_3Dobject(obj,varargin)
         xlabel(['time [s]'])
         linkaxes(ax);
     catch
-        clf
+        close
         fig_count = fig_count -1;
     end
 
@@ -147,7 +147,7 @@ function plot_3Dobject(obj,varargin)
         xlabel(['time [s]'])
         linkaxes(ax);
     catch
-        clf
+        close
         fig_count = fig_count -1;
     end
 
@@ -180,7 +180,7 @@ function plot_3Dobject(obj,varargin)
         xlabel(['time [s]'])
         linkaxes(ax);
     catch
-        clf
+        close
         fig_count = fig_count -1;
     end
 
@@ -213,7 +213,7 @@ function plot_3Dobject(obj,varargin)
         xlabel(['time [s]'])
         linkaxes(ax);
     catch
-        clf
+        close
         fig_count = fig_count -1;
     end
 
@@ -246,7 +246,7 @@ function plot_3Dobject(obj,varargin)
         xlabel(['time [s]'])
         linkaxes(ax);
     catch
-        clf
+        close
         fig_count = fig_count -1;
     end
 
@@ -279,7 +279,7 @@ function plot_3Dobject(obj,varargin)
         xlabel(['time [s]'])
         linkaxes(ax);
     catch
-        clf
+        close
         fig_count = fig_count -1;
     end
 
@@ -312,7 +312,7 @@ function plot_3Dobject(obj,varargin)
         xlabel(['time [s]'])    
         linkaxes(ax);
     catch
-        clf
+        close
         fig_count = fig_count -1;
     end
     
@@ -345,7 +345,7 @@ function plot_3Dobject(obj,varargin)
         xlabel(['time [s]'])   
         linkaxes(ax);
     catch
-        clf
+        close
         fig_count = fig_count -1;
     end
 
@@ -378,7 +378,7 @@ function plot_3Dobject(obj,varargin)
         xlabel(['time [s]'])
         linkaxes(ax);
     catch
-        clf
+        close
         fig_count = fig_count -1;
     end
 
@@ -411,7 +411,7 @@ function plot_3Dobject(obj,varargin)
         xlabel(['time [s]'])
         linkaxes(ax);
     catch
-        clf
+        close
         fig_count = fig_count -1;
     end
 
@@ -443,7 +443,7 @@ function plot_3Dobject(obj,varargin)
         xlabel(['time [s]'])
         linkaxes(ax);  
     catch
-        clf
+        close
         fig_count = fig_count -1;
     end
     
@@ -468,7 +468,36 @@ function plot_3Dobject(obj,varargin)
         xlabel('time [s]')
         legend('meas','opt','true');
     catch
-        clf
+        close
+        fig_count = fig_count -1;
+    end
+
+    try
+        %%% rover trajectory
+        fig_count = fig_count+1;
+        figure(fig_count)
+        hold on
+        grid on
+        % plot anchors
+        P_a(1,:) = obj.init.params.pos_anchor(1):3:obj.init.params.pos_anchor(end);
+        P_a(2,:) = obj.init.params.pos_anchor(2):3:obj.init.params.pos_anchor(end); 
+        P_a(3,:) = obj.init.params.pos_anchor(3):3:obj.init.params.pos_anchor(end); 
+        for i=1:obj.setup.params.Nanchor
+            plot3(obj.init.X_est(1).val(P_a(1,i),:),obj.init.X_est(1).val(P_a(2,i),:),obj.init.X_est(1).val(P_a(3,i),:),'ko','MarkerSize',10);
+        end
+        % plot rover
+        pos_p = obj.init.params.pos_p;
+        for traj=1:obj.setup.Ntraj 
+            plot3(obj.init.X_est(traj).val(pos_p(1),:),obj.init.X_est(traj).val(pos_p(2),:),obj.init.X_est(traj).val(pos_p(3),:),'--','LineWidth',1.5);
+            set(gca,'ColorOrderIndex',traj)
+            plot3(obj.init.X(traj).val(pos_p(1),:),obj.init.X(traj).val(pos_p(2),:),obj.init.X(traj).val(pos_p(3),:),'LineWidth',1.5);    
+        end
+        xlabel('X')
+        ylabel('Y')
+        set(gca,'fontsize', fontsize)
+
+    catch
+        close
         fig_count = fig_count -1;
     end
 end

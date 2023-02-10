@@ -35,11 +35,12 @@ function [x_dot, x] = model_rover(tspan,x,params,obs)
         a = y(params.pos_acc_out);        
     
         % Jump - only on the UWB
-        if (mod(pos(1),params.UWB_samp) == 0) && (~params.EKF) && 1
+        if (mod(pos(1),params.UWB_samp) == 0) && (~params.EKF)
     
             % adjacency matrix
-            Pa(1,:) = x(params.pos_anchor(1):2:params.pos_anchor(end));
-            Pa(2,:) = x(params.pos_anchor(2):2:params.pos_anchor(end));        
+            for dim=1:params.space_dim
+                Pa(dim,:) = x(params.pos_anchor(dim):params.space_dim:params.pos_anchor(end));            
+            end
     
             %%% TEST %%%
             p_jump = obs.init.params.p_jump(obs.init.traj).val(:,pos(1)/params.UWB_samp);
@@ -48,8 +49,10 @@ function [x_dot, x] = model_rover(tspan,x,params,obs)
             % gamma
             normx = norm(x(params.pos_p(1)));
             normy = norm(x(params.pos_p(2)));
+            normz = norm(x(params.pos_p(3)));
             gamma(1) = params.theta(1) + params.theta(2)*normx;
             gamma(2) = params.theta(1) + params.theta(2)*normy;
+            gamma(3) = params.theta(1) + params.theta(2)*normz;
             
             % jump map - x
             x(1) = gamma(1)*x(1) + (1-gamma(1))*p_jump(1);
@@ -58,10 +61,16 @@ function [x_dot, x] = model_rover(tspan,x,params,obs)
             x(4) = params.theta(5)*x(4);
     
             % jump map - y
-            x(5) = gamma(2)*x(5) + (1-gamma(2))*p_jump(2);
-            x(6) = params.theta(3)*x(6) + (1-params.theta(3))*p_jump_der(2);
-            x(7) = params.theta(4)*x(7);
-            x(8) = params.theta(5)*x(8);
+            x(6) = gamma(2)*x(6) + (1-gamma(2))*p_jump(2);
+            x(7) = params.theta(3)*x(7) + (1-params.theta(3))*p_jump_der(2);
+            x(8) = params.theta(4)*x(8);
+            x(9) = params.theta(5)*x(9);
+
+            % jump map - z
+            x(11) = gamma(2)*x(11) + (1-gamma(2))*p_jump(3);
+            x(12) = params.theta(3)*x(12) + (1-params.theta(3))*p_jump_der(3);
+            x(13) = params.theta(4)*x(13);
+            x(14) = params.theta(5)*x(14);
         end
     
         %%%% OBSERVER DYNAMICS %%%
@@ -72,11 +81,17 @@ function [x_dot, x] = model_rover(tspan,x,params,obs)
         x_dot(3) = x(4) + params.beta(1)*a(1);
         x_dot(4) = params.C(1)*x(3) + params.C(2)*x(4) + params.beta(2)*a(1);
     
-        % x axis
-        x_dot(5) = x(6);
-        x_dot(6) = x(7) + params.alpha(1)*x(6) + params.alpha(2)*abs(x(7))*x(7);
-        x_dot(7) = x(8) + params.beta(1)*a(2);
-        x_dot(8) = params.C(1)*x(7) + params.C(2)*x(8) + params.beta(2)*a(2);  
+        % y axis
+        x_dot(6) = x(7);
+        x_dot(7) = x(8) + params.alpha(1)*x(7) + params.alpha(2)*abs(x(8))*x(8);
+        x_dot(8) = x(9) + params.beta(1)*a(2);
+        x_dot(9) = params.C(1)*x(8) + params.C(2)*x(9) + params.beta(2)*a(2);  
+
+        % z axis
+        x_dot(11) = x(12);
+        x_dot(12) = x(13) + params.alpha(1)*x(12) + params.alpha(2)*abs(x(13))*x(13);
+        x_dot(13) = x(14) + params.beta(1)*a(3);
+        x_dot(14) = params.C(1)*x(13) + params.C(2)*x(14) + params.beta(2)*a(3);  
 
     %%%%%%%%%%%%% EKF MODEL %%%%%%%%%%%%
     elseif (params.EKF && ~params.hyb) && ~params.dryrun
@@ -88,9 +103,14 @@ function [x_dot, x] = model_rover(tspan,x,params,obs)
         x_dot(3) = 0;
         
         % y axis
-        x_dot(5) = x(6);    
-        x_dot(6) = x(7);   
-        x_dot(7) = 0;
+        x_dot(6) = x(7);    
+        x_dot(7) = x(8);   
+        x_dot(8) = 0;
+
+        % z axis
+        x_dot(11) = x(12);    
+        x_dot(12) = x(13);   
+        x_dot(13) = 0;
 
     elseif params.dryrun
 
