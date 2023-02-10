@@ -18,7 +18,7 @@ function u = control(t,drive,params,obs)
 %         u(2,:) = params.Ku(2)*(target(2,:)-drive(6,:));
         
 
-        % vines  
+        % patrolling on x-y
         T = t(1);
         vx = 0;
         vy = 0;
@@ -30,10 +30,26 @@ function u = control(t,drive,params,obs)
             vx = -params.amp_ux;
         else
             vy = -params.amp_uy;
-        end
+        end        
         u(1,:) = params.Ku(1)*(vx-drive(params.pos_v(1)));
         u(2,:) = params.Ku(2)*(vy-drive(params.pos_v(2)));
-        u(3,:) = 0;
+
+        % hills on z
+        p_now = drive(params.pos_p(1:2));
+        p_est = zeros(1,2);
+        p_grid = [params.X_gauss(1,:); params.Y_gauss(:,1)'];
+        for i=1:2
+            pdiff = p_grid(i,:)-p_now(i);   
+            p_est(i) = find(abs(pdiff) == min(abs(pdiff)),1,'first');                
+        end
+        z_des = params.G_gauss(p_est(1),p_est(2));
+        z_now = drive(params.pos_p(3));
+        e = (z_des-z_now);
+        edot = drive(params.pos_v(3));
+        u(3,:) = params.Ku(3)*e - params.Kdu(3)*edot;
+
+        % ony for testing
+        u(4,:) = z_des;
 
         % Volterra Lotka
 %         u(1,:) = params.K1*(drive(1)-params.target(1));

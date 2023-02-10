@@ -32,7 +32,8 @@ function params = params_rover
     params.freq_u = 48;    
     params.amp_ux = -1/3;
     params.amp_uy = -1/3;
-    params.Ku = [10 10];    
+    params.Ku = [10 10 30];    
+    params.Kdu = [0 0 1];
 
     % number of reference trajectories (under development)
     params.Ntraj = 1;
@@ -45,6 +46,28 @@ function params = params_rover
     
     % state dimension
     params.space_dim = 3;   % 2D or 3D space for the rover 
+
+    % anchor stuff
+    an_dp = 2.5;
+    an_dz = 2;
+
+    %%% gaussian stuff %%%
+    ds = 1e-2;
+    [params.X_gauss, params.Y_gauss] = meshgrid(-an_dp:ds:an_dp, -an_dp:ds:an_dp);
+    params.A_gauss = 0.5;
+    params.sigma_gauss = 1;
+    params.hill(1,:) = [-an_dp*1.5 -an_dp*1.5];
+    params.hill(2,:) = [-an_dp*1.5 an_dp*1.5];
+    params.hill(3,:) = [an_dp*1.5 an_dp*1.5];
+    params.hill(4,:) = [an_dp*1.5 -an_dp*1.5];
+    params.G_gauss = [];
+    for hills=1:size(params.hill,1)
+        try
+            params.G_gauss = params.G_gauss + params.A_gauss*exp(-1/(params.sigma_gauss^2)*((params.Y_gauss-params.hill(hills,2)/2).^2 + (params.X_gauss-params.hill(hills,1)/2).^2));
+        catch
+            params.G_gauss = params.A_gauss*exp(-1/(params.sigma_gauss^2)*((params.Y_gauss-params.hill(hills,2)/2).^2 + (params.X_gauss-params.hill(hills,1)/2).^2));
+        end
+    end
 
     % multistart
     params.multistart = 0;
@@ -124,8 +147,7 @@ function params = params_rover
     params.noise_mat_original(params.pos_acc_out,1) = 1*3e-1;   % noise on IMU - sigma
     params.noise_mat_original(params.pos_dist_out,1) = 1*2e-1;  % noise on UWB - sigma    
     params.mean = params.noise_mat_original(:,1);
-    params.noise_mat(:,1) = 1*params.noise_mat_original(:,1);
-    
+    params.noise_mat(:,1) = 0*params.noise_mat_original(:,1);    
 
     %%% process noise %%%
     params.jerk_enable = 0;
@@ -161,9 +183,7 @@ function params = params_rover
     params.d_est = zeros(params.Nanchor,1);
     %%%%%%%%%%%%%%%%%%%%%%%%
     
-    % initial condition
-    an_dp = 2.5;
-    an_dz = 5;
+    % initial condition    
     params.X(1).val(:,1) = 1*[2;0;0;0;0; ...                % x pos + IMU bias
                               2;0;0;0;0; ...                % y pos + IMU bias
                               0;0;0;0;0; ...                % z pos + IMU bias
@@ -174,7 +194,18 @@ function params = params_rover
                               params.C'; ...              % params                              
                               params.theta'; ...
                               params.beta'; ...
-                              params.alpha'];    
+                              params.alpha'];  
+
+    % hills on z - correct initialization
+    p_now = params.X(1).val(params.pos_p(1:2),1);
+    p_est = zeros(1,2);
+    p_grid = [params.X_gauss(1,:); params.Y_gauss(:,1)'];
+    for i=1:2
+        pdiff = p_grid(i,:)-p_now(i);   
+        p_est(i) = find(abs(pdiff) == min(abs(pdiff)),1,'first');                
+    end
+    z0 = params.G_gauss(p_est(1),p_est(2));
+    params.X(1).val(params.pos_p(3),1) = z0; 
     
     % position in the state vector of the estimated parameters
     params.estimated_params = params.pos_Gamma;
@@ -229,4 +260,6 @@ function params = params_rover
 
     % fminunc
     params.dist_optoptions = optimoptions('fminunc', 'MaxIter', 1, 'display','off');
+
+    
 end

@@ -23,7 +23,8 @@ function [x_dot, x] = model_rover_reference(tspan,x,params,obs)
     
     % compute the control
     params.u = params.input(tspan,x,params,obs);    
-    obs.init.input_story_ref(obs.init.traj).val(:,pos(end)) = params.u(:,1);    
+    obs.init.input_story_ref(obs.init.traj).val(:,pos(end)) = params.u(1:3,1);
+    obs.init.reference_story(obs.init.traj).val(:,pos(end)) = params.u(4,1);
 
     % process noise
     w = params.jerk_enable*params.Ts*randn(2*params.space_dim,1);

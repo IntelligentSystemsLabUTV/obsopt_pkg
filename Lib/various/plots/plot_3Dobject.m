@@ -37,14 +37,19 @@ function plot_3Dobject(obj,varargin)
             for traj=1:obj.setup.Ntraj            
                 plot(obj.setup.time,obj.init.X(traj).val(params.pos_p(i),:),'LineWidth',2);
                 set(gca,'ColorOrderIndex',traj)
-                plot(obj.setup.time,obj.init.X_est(traj).val(params.pos_p(i),:),'--','LineWidth',1);                                                                                  
+                plot(obj.setup.time,obj.init.X_est(traj).val(params.pos_p(i),:),'--','LineWidth',1);                                                                                                  
+            end
+
+            % test
+            if i==3
+                plot(obj.setup.time,obj.init.reference_story(1).val(1,:),'k','LineWidth',1.5);
             end
             
             % labels
             set(gca,'fontsize', fontsize)         
             ylabel(['p_',num2str(obj.setup.plot_vars(i))])
         end
-        linkaxes(ax);
+        %linkaxes(ax);
         legend('True','Est')   
         xlabel(['time [s]']) 
     catch
@@ -79,7 +84,7 @@ function plot_3Dobject(obj,varargin)
         end
         legend('True','Est') 
         xlabel(['time [s]'])
-        linkaxes(ax);
+        %linkaxes(ax);
     catch
         close
         fig_count = fig_count -1;
@@ -112,7 +117,7 @@ function plot_3Dobject(obj,varargin)
         end
         legend('True','Est')  
         xlabel(['time [s]'])
-        linkaxes(ax);
+        %linkaxes(ax);
     catch
         close
         fig_count = fig_count -1;
@@ -145,7 +150,7 @@ function plot_3Dobject(obj,varargin)
         end
         legend('True','Est') 
         xlabel(['time [s]'])
-        linkaxes(ax);
+        %linkaxes(ax);
     catch
         close
         fig_count = fig_count -1;
@@ -178,7 +183,7 @@ function plot_3Dobject(obj,varargin)
         end
         legend('True','Est')            
         xlabel(['time [s]'])
-        linkaxes(ax);
+        %linkaxes(ax);
     catch
         close
         fig_count = fig_count -1;
@@ -211,7 +216,7 @@ function plot_3Dobject(obj,varargin)
         end
         legend('True','Est') 
         xlabel(['time [s]'])
-        linkaxes(ax);
+        %linkaxes(ax);
     catch
         close
         fig_count = fig_count -1;
@@ -244,7 +249,7 @@ function plot_3Dobject(obj,varargin)
         end
         legend('True','Est')  
         xlabel(['time [s]'])
-        linkaxes(ax);
+        %linkaxes(ax);
     catch
         close
         fig_count = fig_count -1;
@@ -277,7 +282,7 @@ function plot_3Dobject(obj,varargin)
         end
         legend('True','Est')     
         xlabel(['time [s]'])
-        linkaxes(ax);
+        %linkaxes(ax);
     catch
         close
         fig_count = fig_count -1;
@@ -310,7 +315,7 @@ function plot_3Dobject(obj,varargin)
         end
         legend('True','Est')            
         xlabel(['time [s]'])    
-        linkaxes(ax);
+        %linkaxes(ax);
     catch
         close
         fig_count = fig_count -1;
@@ -343,7 +348,7 @@ function plot_3Dobject(obj,varargin)
         end
         legend('True','Meas')            
         xlabel(['time [s]'])   
-        linkaxes(ax);
+        %linkaxes(ax);
     catch
         close
         fig_count = fig_count -1;
@@ -376,7 +381,7 @@ function plot_3Dobject(obj,varargin)
         end
         legend('True','Meas')           
         xlabel(['time [s]'])
-        linkaxes(ax);
+        %linkaxes(ax);
     catch
         close
         fig_count = fig_count -1;
@@ -409,7 +414,7 @@ function plot_3Dobject(obj,varargin)
         end
         legend('True','Meas')            
         xlabel(['time [s]'])
-        linkaxes(ax);
+        %linkaxes(ax);
     catch
         close
         fig_count = fig_count -1;
@@ -441,7 +446,7 @@ function plot_3Dobject(obj,varargin)
             ylabel(['\omega_',num2str(obj.setup.plot_vars(i))])
         end             
         xlabel(['time [s]'])
-        linkaxes(ax);  
+        %linkaxes(ax);  
     catch
         close
         fig_count = fig_count -1;
@@ -478,6 +483,10 @@ function plot_3Dobject(obj,varargin)
         figure(fig_count)
         hold on
         grid on
+        % plot hills
+        pos_p = obj.init.params.pos_p;
+        surf(params.X_gauss,params.Y_gauss,params.G_gauss,'FaceAlpha',0.5,'EdgeColor','none');
+        plot3(obj.init.X(1).val(pos_p(1),:),obj.init.X(1).val(pos_p(2),:),obj.init.reference_story(1).val(1,:),'k','LineWidth',2);
         % plot anchors
         P_a(1,:) = obj.init.params.pos_anchor(1):3:obj.init.params.pos_anchor(end);
         P_a(2,:) = obj.init.params.pos_anchor(2):3:obj.init.params.pos_anchor(end); 
@@ -485,8 +494,7 @@ function plot_3Dobject(obj,varargin)
         for i=1:obj.setup.params.Nanchor
             plot3(obj.init.X_est(1).val(P_a(1,i),:),obj.init.X_est(1).val(P_a(2,i),:),obj.init.X_est(1).val(P_a(3,i),:),'ko','MarkerSize',10);
         end
-        % plot rover
-        pos_p = obj.init.params.pos_p;
+        % plot rover        
         for traj=1:obj.setup.Ntraj 
             plot3(obj.init.X_est(traj).val(pos_p(1),:),obj.init.X_est(traj).val(pos_p(2),:),obj.init.X_est(traj).val(pos_p(3),:),'--','LineWidth',1.5);
             set(gca,'ColorOrderIndex',traj)
