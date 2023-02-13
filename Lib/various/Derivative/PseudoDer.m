@@ -11,9 +11,7 @@
 % (-wlen-)-----(-wlen-) 
 % [------]-----[------] 
 
-function dy = PseudoDer(Ts,y,wlen,bufsize,signalsize,median,reset,obs) 
-   
-persistent der_buffer counter 
+function [dy, der_buffer, counter]  = PseudoDer(Ts,y,wlen,bufsize,signalsize,median,reset,obs,der_buffer, counter)   
   
      % Reset buffer if required 
      if(isempty(der_buffer) || (reset)) 

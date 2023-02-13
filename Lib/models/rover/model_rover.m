@@ -57,20 +57,20 @@ function [x_dot, x] = model_rover(tspan,x,params,obs)
             % jump map - x
             x(1) = gamma(1)*x(1) + (1-gamma(1))*p_jump(1);
             x(2) = params.theta(3)*x(2) + (1-params.theta(3))*p_jump_der(1);
-            x(3) = params.theta(4)*x(3);
-            x(4) = params.theta(5)*x(4);
+%             x(3) = params.theta(4)*x(3);
+%             x(4) = params.theta(5)*x(4);
     
             % jump map - y
             x(6) = gamma(2)*x(6) + (1-gamma(2))*p_jump(2);
             x(7) = params.theta(3)*x(7) + (1-params.theta(3))*p_jump_der(2);
-            x(8) = params.theta(4)*x(8);
-            x(9) = params.theta(5)*x(9);
+%             x(8) = params.theta(4)*x(8);
+%             x(9) = params.theta(5)*x(9);
 
             % jump map - z
             x(11) = gamma(3)*x(11) + (1-gamma(3))*p_jump(3);
             x(12) = params.theta(3)*x(12) + (1-params.theta(3))*p_jump_der(3);
-            x(13) = params.theta(4)*x(13);
-            x(14) = params.theta(5)*x(14);
+%             x(13) = params.theta(4)*x(13);
+%             x(14) = params.theta(5)*x(14);
         end
     
         %%%% OBSERVER DYNAMICS %%%

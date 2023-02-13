@@ -42,11 +42,11 @@ function u = control(t,drive,params,obs)
             pdiff = p_grid(i,:)-p_now(i);   
             p_est(i) = find(abs(pdiff) == min(abs(pdiff)),1,'first');                
         end
-        z_des = params.G_gauss(p_est(1),p_est(2));
+        z_des = params.G_gauss(p_est(2),p_est(1));
         z_now = drive(params.pos_p(3));
         e = (z_des-z_now);
         edot = drive(params.pos_v(3));
-        u(3,:) = params.Ku(3)*e - params.Kdu(3)*edot;
+        u(3,:) = params.Ku(3)*e + params.Kdu(3)*edot;
 
         % ony for testing
         u(4,:) = z_des;

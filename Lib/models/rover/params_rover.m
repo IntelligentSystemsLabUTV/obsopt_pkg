@@ -32,8 +32,8 @@ function params = params_rover
     params.freq_u = 48;    
     params.amp_ux = -1/3;
     params.amp_uy = -1/3;
-    params.Ku = [10 10 30];    
-    params.Kdu = [0 0 1];
+    params.Ku = [10 10 10];    
+    params.Kdu = [0 0 -1];
 
     % number of reference trajectories (under development)
     params.Ntraj = 1;
@@ -52,7 +52,7 @@ function params = params_rover
     an_dz = 2;
 
     %%% gaussian stuff %%%
-    ds = 1e-2;
+    ds = 1e-3;
     [params.X_gauss, params.Y_gauss] = meshgrid(-an_dp:ds:an_dp, -an_dp:ds:an_dp);
     params.A_gauss = 0.5;
     params.sigma_gauss = 1;
@@ -63,9 +63,9 @@ function params = params_rover
     params.G_gauss = [];
     for hills=1:size(params.hill,1)
         try
-            params.G_gauss = params.G_gauss + params.A_gauss*exp(-1/(params.sigma_gauss^2)*((params.Y_gauss-params.hill(hills,2)/2).^2 + (params.X_gauss-params.hill(hills,1)/2).^2));
+            params.G_gauss = 0*params.G_gauss + 1*params.A_gauss*exp(-1/(params.sigma_gauss^2)*((params.Y_gauss-params.hill(hills,2)/2).^2 + (params.X_gauss-params.hill(hills,1)/2).^2));
         catch
-            params.G_gauss = params.A_gauss*exp(-1/(params.sigma_gauss^2)*((params.Y_gauss-params.hill(hills,2)/2).^2 + (params.X_gauss-params.hill(hills,1)/2).^2));
+            params.G_gauss = 0*params.A_gauss*exp(-1/(params.sigma_gauss^2)*((params.Y_gauss-params.hill(hills,2)/2).^2 + (params.X_gauss-params.hill(hills,1)/2).^2));
         end
     end
 
@@ -132,14 +132,17 @@ function params = params_rover
     params.last_IMU_acc_ref = zeros(params.Ntraj,numel(params.pos_acc_out));
 
     % derivative of the pjump
+    params.wlen = 4;
+    params.buflen = 10;
+    params.dim_pjump = params.space_dim;
     for traj = 1:params.Ntraj
         params.p_jump_time = [];
         params.p_jump(traj).val = [];
         params.p_jump_der(traj).val = [];
-    end
-    clear PseudoDer
-    params.wlen = 4;
-    params.buflen = 10;
+        params.p_jump_der_buffer(traj).val = zeros(params.dim_pjump,params.buflen);
+        params.p_jump_der_counter(traj).val = 0;
+    end    
+    
 
     % noise (on distances + acceleration)
     params.noise_mat = 0*ones(params.OutDim,2);    
@@ -154,9 +157,9 @@ function params = params_rover
 
     %%%%%% EKF %%%%%
     % enable noise
-    params.EKF = 1;        
+    params.EKF = 0;        
     params.hyb = 0;
-    params.dryrun = 0;
+    params.dryrun = 1;
 
     %%% noise matrices
     % measurement noise

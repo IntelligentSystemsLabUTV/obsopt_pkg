@@ -85,10 +85,12 @@ function [y, obs] = measure_rover_reference(x,params,t,u,obs)
     y = y_true + noise;    
 
     %%% OPT - pjump %%%
-    if mod(pos(end),params.UWB_samp) == 0    
+    if mod(pos(end),params.UWB_samp) == 0 && 0 
         D_meas = y(params.pos_dist_out);
         obs.init.params.p_jump(traj).val(:,end+1) = fminunc(@(x)J_dist(x,Pa,D_meas),x(params.pos_p),obs.setup.params.dist_optoptions);
-        obs.init.params.p_jump_der(traj).val(:,end+1) = PseudoDer(params.Ts*params.UWB_samp,obs.init.params.p_jump(traj).val(:,end),params.wlen,params.buflen,params.space_dim,0,0,obs);
+        [obs.init.params.p_jump_der(traj).val(:,end+1), obs.init.params.p_jump_der_buffer, obs.init.params.p_jump_der_counter(traj).val] = PseudoDer(params.Ts*params.UWB_samp,...
+            obs.init.params.p_jump(traj).val(:,end),params.wlen,...
+            params.buflen,params.space_dim,0,0,obs,obs.init.params.p_jump_der_buffer,obs.init.params.p_jump_der_counter(traj).val);
         if traj == 1
             obs.init.params.p_jump_time(end+1) = pos(end);
         end
