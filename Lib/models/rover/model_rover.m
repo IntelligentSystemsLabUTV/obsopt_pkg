@@ -77,19 +77,19 @@ function [x_dot, x] = model_rover(tspan,x,params,obs)
         % model dynamics
         % x axis
         x_dot(1) = x(2);
-        x_dot(2) = x(3) + params.alpha(1)*x(2) + 0*params.alpha(2)*abs(x(3))*x(3);
+        x_dot(2) = x(3) - params.alpha(1)*x(2) + 0*params.alpha(2)*abs(x(3))*x(3);
         x_dot(3) = x(4) + params.beta(1)*a(1);
         x_dot(4) = -params.C(1)*x(3) -params.C(2)*x(4) + params.beta(2)*a(1);
     
         % y axis
         x_dot(6) = x(7);
-        x_dot(7) = x(8) + params.alpha(1)*x(7) + 0*params.alpha(2)*abs(x(8))*x(8);
+        x_dot(7) = x(8) - params.alpha(1)*x(7) + 0*params.alpha(2)*abs(x(8))*x(8);
         x_dot(8) = x(9) + params.beta(1)*a(2);
         x_dot(9) = -params.C(1)*x(8) -params.C(2)*x(9) + params.beta(2)*a(2);  
 
         % z axis
         x_dot(11) = x(12);
-        x_dot(12) = x(13) + params.alpha(1)*x(12) + 0*params.alpha(2)*abs(x(13))*x(13);
+        x_dot(12) = x(13) - params.alpha(1)*x(12) + 0*params.alpha(2)*abs(x(13))*x(13);
         x_dot(13) = x(14) + params.beta(1)*a(3);
         x_dot(14) = -params.C(1)*x(13) -params.C(2)*x(14) + params.beta(2)*a(3);  
 

@@ -1072,9 +1072,7 @@ classdef obsopt < handle
                 % set data                
                 short_win_data = reshape(short_win_data,numel(obj.init.wavelet_output_dim),numel(pos_hat));
                 buffer = vecnorm(short_win_data,2,1);                 
-
-                
-                                                                
+                                                                                
                 % frequency constraint                                
                 %[WT, F] = cwt(buffer,obj.init.wvname,1/obj.setup.Ts,'VoicesPerOctave',obj.init.Nv,'FrequencyLimits',obj.init.FLIMITS);                
                 [WT, ~] = cwt(buffer,obj.init.wvname,1/obj.setup.Ts,'VoicesPerOctave',obj.init.Nv);                
@@ -1083,21 +1081,21 @@ classdef obsopt < handle
                 % real values
                 WT_real = real(WT);
                 WT_norm = vecnorm(WT_real,2,1);   
-                WT_norm_filt = movmean(WT_norm,5);
-                F = scal2frq(WT_norm_filt,'morl',obj.setup.Ts);
+                WT_norm_filt = movmean(WT_norm,5);                
+                %F = scal2frq(WT_norm_filt,'morl',obj.setup.Ts);
                 % find derivative
                 [WT_norm_peaks,pos_peaks] = findpeaks(WT_norm_filt);                
                 % set freqs
                 if ~isempty(pos_peaks)
                     % pos max and min on the WT
-                    [pos_max] = find(WT_norm_filt == max(WT_norm_peaks));
-                    [pos_min] = find(WT_norm_filt == min(WT_norm_peaks));
+                    [pos_max] = find(WT_norm_filt == max(WT_norm_peaks),1,'first');
+                    [pos_min] = find(WT_norm_filt == min(WT_norm_peaks),1,'first');
 
                     % store max min F
-                    obj.init.Fcwt_story(:,obj.init.ActualTimeIndex) = [F(pos_max) F(pos_min)];
+                    %obj.init.Fcwt_story(:,obj.init.ActualTimeIndex) = [F(pos_max) F(pos_min)];
 
                     % pos max and min on the F
-                    % new
+                    % new                    
                     F_def(1,1) = 2*pi*WT_norm_filt(pos_max);  %1 max
                     F_def(2,1) = 2*pi*WT_norm_filt(pos_min);  %2 min
                        

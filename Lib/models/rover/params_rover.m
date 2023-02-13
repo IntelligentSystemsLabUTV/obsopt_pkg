@@ -88,10 +88,10 @@ function params = params_rover
     params.multistart = 0;
 
     % observer params    
-    params.alpha = 0*[1 1];
+    params.alpha = 1*[1 1];
     params.beta = 1*[1 -100.1];
-    params.C = 1*[-10 -100.1];
-    params.theta = 1*[1 0 1 1 1];
+    params.C = 1*[10 100.1];
+    params.theta = 1*[1 0 0 0 0];
 
     % observer params    
 %     params.alpha = 1*[-0.0067    6.4999];
@@ -173,8 +173,8 @@ function params = params_rover
     %%%%%% EKF %%%%%
     % enable noise
     params.EKF = 0;        
-    params.hyb = 0;
-    params.dryrun = 1;
+    params.hyb = 1;
+    params.dryrun = 0;
 
     %%% noise matrices
     % measurement noise
