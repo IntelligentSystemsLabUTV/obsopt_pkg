@@ -1289,6 +1289,8 @@ classdef obsopt < handle
                         obj.setup.Niter = obj.init.ActualTimeIndex;
                         obj.setup.time = obj.setup.time(1:obj.init.ActualTimeIndex);
                         obj.init.break = 1;
+                        obj.setup.w = numel(obj.init.Y_space_full_story)-1;
+                        obj.init.Y_space = obj.init.Y_space_full_story;
                     end
 
                     if obj.setup.forward
