@@ -1290,7 +1290,10 @@ classdef obsopt < handle
                         obj.setup.time = obj.setup.time(1:obj.init.ActualTimeIndex);
                         obj.init.break = 1;
                         obj.setup.w = numel(obj.init.Y_space_full_story)-1;
-                        obj.init.Y_space = obj.init.Y_space_full_story;
+                        obj.init.Y_space = nonzeros(obj.init.Y_space_full_story)';
+                        for traj=1:obj.init.params.Ntraj
+                            obj.init.Y(traj).val = obj.init.Y_full_story(traj).val(:,:,obj.init.Y_space);
+                        end                        
                     end
 
                     if obj.setup.forward

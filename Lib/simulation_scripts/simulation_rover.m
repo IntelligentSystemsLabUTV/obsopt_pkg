@@ -22,7 +22,7 @@ Ts = 1e-2;
 
 % set initial and final time instant
 t0 = 0;
-tend = 50;
+tend = 20;
 % uncomment to test the MHE with a single optimisation step
 % tend = 1*(Nw*Nts-1)*Ts;
 
