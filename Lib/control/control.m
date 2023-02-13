@@ -69,7 +69,13 @@ function u = control(t,drive,params,obs)
             obs.init.params.err(traj).val(:,max(1,ind-1)),params.wlen_err,...
             params.buflen_err,params.dim_err,0,0,obs,obs.init.params.err_der_buffer,obs.init.params.err_der_counter(traj).val);
         obs.init.params.err_der(traj).val(:,ind) = edot;
-        u(3,:) = params.Ku(3)*e + params.Kdu(3)*edot;
+
+        % integral
+        obs.init.params.err_int(traj).val(:,ind) = obs.init.params.err_int(traj).val(:,max(1,ind-1)) + e*params.Ts;
+        eint = obs.init.params.err_int(traj).val(:,ind);
+
+        % control
+        u(3,:) = -params.Kz(1)*-e -params.Kz(2)*zdot_now + params.Kff*[e edot eint]';
 
         % ony for testing
         u(4,:) = z_des;

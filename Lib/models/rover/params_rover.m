@@ -32,8 +32,10 @@ function params = params_rover
     params.freq_u = 48;    
     params.amp_ux = -1/3;
     params.amp_uy = -1/3;
-    params.Ku = [10 10 9];    
-    params.Kdu = [0 0 10];      
+    params.Ku = [10 10];    
+    params.Kdu = [0 0];      
+    params.Kz = [9000 190];
+    params.Kff = [0 0 0];
 
     % number of reference trajectories (under development)
     params.Ntraj = 1;
@@ -46,6 +48,7 @@ function params = params_rover
     for traj = 1:params.Ntraj        
         params.err(traj).val = [];
         params.err_der(traj).val = [];
+        params.err_int(traj).val = zeros(params.dim_err,1);
         params.err_der_buffer(traj).val = zeros(params.dim_err,params.buflen_err);
         params.err_der_counter(traj).val = 0;
     end 
@@ -75,7 +78,7 @@ function params = params_rover
     params.G_gauss = [];
     for hills=1:size(params.hill,1)
         try
-            params.G_gauss = 1*params.G_gauss + 0*params.A_gauss*exp(-1/(params.sigma_gauss^2)*((params.Y_gauss-params.hill(hills,2)/2).^2 + (params.X_gauss-params.hill(hills,1)/2).^2));
+            params.G_gauss = 1*params.G_gauss + 1*params.A_gauss*exp(-1/(params.sigma_gauss^2)*((params.Y_gauss-params.hill(hills,2)/2).^2 + (params.X_gauss-params.hill(hills,1)/2).^2));
         catch
             params.G_gauss = 1*params.A_gauss*exp(-1/(params.sigma_gauss^2)*((params.Y_gauss-params.hill(hills,2)/2).^2 + (params.X_gauss-params.hill(hills,1)/2).^2));
         end
@@ -86,8 +89,8 @@ function params = params_rover
 
     % observer params    
     params.alpha = 0*[1 1];
-    params.beta = 0*[1 1];
-    params.C = 0*[1 1];
+    params.beta = 1*[1 -100.1];
+    params.C = 1*[-10 -100.1];
     params.theta = 1*[1 0 1 1 1];
 
     % observer params    
@@ -199,9 +202,9 @@ function params = params_rover
     %%%%%%%%%%%%%%%%%%%%%%%%
     
     % initial condition    
-    params.X(1).val(:,1) = 1*[2;0;0;0;0; ...                % x pos + IMU bias
-                              2;0;0;0;0; ...                % y pos + IMU bias
-                              0;0;0;0;0; ...                % z pos + IMU bias
+    params.X(1).val(:,1) = 1*[2;0;0;0;0.1; ...                % x pos + IMU bias
+                              2;0;0;0;0.2; ...                % y pos + IMU bias
+                              0;0;0;0;0.1; ...                % z pos + IMU bias
                               -an_dp;-an_dp;an_dz;  ...
                               -an_dp;an_dp;an_dz;   ...
                               an_dp;an_dp;an_dz;    ...
