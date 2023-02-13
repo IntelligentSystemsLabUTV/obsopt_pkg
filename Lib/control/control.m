@@ -5,6 +5,9 @@ function u = control(t,drive,params,obs)
 
     if params.input_enable
 
+        % traj
+        traj = obs.init.traj;
+
         % PWM 3 levels
 
         % 2nd order system
@@ -33,6 +36,14 @@ function u = control(t,drive,params,obs)
         end        
         u(1,:) = params.Ku(1)*(vx-drive(params.pos_v(1)));
         u(2,:) = params.Ku(2)*(vy-drive(params.pos_v(2)));
+        
+        % compute the time index
+        for i=1:length(t)
+            tdiff = obs.setup.time-t(i);   
+            pos(i) = find(abs(tdiff) == min(abs(tdiff)),1,'first');    
+            pos(i) = max(1,pos(i));        
+        end  
+        ind = pos(1);
 
         % hills on z
         p_now = drive(params.pos_p(1:2));
@@ -44,8 +55,20 @@ function u = control(t,drive,params,obs)
         end
         z_des = params.G_gauss(p_est(2),p_est(1));
         z_now = drive(params.pos_p(3));
+        zdot_now = drive(params.pos_v(3));
+
+        obs.init.params.z_des_story(:,ind) = z_des;
+        obs.init.params.z_now_story(:,ind) = z_now;
+
+        % error        
         e = (z_des-z_now);
-        edot = drive(params.pos_v(3));
+        obs.init.params.err(traj).val(:,ind) = e;
+
+        % derivative        
+        [edot, obs.init.params.err_der_buffer, obs.init.params.err_der_counter(traj).val] = PseudoDer(params.Ts,...
+            obs.init.params.err(traj).val(:,max(1,ind-1)),params.wlen_err,...
+            params.buflen_err,params.dim_err,0,0,obs,obs.init.params.err_der_buffer,obs.init.params.err_der_counter(traj).val);
+        obs.init.params.err_der(traj).val(:,ind) = edot;
         u(3,:) = params.Ku(3)*e + params.Kdu(3)*edot;
 
         % ony for testing

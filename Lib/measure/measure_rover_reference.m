@@ -46,9 +46,20 @@ function [y, obs] = measure_rover_reference(x,params,t,u,obs)
 
     %%% get the IMU accelerations
     if mod(pos(end),params.IMU_samp) == 0 
+        % save story
         old_u = obs.init.input_story_ref(traj).val(:,pos(1));
+        old_buffer = obs.init.params.err_der_buffer;
+        old_counter = obs.init.params.err_der_counter;
+
+        % compute
         xd = obs.setup.model_reference(t,x,params,obs);
+
+        % restore
         obs.init.input_story_ref(traj).val(:,pos(1)) = old_u;
+        obs.init.params.err_der_buffer = old_buffer;
+        obs.init.params.err_der_counter = old_counter;
+
+        % meas
         IMU_true = reshape(xd(params.pos_v,:),numel(params.pos_v),size(xd,2));
         obs.init.params.last_IMU_acc_ref(traj,:) = IMU_true;
     else       
@@ -85,7 +96,7 @@ function [y, obs] = measure_rover_reference(x,params,t,u,obs)
     y = y_true + noise;    
 
     %%% OPT - pjump %%%
-    if mod(pos(end),params.UWB_samp) == 0 && 0 
+    if mod(pos(end),params.UWB_samp) == 0
         D_meas = y(params.pos_dist_out);
         obs.init.params.p_jump(traj).val(:,end+1) = fminunc(@(x)J_dist(x,Pa,D_meas),x(params.pos_p),obs.setup.params.dist_optoptions);
         [obs.init.params.p_jump_der(traj).val(:,end+1), obs.init.params.p_jump_der_buffer, obs.init.params.p_jump_der_counter(traj).val] = PseudoDer(params.Ts*params.UWB_samp,...

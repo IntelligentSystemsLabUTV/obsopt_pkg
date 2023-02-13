@@ -32,11 +32,23 @@ function params = params_rover
     params.freq_u = 48;    
     params.amp_ux = -1/3;
     params.amp_uy = -1/3;
-    params.Ku = [10 10 10];    
-    params.Kdu = [0 0 -1];
+    params.Ku = [10 10 9];    
+    params.Kdu = [0 0 10];      
 
     % number of reference trajectories (under development)
     params.Ntraj = 1;
+
+    % control error derivative
+    params.wlen_err = 4;
+    params.buflen_err = 10;
+    params.dim_err = 1;
+    params.err_scale = 1;
+    for traj = 1:params.Ntraj        
+        params.err(traj).val = [];
+        params.err_der(traj).val = [];
+        params.err_der_buffer(traj).val = zeros(params.dim_err,params.buflen_err);
+        params.err_der_counter(traj).val = 0;
+    end 
     
     % different omega for trajectories
     for traj = 2:params.Ntraj
@@ -52,7 +64,7 @@ function params = params_rover
     an_dz = 2;
 
     %%% gaussian stuff %%%
-    ds = 1e-3;
+    ds = 1e-2*params.err_scale;
     [params.X_gauss, params.Y_gauss] = meshgrid(-an_dp:ds:an_dp, -an_dp:ds:an_dp);
     params.A_gauss = 0.5;
     params.sigma_gauss = 1;
@@ -63,9 +75,9 @@ function params = params_rover
     params.G_gauss = [];
     for hills=1:size(params.hill,1)
         try
-            params.G_gauss = 0*params.G_gauss + 1*params.A_gauss*exp(-1/(params.sigma_gauss^2)*((params.Y_gauss-params.hill(hills,2)/2).^2 + (params.X_gauss-params.hill(hills,1)/2).^2));
+            params.G_gauss = 1*params.G_gauss + 0*params.A_gauss*exp(-1/(params.sigma_gauss^2)*((params.Y_gauss-params.hill(hills,2)/2).^2 + (params.X_gauss-params.hill(hills,1)/2).^2));
         catch
-            params.G_gauss = 0*params.A_gauss*exp(-1/(params.sigma_gauss^2)*((params.Y_gauss-params.hill(hills,2)/2).^2 + (params.X_gauss-params.hill(hills,1)/2).^2));
+            params.G_gauss = 1*params.A_gauss*exp(-1/(params.sigma_gauss^2)*((params.Y_gauss-params.hill(hills,2)/2).^2 + (params.X_gauss-params.hill(hills,1)/2).^2));
         end
     end
 
@@ -79,10 +91,10 @@ function params = params_rover
     params.theta = 1*[1 0 1 1 1];
 
     % observer params    
-    params.alpha = 1*[-0.0067    6.4999];
-    params.beta = 1*[1.0000   83.8996];
-    params.C = 1*[243.9468  -83.8996];
-    params.theta = 1*[0.9328   -0.1371    0.9731   -0.1163    7.3477];    
+%     params.alpha = 1*[-0.0067    6.4999];
+%     params.beta = 1*[1.0000   83.8996];
+%     params.C = 1*[243.9468  -83.8996];
+%     params.theta = 1*[0.9328   -0.1371    0.9731   -0.1163    7.3477];    
    
     %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
     % hyb obs parameters
