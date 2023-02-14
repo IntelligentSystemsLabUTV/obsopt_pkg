@@ -533,7 +533,7 @@ function plot_3Dobject(obj,varargin)
         grid on
         % plot hills
         pos_p = obj.init.params.pos_p;
-        surf(params.X_gauss,params.Y_gauss,params.G_gauss,'FaceAlpha',0.5,'EdgeColor','none');
+%         surf(params.X_gauss,params.Y_gauss,params.G_gauss,'FaceAlpha',0.5,'EdgeColor','none');
         plot3(obj.init.X(1).val(pos_p(1),:),obj.init.X(1).val(pos_p(2),:),obj.init.reference_story(1).val(1,:),'k','LineWidth',2);
         % plot anchors
         P_a(1,:) = obj.init.params.pos_anchor(1):3:obj.init.params.pos_anchor(end);
