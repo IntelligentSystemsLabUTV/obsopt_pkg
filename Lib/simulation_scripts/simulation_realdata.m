@@ -45,7 +45,7 @@ measure = @measure_battery_tushar;
 ode = @odeDD;
 
 %%%% input law %%%
-input_law = @control;
+input_law = @control_battery;
 
 %%%% measurement noise %%%%
 % this should be a vector with 2 columns and as many rows as the state

@@ -175,6 +175,10 @@ function params = params_battery_tushar
     params.plot_vars = 1:2;
     params.plot_params = [4:6];%[7:14];
     params.multi_traj_var = params.nonopt_vars;
+
+    % add stuff
+    params.multistart = 0;
+    params.observed_state = [];
     
     % same initial condition for all the trajectories (under development)
     for traj=2:params.Ntraj
