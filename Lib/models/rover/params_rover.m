@@ -88,10 +88,10 @@ function params = params_rover
     params.multistart = 0;
 
     % observer params    
-    params.alpha = 1*[1 1];
-    params.beta = 1*[1 -100.1];
-    params.C = 1*[10 100.1];
-    params.theta = 1*[1 0 0 0 0];
+    params.alpha = 0*[1 1];
+    params.beta = 0*[1 -100.1];
+    params.C = 0*[10 100.1];
+    params.theta = 0*[1 0 0 0 0];
 
     % observer params    
 %     params.alpha = 1*[-0.0067    6.4999];

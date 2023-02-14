@@ -334,12 +334,24 @@ function plot_3Dobject(obj,varargin)
             box on
     
             % indicize axes        
-            ax(i)=subplot(length(params.pos_p_out),1,i);     
+            ax(i)=subplot(length(params.pos_p_out),1,i);    
+
+            % down sampling instants
+            WindowTime = obj.setup.time(obj.init.temp_time);
             
             for traj=1:obj.setup.Ntraj            
                 plot(obj.setup.time,squeeze(obj.init.Ytrue_full_story(traj).val(1,params.pos_p_out(i),:)),'LineWidth',2);
                 set(gca,'ColorOrderIndex',traj)
-                plot(obj.setup.time,squeeze(obj.init.Y_full_story(traj).val(1,params.pos_p_out(i),:)),'--','LineWidth',1);            
+                plot(obj.setup.time,squeeze(obj.init.Y_full_story(traj).val(1,params.pos_p_out(i),:)),'--','LineWidth',1);          
+
+                set(gca,'ColorOrderIndex',traj)
+                % plot target values    
+                try
+                    data = reshape(obj.init.Y_full_story(traj).val(1,obj.setup.params.pos_p_out(i),obj.init.temp_time),1,length(WindowTime));
+                    plot(WindowTime,data,'o','MarkerSize',5);
+                catch 
+                    disp('CHECK T_END OR AYELS CONDITION - LOOKS LIKE NO OPTIMISATION HAS BEEN RUN')
+                end
             end
             
             % labels
@@ -367,12 +379,24 @@ function plot_3Dobject(obj,varargin)
             box on
     
             % indicize axes        
-            ax(i)=subplot(length(params.pos_quat_out),1,i);     
+            ax(i)=subplot(length(params.pos_quat_out),1,i);    
+
+            % down sampling instants
+            WindowTime = obj.setup.time(obj.init.temp_time);
             
             for traj=1:obj.setup.Ntraj            
                 plot(obj.setup.time,squeeze(obj.init.Ytrue_full_story(traj).val(1,params.pos_quat_out(i),:)),'LineWidth',2);
                 set(gca,'ColorOrderIndex',traj)
-                plot(obj.setup.time,squeeze(obj.init.Y_full_story(traj).val(1,params.pos_quat_out(i),:)),'--','LineWidth',1);            
+                plot(obj.setup.time,squeeze(obj.init.Y_full_story(traj).val(1,params.pos_quat_out(i),:)),'--','LineWidth',1);     
+
+                set(gca,'ColorOrderIndex',traj)
+                % plot target values    
+                try
+                    data = reshape(obj.init.Y_full_story(traj).val(1,obj.setup.params.pos_quat_out(i),obj.init.temp_time),1,length(WindowTime));
+                    plot(WindowTime,data,'o','MarkerSize',5);
+                catch 
+                    disp('CHECK T_END OR AYELS CONDITION - LOOKS LIKE NO OPTIMISATION HAS BEEN RUN')
+                end
             end
             
             % labels
@@ -400,12 +424,24 @@ function plot_3Dobject(obj,varargin)
             box on
     
             % indicize axes        
-            ax(i)=subplot(length(params.pos_acc_out),1,i);     
+            ax(i)=subplot(length(params.pos_acc_out),1,i);   
+
+            % down sampling instants
+            WindowTime = obj.setup.time(obj.init.temp_time);
             
             for traj=1:obj.setup.Ntraj            
                 plot(obj.setup.time,squeeze(obj.init.Ytrue_full_story(traj).val(1,params.pos_acc_out(i),:)),'LineWidth',2);
                 set(gca,'ColorOrderIndex',traj)
-                plot(obj.setup.time,squeeze(obj.init.Y_full_story(traj).val(1,params.pos_acc_out(i),:)),'--','LineWidth',1);            
+                plot(obj.setup.time,squeeze(obj.init.Y_full_story(traj).val(1,params.pos_acc_out(i),:)),'--','LineWidth',1);    
+
+                set(gca,'ColorOrderIndex',traj)
+                % plot target values    
+                try
+                    data = reshape(obj.init.Y_full_story(traj).val(1,obj.setup.params.pos_acc_out(i),obj.init.temp_time),1,length(WindowTime));
+                    plot(WindowTime,data,'o','MarkerSize',5);
+                catch 
+                    disp('CHECK T_END OR AYELS CONDITION - LOOKS LIKE NO OPTIMISATION HAS BEEN RUN')
+                end
             end
             
             % labels
@@ -434,11 +470,23 @@ function plot_3Dobject(obj,varargin)
     
             % indicize axes        
             ax(i)=subplot(length(params.pos_omega_out),1,i);     
+
+            % down sampling instants
+            WindowTime = obj.setup.time(obj.init.temp_time);
             
             for traj=1:obj.setup.Ntraj            
                 plot(obj.setup.time,squeeze(obj.init.Ytrue_full_story(traj).val(1,params.pos_omega_out(i),:)),'LineWidth',2);
                 set(gca,'ColorOrderIndex',traj)
-                plot(obj.setup.time,squeeze(obj.init.Y_full_story(traj).val(1,params.pos_omega_out(i),:)),'--','LineWidth',1);            
+                plot(obj.setup.time,squeeze(obj.init.Y_full_story(traj).val(1,params.pos_omega_out(i),:)),'--','LineWidth',1);   
+
+                set(gca,'ColorOrderIndex',traj)
+                % plot target values    
+                try
+                    data = reshape(obj.init.Y_full_story(traj).val(1,obj.setup.params.pos_omega_out(i),obj.init.temp_time),1,length(WindowTime));
+                    plot(WindowTime,data,'o','MarkerSize',5);
+                catch 
+                    disp('CHECK T_END OR AYELS CONDITION - LOOKS LIKE NO OPTIMISATION HAS BEEN RUN')
+                end
             end
             
             % labels
