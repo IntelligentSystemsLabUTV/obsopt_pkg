@@ -88,10 +88,10 @@ function params = params_rover
     params.multistart = 0;
 
     % observer params    
-    params.alpha = 0*[1e1 -1e0];
-    params.beta = 1*[1 -101];
-    params.C = 1*[100 101];
-    params.theta = 0*[1 0 0 0 0];
+    params.alpha = 1*[1 -1e-1];
+    params.beta = 1*[1e-1 0];
+    params.C = 1*[1e2 0];
+    params.theta = 1*[1 1 0 0 0];
 
     % observer params    
 %     params.alpha = 1*[-0.0067    6.4999];
@@ -165,7 +165,7 @@ function params = params_rover
     params.noise_mat_original(params.pos_acc_out,1) = 1*1e-1;   % noise on IMU - sigma
     params.noise_mat_original(params.pos_dist_out,1) = 1*2e-1;  % noise on UWB - sigma    
     params.mean = params.noise_mat_original(:,1);
-    params.noise_mat(:,1) = 1*params.noise_mat_original(:,1);    
+    params.noise_mat(:,1) = 0*params.noise_mat_original(:,1);    
 
     %%% process noise %%%
     params.jerk_enable = 0;
