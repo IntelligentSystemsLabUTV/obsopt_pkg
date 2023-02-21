@@ -20,20 +20,21 @@ function [c, ceq] = nonlcon_fcn_rover(xopt,xnonopt,obs)
 %     normx = vecnorm(X(obs.init.params.pos_p(1),:),2,1);
 %     normy = vecnorm(X(obs.init.params.pos_p(2),:),2,1);
 %     gamma(:,1) = x(obs.init.params.pos_Gamma(3))+ x(obs.init.params.pos_Gamma(4))*normx;
-%     gamma(:,2) = x(obs.init.params.pos_Gamma(3))+ x(obs.init.params.pos_Gamma(4))*normy;
-    theta1 = x(obs.init.params.pos_Gamma(3));
+%     gamma(:,2) = x(obs.init.params.pos_Gamma(3))+ x(obs.init.params.pos_Gamma(4))*normy;    
 % 
 %     theta_constr_up = [gamma(:,1); gamma(:,2); theta2] - 1;
 %     theta_constr_down = -[gamma(:,1); gamma(:,2); theta2];
     
-    theta_constr_up = [theta1] - 1;
-    theta_constr_down = -[theta1];
-    c = [c; theta_constr_up; theta_constr_down];
+%     theta = x(obs.init.params.pos_Gamma(3:4));
+%     theta_constr_up = [theta] - 1;
+%     theta_constr_down = -[theta];
+%     c = [c; theta_constr_up; theta_constr_down];
 
     % negative poles for filter
     A = [0 1; -x(obs.init.params.pos_Gamma(1:2))'];
     C_eig = eig(A);
-    c = [c; C_eig + tol];
+    min_eig = 1e-4;    
+    c = [c; real(C_eig) + min_eig; imag(C_eig); -imag(C_eig)];
     
             
     % cons

@@ -30,8 +30,8 @@ function params = params_rover
     params.rhoy = 0.01;
     % vines
     params.freq_u = 48;    
-    params.amp_ux = -1/3;
-    params.amp_uy = -1/3;
+    params.amp_ux = -5/3;
+    params.amp_uy = -5/3;
     params.Ku = [10 10];    
     params.Kdu = [0 0];      
     params.Kz = [9000 190];
@@ -63,18 +63,19 @@ function params = params_rover
     params.space_dim = 3;   % 2D or 3D space for the rover 
 
     % anchor stuff
-    an_dp = 2.5;
+    an_dp = 15;
     an_dz = 2;
 
     %%% gaussian stuff %%%
     ds = 1e-2*params.err_scale;
     [params.X_gauss, params.Y_gauss] = meshgrid(-an_dp:ds:an_dp, -an_dp:ds:an_dp);
-    params.A_gauss = 0.5;
-    params.sigma_gauss = 1;
-    params.hill(1,:) = [-an_dp*1.5 -an_dp*1.5];
-    params.hill(2,:) = [-an_dp*1.5 an_dp*1.5];
-    params.hill(3,:) = [an_dp*1.5 an_dp*1.5];
-    params.hill(4,:) = [an_dp*1.5 -an_dp*1.5];
+    params.A_gauss = 1;
+    params.sigma_gauss = 2;
+    ds = 1;
+    params.hill(1,:) = [-an_dp*ds -an_dp*ds];
+    params.hill(2,:) = [-an_dp*ds an_dp*ds];
+    params.hill(3,:) = [an_dp*ds an_dp*ds];
+    params.hill(4,:) = [an_dp*ds -an_dp*ds];
     params.G_gauss = [];
     for hills=1:size(params.hill,1)
         try
@@ -88,10 +89,14 @@ function params = params_rover
     params.multistart = 0;
 
     % observer params    
-    params.alpha = 1*[1 -1e-1];
-    params.beta = 1*[1e-1 0];
-    params.C = 1*[1e2 0];
-    params.theta = 1*[1 1 0 0 0];
+    params.theta = 0*[-0.2085   -0.1091 0 0 0];
+    params.alpha = 0*[12.6892 0];
+
+    % bandpass
+    p = [0.5 10];
+    params.beta = 1*[1 -sum(p)];
+    params.C = 1*[prod(p) sum(p)];
+    
 
     % observer params    
 %     params.alpha = 1*[-0.0067    6.4999];
@@ -165,7 +170,7 @@ function params = params_rover
     params.noise_mat_original(params.pos_acc_out,1) = 1*1e-1;   % noise on IMU - sigma
     params.noise_mat_original(params.pos_dist_out,1) = 1*2e-1;  % noise on UWB - sigma    
     params.mean = params.noise_mat_original(:,1);
-    params.noise_mat(:,1) = 0*params.noise_mat_original(:,1);    
+    params.noise_mat(:,1) = 1*params.noise_mat_original(:,1);    
 
     %%% process noise %%%
     params.jerk_enable = 0;
@@ -202,8 +207,8 @@ function params = params_rover
     %%%%%%%%%%%%%%%%%%%%%%%%
     
     % initial condition    
-    params.X(1).val(:,1) = 1*[2;0;0;0;0.1; ...                % x pos + IMU bias
-                              2;0;0;0;0.2; ...                % y pos + IMU bias
+    params.X(1).val(:,1) = 1*[10;0;0;0;0.1; ...                % x pos + IMU bias
+                              10;0;0;0;0.2; ...                % y pos + IMU bias
                               0;0;0;0;0.1; ...                % z pos + IMU bias
                               -an_dp;-an_dp;an_dz;  ...
                               -an_dp;an_dp;an_dz;   ...
