@@ -16,7 +16,7 @@ function params_out = params_update_rover(params,x)
     if ~params.EKF
 
         params_out.theta(1:4) = x(params.pos_Gamma(3:6));
-        params_out.alpha(1) = x(params.pos_Gamma(10));  
+%         params_out.alpha(1) = x(params.pos_Gamma(10));  
 
         % normal beta
 %         params_out.beta(1) = x(params.pos_Gamma(8));

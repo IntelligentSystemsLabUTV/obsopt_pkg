@@ -89,13 +89,20 @@ function params = params_rover
     params.multistart = 0;
 
     % observer params    
-    params.theta = 0*[-0.2085   -0.1091 0 0 0];
-    params.alpha = 0*[12.6892 0];
+    params.theta = 0*[0.2 0.1 0 0 0];
+    params.alpha = 1*[0 0];
 
     % bandpass
     p = [0.5 10];
     params.beta = 1*[1 -sum(p)];
     params.C = 1*[prod(p) sum(p)];
+
+    A = [0 1; -params.C ];
+    B = params.beta';
+    C = [1 0];
+    params.f = ss(A,B,C,0);
+    params.alpha(1) = 1/getPeakGain(params.f);
+    params.f = ss(A,params.alpha(1)*B,C,0);
     
 
     % observer params    
