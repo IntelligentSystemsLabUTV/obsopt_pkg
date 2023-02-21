@@ -38,7 +38,7 @@ function params = params_rover
     params.Kff = [0 0 0];
 
     % number of reference trajectories (under development)
-    params.Ntraj = 1;
+    params.Ntraj = 5;
 
     % control error derivative
     params.wlen_err = 4;
@@ -89,7 +89,7 @@ function params = params_rover
     params.multistart = 0;
 
     % observer params    
-    params.theta = 0*[0.2 0.1 0 0 0];
+    params.theta = 0*[0.6461    0.0911    0.0111         0         0];
     params.alpha = 1*[0 0];
 
     % bandpass
