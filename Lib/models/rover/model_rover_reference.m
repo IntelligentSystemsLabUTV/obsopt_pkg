@@ -27,24 +27,24 @@ function [x_dot, x] = model_rover_reference(tspan,x,params,obs)
     obs.init.reference_story(obs.init.traj).val(:,pos(end)) = params.u(4,1);
 
     % process noise
-    w = params.jerk_enable*params.Ts*randn(2*params.space_dim,1);
+    w = params.jerk_enable*params.sigma_w*randn(2*params.space_dim,1);
     obs.init.params.proc_noise_story(obs.init.traj).val(:,pos(1)) = w; 
     
     % model dynamics
     % x axis
     x_dot(1) = x(2);
-    x_dot(2) = params.u(1,1) + 0*w(1);
-    x_dot(5) = 0*w(4);
+    x_dot(2) = params.u(1,1) + params.proc_acc*w(1);
+    x_dot(5) = params.proc_bias*w(4);
     
     % y axis
     x_dot(6) = x(7);
-    x_dot(7) = params.u(2,1) + 0*w(2);
-    x_dot(10) = 0*w(5);
+    x_dot(7) = params.u(2,1) + params.proc_acc*w(2);
+    x_dot(10) = params.proc_bias*w(5);
 
     % y axis
     x_dot(11) = x(12);
-    x_dot(12) = params.u(3,1) + 0*w(3) + params.g;
-    x_dot(15) = 0*w(6);
+    x_dot(12) = params.u(3,1) + params.proc_acc*w(3);
+    x_dot(15) = params.proc_bias*w(6);
 
     % all the remaining are the anchors
     

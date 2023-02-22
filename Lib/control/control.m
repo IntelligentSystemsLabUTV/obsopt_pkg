@@ -12,7 +12,7 @@ function u = control(t,drive,params,obs)
 
         % 2nd order system
 %         u(1,:) = -2*params.rhox(1)*params.wnx(obs.init.traj)*drive(2) -params.wnx(obs.init.traj)^2*drive(1);
-%         u(2,:) = -2*params.rhoy(1)*params.wny(obs.init.traj)*drive(6) -params.wny(obs.init.traj)^2*drive(5);
+%         u(2,:) = -2*params.rhoy(1)*params.wny(obs.init.traj)*drive(7) -params.wny(obs.init.traj)^2*drive(6);
         
         % sum of sines (position)
 %         target(1,:) = exp(-params.rhox.*t).*(params.Ax(1)*sin(params.wnx(1).*t + params.phi(1)) + params.Ax(2)*sin(params.wnx(2).*t + params.phi(1)));

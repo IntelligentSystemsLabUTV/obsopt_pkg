@@ -14,6 +14,7 @@ function params = params_rover
     params.eps = 5;    
     params.Nanchor = 4;
     params.g = 0*0.1;
+    params.Ts = 1e-2;
     
     % control parameters
     % 2nd order system
@@ -34,11 +35,11 @@ function params = params_rover
     params.amp_uy = -5/3;
     params.Ku = [10 10];    
     params.Kdu = [0 0];      
-    params.Kz = [9000 190];
+    params.Kz = 0*[9000 190];
     params.Kff = [0 0 0];
 
     % number of reference trajectories (under development)
-    params.Ntraj = 5;
+    params.Ntraj = 1;
 
     % control error derivative
     params.wlen_err = 4;
@@ -64,12 +65,12 @@ function params = params_rover
 
     % anchor stuff
     an_dp = 15;
-    an_dz = 2;
+    an_dz = 0;
 
     %%% gaussian stuff %%%
     ds = 1e-2*params.err_scale;
     [params.X_gauss, params.Y_gauss] = meshgrid(-an_dp:ds:an_dp, -an_dp:ds:an_dp);
-    params.A_gauss = 1;
+    params.A_gauss = 0;
     params.sigma_gauss = 2;
     ds = 1;
     params.hill(1,:) = [-an_dp*ds -an_dp*ds];
@@ -89,7 +90,7 @@ function params = params_rover
     params.multistart = 0;
 
     % observer params    
-    params.theta = 0*[0.6461    0.0911    0.0111         0         0];
+    params.theta = 1*[0.6695    0.1459    0.0045    0.0003         0];
     params.alpha = 1*[0 0];
 
     % bandpass
@@ -181,11 +182,15 @@ function params = params_rover
 
     %%% process noise %%%
     params.jerk_enable = 0;
+    params.sigma_w = 1e-2;
+    params.proc_acc = 0;
+    params.proc_bias = 0;
+    params.bias = 1;
 
     %%%%%% EKF %%%%%
     % enable noise
-    params.EKF = 0;        
-    params.hyb = 1;
+    params.EKF = 1;        
+    params.hyb = 0;
     params.dryrun = 0;
 
     %%% noise matrices
@@ -196,8 +201,8 @@ function params = params_rover
         ]);      
     
     % process noise - model
-    params.Q = 1e0*diag([1e0 1e0 1e0 1e0 1e0 1e0,... % JERK                     
-        ]);
+    %params.Q = params.sigma_w^2*1e0*diag([1e0*ones(1,3) params.bias*1e0*ones(1,3)]);
+    params.Q = 1e0*diag([1e4*ones(1,3) params.bias*1e-2*ones(1,3)]);
 
     % EKF covariance matrix
     for traj=1:params.Ntraj
@@ -214,9 +219,9 @@ function params = params_rover
     %%%%%%%%%%%%%%%%%%%%%%%%
     
     % initial condition    
-    params.X(1).val(:,1) = 1*[10;0;0;0;0.1; ...                % x pos + IMU bias
-                              10;0;0;0;0.2; ...                % y pos + IMU bias
-                              0;0;0;0;0.1; ...                % z pos + IMU bias
+    params.X(1).val(:,1) = 1*[10;0;0;0;params.bias*0.1; ...                % x pos + IMU bias
+                              10;0;0;0;params.bias*0.1; ...                % y pos + IMU bias
+                              0;0;0;0;params.bias*0.01; ...                % z pos + IMU bias
                               -an_dp;-an_dp;an_dz;  ...
                               -an_dp;an_dp;an_dz;   ...
                               an_dp;an_dp;an_dz;    ...

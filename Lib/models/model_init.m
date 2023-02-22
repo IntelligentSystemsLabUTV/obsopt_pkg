@@ -178,7 +178,10 @@ function params = model_init(varargin)
             if params.noise                                            
                 % around init
                 params.X_est(traj).val(params.multi_traj_var,1) = init(params.multi_traj_var).*(1 + params.noise*params.perc(params.multi_traj_var,traj).*ones(length(params.multi_traj_var),1)) + ...
-                                                                  params.noise*noise_std.*randn(length(params.multi_traj_var),1);                                
+                                                                  params.noise*noise_std.*randn(length(params.multi_traj_var),1);  
+
+                % test - bias starting always from 0
+                params.X_est(traj).val(params.pos_bias,1) = 0;
             end
         end
 
