@@ -63,8 +63,15 @@ obs = obsopt('DataType', 'simulated', 'optimise', 0, 'MultiStart', params.multis
           'AdaptiveSampling',0, 'FlushBuffer', 1, 'opt', @patternsearch, 'terminal', 0, 'terminal_states', terminal_states, 'terminal_weights', terminal_weights, 'terminal_normalise', 1, ...
           'ConPos', [], 'LBcon', [], 'UBcon', [],'Bounds', 0,'NONCOLcon',@nonlcon_fcn_rover);
 
-
 % SIMULINK
+% create the bus to be provided to simulink
+% stack = [params.C_n; params.eta; params.input_data.SOC; params.input_data.OCV; params.input_data.R0; params.input_data.R1; params.input_data.C1];
+% params.SimParams = timeseries(stack.*ones(size(params.time)),params.time);
+obs_tmp.init.X_est.val = zeros(size(obs.init.X_est.val(:,1),1),length(obs.setup.time));
+obs_tmp.init.input_story.val = zeros(obs.setup.params.dim_input,length(obs.setup.time)-1);
+obs_tmp.init.Yhat_full_story.val = zeros(size(obs.init.X_est.val(:,1),1),1,length(obs.setup.time));
+[params.SIMstate, params.SIMinput, params.SIMmeasure] = SaveToSimulink(obs_tmp,params.time,0);
+return
 options = simset('SrcWorkspace','current');
 out = sim(model_name,obs.setup.time(end),options);
 data = out.simout.ECM_Vb_noise.Data';

@@ -9,48 +9,37 @@
 % params: structure with all the necessary parameters
 function params = params_battery_tushar
 
+    %%%%%%%%%%% LOAD DATA OF A BATTERY EXPERIMENT %%%%%%%%%%%
     % Loading input signals and parameter data
     input_data = load('data/ECM_parameters_updated.mat');
-    params.input_data = input_data;
-    params.input_time = input_data.Time;
-    params.input_current = input_data.Current;
-    params.input_OCV = input_data.OCV;
-    params.input_soc = input_data.SOC';
-    params.input_R0 = input_data.R0;
-    params.input_R1 = input_data.R1;
-    params.input_C1 = input_data.C1;      
+    params.input_data = input_data;   
+
+    % handle SOC not zero
+    params.input_data.SOC(find(params.input_data.SOC==0)) = eps;
     
+    % GET MIN AND MAX OF OCV (MEASURE)
     params.min_params = min([input_data.OCV;input_data.R0;input_data.R1;input_data.C1],[],2);
     params.max_params = max([input_data.OCV;input_data.R0;input_data.R1;input_data.C1],[],2);
-    
-    % model inconsistency
+
+    % SETUP THE EXPERIMENT - MODEL PERTURBARION
     params.deltaModel = 0*0.05;
-    npoints = length(params.input_OCV);
-    params.input_data.OCV_nominal = params.input_OCV.*(1+0.1*params.deltaModel*randn(1,npoints));
-    params.input_data.R0_nominal = params.input_R0.*(1+params.deltaModel*randn(1,npoints));
-    params.input_data.R1_nominal = params.input_R1.*(1+params.deltaModel*randn(1,npoints));
-    params.input_data.C1_nominal = params.input_C1.*(1+params.deltaModel*randn(1,npoints));
     
-    % fault-detection
-%     params.input_data.R0_nominal(3) = 0.1*params.input_data.R0_nominal;
-%     params.input_data.R1_nominal(3) = 0.1*params.input_data.R1_nominal;
-%     params.input_data.C1_nominal(3) = 0.1*params.input_data.C1_nominal;
-    
-    % Battery Capacity (converting Ampere-hour to Ampere-second)
+    % SETUP THE EXPERIMENT - NOMINAL DATA    
+    npoints = length(params.input_data.OCV);
+    params.input_data.OCV_nominal = params.input_data.OCV.*(1+0.1*params.deltaModel*randn(1,npoints));
+    params.input_data.R0_nominal = params.input_data.R0.*(1+params.deltaModel*randn(1,npoints));
+    params.input_data.R1_nominal = params.input_data.R1.*(1+params.deltaModel*randn(1,npoints));
+    params.input_data.C1_nominal = params.input_data.C1.*(1+params.deltaModel*randn(1,npoints));    
+           
+    % SETUP THE EXPERIMENT  - Battery Capacity (converting Ampere-hour to Ampere-second)
     params.InputAmplitude = -1;
     params.C_n_h = 4.1*abs(params.InputAmplitude);
     params.C_n = params.C_n_h * 3600;     
     params.C_n_h_nominal = params.C_n_h*(1+params.deltaModel);
     params.C_n_nominal = params.C_n_h_nominal * 3600;   
-    
-    % out vars
-    params.OutDim = 1;
-    params.OutDim_compare = [1];
 
-    % input dim
-    params.dim_input = 1;
-
-    % generate modular HPPC
+    % SETUP THE EXPERIMENT - generate modular HPPC
+    % define the input current module
     params.input_current_Ts = 1;
     Shen = 1;
     if Shen
@@ -66,20 +55,16 @@ function params = params_battery_tushar
     params.input_current_modular_time = 0:params.input_current_modular_period;
     params.input_current_modular_time_dense = 0:params.input_current_Ts:params.input_current_modular_period;    
     params.input_current_modular = interp1(params.input_current_modular_time,params.input_current(params.startpos:params.stoppos),params.input_current_modular_time_dense);
-    
-    % slow modular HPPC
+
+    % slow modular HPPC - dense realization
     params.time_slow = 1;
     params.input_current_modular_period_slown = params.input_current_modular_period*params.time_slow;
     params.input_current_modular_time_slown_dense = 0:params.input_current_Ts:params.input_current_modular_period_slown;
     for i=1:length(params.input_current_modular_time_dense)
         params.input_current_modular_slown(params.time_slow*(i-1)+1:params.time_slow*(i-1)+params.time_slow) = params.input_current_modular(i);
     end
-    
-    % initial SOC
-    x10 = 0.8;
-    x20 = 0.01;
 
-    % system parameters
+    %%% system parameters %%%
     % battery EMF
     params.Voc = 3.5;
     % ohmic internal resistance
@@ -90,12 +75,24 @@ function params = params_battery_tushar
     params.C1 = 500;    
     % Battery charging-discharging efficiency (for Li-ion=100%)
     params.eta = 1;  
+
+    % noise characteristics
+    noise = 1;
+    params.percNoise = noise*5e-2;
+    params.NoisePwr = noise*5e-2;
+
+    % temperature
+    params.Temperature = 300;
+
+    % initial SOC
+    x10 = 0.8;
+    x20 = 0.01;
     
     % testing - init with correct vals
-    params.Voc = spline(params.input_soc, params.input_OCV, x10);
-    params.R0 = spline(params.input_soc, params.input_R0, x10);
-    params.R1 = spline(params.input_soc, params.input_R1, x10);
-    params.C1 = spline(params.input_soc, params.input_C1, x10);
+    params.Voc = spline(params.input_data.SOC, params.input_data.OCV, x10);
+    params.R0 = spline(params.input_data.SOC, params.input_data.R0, x10);
+    params.R1 = spline(params.input_data.SOC, params.input_data.R1, x10);
+    params.C1 = spline(params.input_data.SOC, params.input_data.C1, x10);
     
     % control parameters
     params.K1 = 0.1;
@@ -135,6 +132,14 @@ function params = params_battery_tushar
     
     params.eps = 1;        
     
+    %%%%%%% SETUP THE OBSERVER %%%%%
+    % out vars - observer
+    params.OutDim = 1;
+    params.OutDim_compare = [1];
+
+    % input dim - observer
+    params.dim_input = 1;                    
+       
     % number of reference trajectories (under development)
     params.Ntraj = 1;
     
