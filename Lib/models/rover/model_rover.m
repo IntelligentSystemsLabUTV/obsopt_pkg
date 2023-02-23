@@ -88,21 +88,36 @@ function [x_dot, x] = model_rover(tspan,x,params,obs)
     %%%%%%%%%%%%% EKF MODEL %%%%%%%%%%%%
     elseif (params.EKF && ~params.hyb) && ~params.dryrun
 
-        % model dynamics
-        % x axis
-        x_dot(1) = x(2);    
-        x_dot(2) = x(3);
-        x_dot(3) = 0;
-        
-        % y axis
-        x_dot(6) = x(7);    
-        x_dot(7) = x(8);   
-        x_dot(8) = 0;
+        if 1
+            % model dynamics
+            % x axis
+            x_dot(1) = x(2);    
+            x_dot(2) = x(3);
+            x_dot(3) = 0;
+            
+            % y axis
+            x_dot(6) = x(7);    
+            x_dot(7) = x(8);   
+            x_dot(8) = 0;
+    
+            % z axis
+            x_dot(11) = x(12);    
+            x_dot(12) = x(13);   
+            x_dot(13) = 0;
+        else
+            % perfect realization
+            A = params.ssd_EKF.A;
+            B = params.ssd_EKF.B;
+            C = params.ssd_EKF.C;
+            D = params.ssd_EKF.D;
 
-        % z axis
-        x_dot(11) = x(12);    
-        x_dot(12) = x(13);   
-        x_dot(13) = 0;
+            for i=1:params.space_dim
+                range = [params.pos_p(i) params.pos_v(i)];
+                evol = A*x(range) + B*x(params.pos_acc(i));                
+                x_dot(range) = (evol - x(range))/params.Ts;
+            end
+            
+        end
 
     elseif params.dryrun
 

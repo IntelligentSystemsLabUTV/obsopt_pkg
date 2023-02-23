@@ -30,12 +30,12 @@ function params = params_rover
     params.rhox = 0.01;
     params.rhoy = 0.01;
     % vines
-    params.freq_u = 48*2;    
-    params.amp_ux = -5/3/2;
-    params.amp_uy = -5/3*0;
+    params.freq_u = 48;    
+    params.amp_ux = -5/3;
+    params.amp_uy = -5/3;
     params.Ku = [10 10];    
     params.Kdu = [0 0];      
-    params.Kz = 0*[9000 190];
+    params.Kz = 1*[9000 190];
     params.Kff = [0 0 0];
 
     % number of reference trajectories (under development)
@@ -65,12 +65,12 @@ function params = params_rover
 
     % anchor stuff
     an_dp = 15;
-    an_dz = 0;
+    an_dz = 20;
 
     %%% gaussian stuff %%%
     ds = 1e-2*params.err_scale;
     [params.X_gauss, params.Y_gauss] = meshgrid(-an_dp:ds:an_dp, -an_dp:ds:an_dp);
-    params.A_gauss = 0;
+    params.A_gauss = 1;
     params.sigma_gauss = 2;
     ds = 1;
     params.hill(1,:) = [-an_dp*ds -an_dp*ds];
@@ -149,7 +149,7 @@ function params = params_rover
     
     % sampling
     params.IMU_samp = 1;
-    params.UWB_samp = 1;
+    params.UWB_samp = 20;
     params.UWB_pos = []; 
 
     % memory
@@ -183,9 +183,9 @@ function params = params_rover
     %%% process noise %%%
     params.jerk_enable = 0;
     params.sigma_w = 1e-2;
-    params.proc_acc = 0;
+    params.proc_acc = 1;
     params.proc_bias = 0;
-    params.bias = 1;
+    params.bias = 0;
 
     %%%%%% EKF %%%%%
     % enable noise
@@ -202,7 +202,7 @@ function params = params_rover
     
     % process noise - model
     %params.Q = params.sigma_w^2*1e0*diag([1e0*ones(1,3) params.bias*1e0*ones(1,3)]);
-    params.Q = 1e0*diag([1e0*ones(1,3) params.bias*1e0*ones(1,3)]);
+    params.Q = 1e0*diag([1e4 1e4 1e0 params.bias*[1e-2 1e-2 1e-4]]);
 
     % EKF covariance matrix
     for traj=1:params.Ntraj
@@ -221,7 +221,7 @@ function params = params_rover
     % initial condition    
     params.X(1).val(:,1) = 1*[10;0;0;0;params.bias*0.1; ...                % x pos + IMU bias
                               10;0;0;0;params.bias*0.1; ...                % y pos + IMU bias
-                              0;0;0;0;params.bias*0.01; ...                % z pos + IMU bias
+                              0;0;0;0;params.bias*0.05; ...                % z pos + IMU bias
                               -an_dp;-an_dp;an_dz;  ...
                               -an_dp;an_dp;an_dz;   ...
                               an_dp;an_dp;an_dz;    ...
@@ -231,18 +231,19 @@ function params = params_rover
                               params.beta'; ...
                               params.alpha'];  
 
-    % initial condition    
-    params.X(1).val(:,1) = 1*[10;0;0;0;params.bias*0.1; ...                % x pos + IMU bias
-                              10;0;0;0;params.bias*0.0; ...                % y pos + IMU bias
-                              0;0;0;0;params.bias*0.00; ...                % z pos + IMU bias
-                              -an_dp;10;0;  ...
-                              -an_dp;10;0;   ...
-                              an_dp;10;0;    ...
-                              an_dp;10;0;   ...    % anchors                                                                          
-                              params.C'; ...              % params                              
-                              params.theta'; ...
-                              params.beta'; ...
-                              params.alpha'];
+    %%%% 1D REALIZATION %%%%      
+%     params.X(1).val(:,1) = 1*[10;0;0;0;params.bias*0.1; ...                % x pos + IMU bias
+%                               10;0;0;0;params.bias*0.0; ...                % y pos + IMU bias
+%                               0;0;0;0;params.bias*0.00; ...                % z pos + IMU bias
+%                               -an_dp;10;0;  ...
+%                               -an_dp;10;0;   ...
+%                               an_dp;10;0;    ...
+%                               an_dp;10;0;   ...    % anchors                                                                          
+%                               params.C'; ...              % params                              
+%                               params.theta'; ...
+%                               params.beta'; ...
+%                               params.alpha'];
+    %%%%%%%%%%%%%%%%%%%%%%%
 
     % hills on z - correct initialization
     p_now = params.X(1).val(params.pos_p(1:2),1);
@@ -285,7 +286,7 @@ function params = params_rover
 
 
     % same initial condition for all the trajectories (under development)
-    params.multi_traj_var = [params.pos_p(1)]; 
+    params.multi_traj_var = [params.pos_p]; 
     pos_init = [3 3;  ...
                 -3 3; ...
                 -3 -3; ...
@@ -308,6 +309,15 @@ function params = params_rover
 
     % fminunc
     params.dist_optoptions = optimoptions('fminunc', 'MaxIter', 1, 'display','off');
+
+    %%% exponential of matrix - EKF model %%%
+    params.A_EKF = [0 1; ...
+                    0 0];
+    params.B_EKF = [0 1]';
+    params.C_EKF = [0 0];
+    params.ss_EKF = ss(params.A_EKF,params.B_EKF,params.C_EKF,0);
+    params.ssd_EKF = c2d(params.ss_EKF,1e-2);
+
 
     
 end
