@@ -149,7 +149,7 @@ function params = params_rover
     
     % sampling
     params.IMU_samp = 1;
-    params.UWB_samp = 20;
+    params.UWB_samp = 1;
     params.UWB_pos = []; 
 
     % memory
@@ -230,6 +230,19 @@ function params = params_rover
                               params.theta'; ...
                               params.beta'; ...
                               params.alpha'];  
+
+    % initial condition    
+    params.X(1).val(:,1) = 1*[10;0;0;0;params.bias*0.1; ...                % x pos + IMU bias
+                              10;0;0;0;params.bias*0.1; ...                % y pos + IMU bias
+                              0;0;0;0;params.bias*0.01; ...                % z pos + IMU bias
+                              -an_dp;10;0;  ...
+                              -an_dp;10;0;   ...
+                              an_dp;10;0;    ...
+                              an_dp;10;0;   ...    % anchors                                                                          
+                              params.C'; ...              % params                              
+                              params.theta'; ...
+                              params.beta'; ...
+                              params.alpha'];
 
     % hills on z - correct initialization
     p_now = params.X(1).val(params.pos_p(1:2),1);
