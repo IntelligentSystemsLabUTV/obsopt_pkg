@@ -30,9 +30,9 @@ function params = params_rover
     params.rhox = 0.01;
     params.rhoy = 0.01;
     % vines
-    params.freq_u = 48;    
-    params.amp_ux = -5/3;
-    params.amp_uy = -5/3;
+    params.freq_u = 48*2;    
+    params.amp_ux = -5/3/2;
+    params.amp_uy = -5/3*0;
     params.Ku = [10 10];    
     params.Kdu = [0 0];      
     params.Kz = 0*[9000 190];
@@ -202,7 +202,7 @@ function params = params_rover
     
     % process noise - model
     %params.Q = params.sigma_w^2*1e0*diag([1e0*ones(1,3) params.bias*1e0*ones(1,3)]);
-    params.Q = 1e0*diag([1e4*ones(1,3) params.bias*1e-2*ones(1,3)]);
+    params.Q = 1e0*diag([1e0*ones(1,3) params.bias*1e0*ones(1,3)]);
 
     % EKF covariance matrix
     for traj=1:params.Ntraj
@@ -233,8 +233,8 @@ function params = params_rover
 
     % initial condition    
     params.X(1).val(:,1) = 1*[10;0;0;0;params.bias*0.1; ...                % x pos + IMU bias
-                              10;0;0;0;params.bias*0.1; ...                % y pos + IMU bias
-                              0;0;0;0;params.bias*0.01; ...                % z pos + IMU bias
+                              10;0;0;0;params.bias*0.0; ...                % y pos + IMU bias
+                              0;0;0;0;params.bias*0.00; ...                % z pos + IMU bias
                               -an_dp;10;0;  ...
                               -an_dp;10;0;   ...
                               an_dp;10;0;    ...
@@ -285,7 +285,7 @@ function params = params_rover
 
 
     % same initial condition for all the trajectories (under development)
-    params.multi_traj_var = [params.pos_p]; 
+    params.multi_traj_var = [params.pos_p(1)]; 
     pos_init = [3 3;  ...
                 -3 3; ...
                 -3 -3; ...

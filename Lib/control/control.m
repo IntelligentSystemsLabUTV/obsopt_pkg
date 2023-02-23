@@ -30,7 +30,7 @@ function u = control(t,drive,params,obs)
         elseif mod(T,params.freq_u) < 0.5*params.freq_u
             vy = params.amp_uy;
         elseif mod(T,params.freq_u) < 0.75*params.freq_u
-            vx = -params.amp_ux;
+            vx = 0-params.amp_ux;
         else
             vy = -params.amp_uy;
         end        

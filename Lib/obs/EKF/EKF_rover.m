@@ -70,7 +70,7 @@ function obs = EKF_rover(obs,xhat_kk_1,y_k)
         correction = Ks*mismatch;
 
         % test
-        %correction([params.pos_p params.pos_v]) = 0;
+%         correction([params.pos_p(2:3) params.pos_v(2:3) params.pos_acc(2:3) params.pos_bias(2:3)]) = 0;
 
         xnew = xhat_k + correction;
         Pnew = Phat_kk_1 - Ks*GHs*Phat_kk_1;
@@ -95,7 +95,8 @@ function [GFx, GFw, GHx] = G(x,T,y,params)
     %%% no need to add the derivatives of the mappings wrt omega, quat,
     %%% alpha.
     b = params.bias;
-    a = 1;
+    a = params.proc_acc;
+    B = params.bias*params.proc_bias;
     T = params.Ts;
 
     % df/dx
@@ -129,17 +130,17 @@ function [GFx, GFw, GHx] = G(x,T,y,params)
            0    0   0   0   0   0;              ... x2
            a    0   0   0   0   0;              ... x3
            0    0   0   0   0   0;              ... x4
-           0    0   0   b   0   0;              ... x5
+           0    0   0   B   0   0;              ... x5
            0    0   0   0   0   0;              ... x6
            0    0   0   0   0   0;              ... x7
            0    a   0   0   0   0;              ... x8
            0    0   0   0   0   0;              ... x9
-           0    0   0   0   b   0;              ... x10
+           0    0   0   0   B   0;              ... x10
            0    0   0   0   0   0;              ... x11
            0    0   0   0   0   0;              ... x12
            0    0   a   0   0   0;              ... x13
            0    0   0   0   0   0;              ... x14
-           0    0   0   0   0   b;              ... x15
+           0    0   0   0   0   B;              ... x15
            zeros(numel(16:numel(x)),6);          ... x16-xend
            ];
 
