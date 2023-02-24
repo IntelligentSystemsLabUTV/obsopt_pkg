@@ -25,9 +25,9 @@ function [c, ceq] = nonlcon_fcn_rover(xopt,xnonopt,obs)
 %     theta_constr_up = [gamma(:,1); gamma(:,2); theta2] - 1;
 %     theta_constr_down = -[gamma(:,1); gamma(:,2); theta2];
     
-    theta = x(obs.init.params.pos_Gamma(1:5));
-    theta_constr_up = [theta([1 2 5])] - 1;
-    theta_constr_down = -[theta(1:5)];
+    theta = x(obs.init.params.pos_Gamma(1:6));
+    theta_constr_up = [theta([1 2 6])] - 1;
+    theta_constr_down = -[theta(1:6)];
     c = [c; theta_constr_up; theta_constr_down];
 
     % negative poles for filter

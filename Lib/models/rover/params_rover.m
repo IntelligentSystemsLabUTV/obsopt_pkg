@@ -91,7 +91,7 @@ function params = params_rover
 
     % observer params    
 %     params.theta = 1*[0.6695    0.1459    0.0045    0.0003         0];
-    params.theta = 0*[1 1 1 1 1];
+    params.theta = 0*[1 1 1 1 1 1];
     params.alpha = 0*[5 0];
 
     % bandpass
