@@ -69,10 +69,10 @@ function [y, obs] = measure_rover_reference(x,params,t,u,obs)
     %%% add noise
     % noise on UWB + IMU
     y_true = [D; P_true; V_true; IMU_true];
-    noise = obs.setup.noise*(params.noise_mat(:,1).*randn(obs.setup.dim_out,1));
+    noise = obs.setup.noise*(params.noise_mat(:,1).*randn(obs.setup.dim_out,1));    
 
     % bias IMU
-    noise(params.pos_acc_out) = noise(params.pos_acc_out) + params.bias*x(params.pos_bias);
+    noise(params.pos_acc_out) = noise(params.pos_acc_out) + params.bias*x(params.pos_bias);    
 
     %%% multi rate - UWB
     if mod(pos(end),params.UWB_samp) ~= 0

@@ -65,12 +65,12 @@ function params = params_rover
 
     % anchor stuff
     an_dp = 15;
-    an_dz = 20;
+    an_dz = 2;
 
     %%% gaussian stuff %%%
     ds = 1e-2*params.err_scale;
     [params.X_gauss, params.Y_gauss] = meshgrid(-an_dp:ds:an_dp, -an_dp:ds:an_dp);
-    params.A_gauss = 1;
+    params.A_gauss = 2;
     params.sigma_gauss = 2;
     ds = 1;
     params.hill(1,:) = [-an_dp*ds -an_dp*ds];
@@ -90,31 +90,26 @@ function params = params_rover
     params.multistart = 0;
 
     % observer params    
-    params.theta = 1*[0.6695    0.1459    0.0045    0.0003         0];
-    params.alpha = 1*[0 0];
+%     params.theta = 1*[0.6695    0.1459    0.0045    0.0003         0];
+    params.theta = 0*[1 1 1 1 1];
+    params.alpha = 0*[5 0];
 
     % bandpass
-    p = [0.5 10];
-    params.beta = 1*[1 -sum(p)];
-    params.C = 1*[prod(p) sum(p)];
-
-    A = [0 1; -params.C ];
-    B = params.beta';
-    C = [1 0];
-    params.f = ss(A,B,C,0);
-    params.alpha(1) = 1/getPeakGain(params.f);
-    params.f = ss(A,params.alpha(1)*B,C,0);
-    
-
-    % observer params    
-%     params.alpha = 1*[-0.0067    6.4999];
-%     params.beta = 1*[1.0000   83.8996];
-%     params.C = 1*[243.9468  -83.8996];
-%     params.theta = 1*[0.9328   -0.1371    0.9731   -0.1163    7.3477];    
+%     p = [0.5 10];
+%     params.beta = 1*[1 -sum(p)];
+%     params.C = 1*[prod(p) sum(p)];
+% 
+%     A = [0 1; -params.C ];
+%     B = params.beta';
+%     C = [1 0];
+%     params.f = ss(A,B,C,0);
+%     params.alpha(1) = 1/getPeakGain(params.f);
+%     params.f = ss(A,params.alpha(1)*B,C,0);  
    
     %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
     % hyb obs parameters
-    params.dim_Gamma = length(params.C) + length(params.theta) +length(params.beta) + length(params.alpha);
+%     params.dim_Gamma = length(params.C) + length(params.theta) +length(params.beta) + length(params.alpha);
+    params.dim_Gamma = length(params.theta) + length(params.alpha);
 
     % model parameters
     params.dim_state = 5*params.space_dim + params.Nanchor*params.space_dim + params.dim_Gamma;    % done on the observer model (easier to compare)
@@ -184,13 +179,13 @@ function params = params_rover
     params.jerk_enable = 0;
     params.sigma_w = 1e-2;
     params.proc_acc = 1;
-    params.proc_bias = 0;
-    params.bias = 0;
+    params.proc_bias = 1;
+    params.bias = 1;
 
     %%%%%% EKF %%%%%
     % enable noise
-    params.EKF = 1;        
-    params.hyb = 0;
+    params.EKF = 0;        
+    params.hyb = 1;
     params.dryrun = 0;
 
     %%% noise matrices
@@ -202,7 +197,7 @@ function params = params_rover
     
     % process noise - model
     %params.Q = params.sigma_w^2*1e0*diag([1e0*ones(1,3) params.bias*1e0*ones(1,3)]);
-    params.Q = 1e0*diag([1e4 1e4 1e0 params.bias*[1e-2 1e-2 1e-4]]);
+    params.Q = 1*1e0*diag([1e4 1e4 1e4 params.proc_bias*[1e-2 1e-2 1e-2]]);
 
     % EKF covariance matrix
     for traj=1:params.Ntraj
@@ -222,13 +217,11 @@ function params = params_rover
     params.X(1).val(:,1) = 1*[10;0;0;0;params.bias*0.1; ...                % x pos + IMU bias
                               10;0;0;0;params.bias*0.1; ...                % y pos + IMU bias
                               0;0;0;0;params.bias*0.05; ...                % z pos + IMU bias
-                              -an_dp;-an_dp;an_dz;  ...
-                              -an_dp;an_dp;an_dz;   ...
-                              an_dp;an_dp;an_dz;    ...
-                              an_dp;-an_dp;an_dz;   ...    % anchors                                                                          
-                              params.C'; ...              % params                              
-                              params.theta'; ...
-                              params.beta'; ...
+                              -an_dp;-an_dp;1*an_dz;  ...
+                              -an_dp;an_dp;1*an_dz;   ...
+                              an_dp;an_dp;1*an_dz;    ...
+                              an_dp;-an_dp;1*an_dz;   ...    % anchors                                                                                                        
+                              params.theta'; ...                              
                               params.alpha'];  
 
     %%%% 1D REALIZATION %%%%      
@@ -286,7 +279,7 @@ function params = params_rover
 
 
     % same initial condition for all the trajectories (under development)
-    params.multi_traj_var = [params.pos_p]; 
+    params.multi_traj_var = [params.pos_p params.pos_v params.pos_acc]; 
     pos_init = [3 3;  ...
                 -3 3; ...
                 -3 -3; ...
