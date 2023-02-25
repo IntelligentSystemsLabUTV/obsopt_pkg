@@ -71,7 +71,6 @@ obs_tmp.init.X_est.val = zeros(size(obs.init.X_est.val(:,1),1),length(obs.setup.
 obs_tmp.init.input_story.val = zeros(obs.setup.params.dim_input,length(obs.setup.time)-1);
 obs_tmp.init.Yhat_full_story.val = zeros(size(obs.init.X_est.val(:,1),1),1,length(obs.setup.time));
 [params.SIMstate, params.SIMinput, params.SIMmeasure] = SaveToSimulink(obs_tmp,params.time,0);
-return
 options = simset('SrcWorkspace','current');
 out = sim(model_name,obs.setup.time(end),options);
 data = out.simout.ECM_Vb_noise.Data';
