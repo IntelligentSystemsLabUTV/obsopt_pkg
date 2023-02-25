@@ -172,21 +172,33 @@ classdef obsopt < handle
             else
                 obj.setup.AdaptiveSampling = 0;
             end
+            obj.init.nfreqs = 2;            
+            obj.init.freqs = zeros(obj.init.nfreqs,1);
+            obj.init.wvname = 'amor';
+            obj.init.Nv = 48;
+            obj.init.PLIMITS = [1e0*obj.setup.Ts 2e2*obj.setup.Ts];
+            obj.init.FLIMITS = fliplr(1./obj.init.PLIMITS);            
+            obj.init.NtsChanged = 0;
+            obj.init.break = 0;
                         
             
             % option to define the safety interval in adaptive sampling. If
             % AdaptiveSampling flag is zero the histeresis is set to zero,
             % disabling the adaptive sampling
-            if any(strcmp(varargin,'AdaptiveHist')) && (obj.setup.AdaptiveSampling)
-                pos = find(strcmp(varargin,'AdaptiveHist'));
-                tmp = varargin{pos+1};
-                obj.setup.dJ_low = tmp(1);
-                obj.setup.dJ_high = tmp(2);
-                obj.setup.dPE = tmp(3);
+            if any(strcmp(varargin,'AdaptiveParams')) && (obj.setup.AdaptiveSampling)
+                pos = find(strcmp(varargin,'AdaptiveParams'));
+                tmp = varargin{pos+1};                         
+                obj.init.Fnyq = tmp(1);     % integer
+                obj.init.Fbuflen = tmp(2);  % integer < Nw
+                obj.init.Fselect = tmp(3);  % 1 = min 2 = max 
+                obj.init.FNts = tmp(4);
+                obj.init.Fmin = tmp(5);
+                obj.init.wavelet_output_dim = tmp(6:end);
             else
-                obj.setup.dJ_low = 0;
-                obj.setup.dJ_high = 0;
-                obj.setup.dPE = -1;
+                obj.init.FNts = 1;
+                obj.init.Fbuflen = 20;
+                obj.init.Fselect = 2;
+                obj.init.Fnyq = 2;
             end
             
             % enable or not the buffer flush on the adaptive sampling
@@ -405,14 +417,14 @@ classdef obsopt < handle
                     obj.setup.Bcon_eq = [];                
                 end
                 if any(strcmp(varargin,'LBcon'))
-                    obj.setup.LBcon = -Inf*ones(1,length(obj.setup.opt_vars));
+                    obj.setup.LBcon = double(-Inf*ones(1,length(obj.setup.opt_vars)));
                     pos = find(strcmp(varargin,'LBcon'));
                     obj.setup.LBcon(obj.setup.ConPos) = varargin{pos+1};
                 else
                     obj.setup.LBcon = zeros(1,length(obj.setup.opt_vars));                
                 end
                 if any(strcmp(varargin,'UBcon'))
-                    obj.setup.UBcon = Inf*ones(1,length(obj.setup.opt_vars));
+                    obj.setup.UBcon = double(Inf*ones(1,length(obj.setup.opt_vars)));
                     pos = find(strcmp(varargin,'UBcon'));
                     obj.setup.UBcon(obj.setup.ConPos) = varargin{pos+1};
                 else
@@ -422,7 +434,7 @@ classdef obsopt < handle
                     pos = find(strcmp(varargin,'NONCOLcon'));
                     obj.setup.NONCOLcon = varargin{pos+1}; 
                 else
-                    obj.setup.NONCOLcon = @obj.NONCOLcon;
+		    obj.setup.NONCOLcon = @obj.NONCOLcon;
                 end
             else
                 obj.setup.Acon = [];    
@@ -862,10 +874,10 @@ classdef obsopt < handle
                     break
                 end                
                 
-                %%% get measure  %%
+                %%% get measure  %%               
                 Yhat = zeros(obj.setup.Nfilt+1,obj.setup.dim_out,size(X.y,2));                
                 u_in = [zeros(size(obj.init.input_story(traj).val,1),1), obj.init.input_story(traj).val];
-                Yhat(1,:,:) = obj.setup.measure(X.y,obj.init.params,tspan,u_in(:,(tspan_pos(1):tspan_pos(end))));
+                Yhat(1,:,:) = obj.setup.measure(X.y,obj.init.params,tspan,u_in(:,(tspan_pos(1):tspan_pos(end))),obj);
                 
                 %%% compute filters %%%
                 if obj.setup.Nfilt > 0                     
@@ -903,7 +915,7 @@ classdef obsopt < handle
                     end
                 end                                                                              
                 % cost function
-                J = zeros(obj.setup.J_nterm,obj.setup.dim_out_compare);
+                J = zeros(obj.setup.J_nterm,length(obj.setup.dim_out_compare));
                 target_pos = find(obj.init.Y_space ~= 0);
 
                 for term=1:obj.setup.J_nterm
@@ -1045,94 +1057,61 @@ classdef obsopt < handle
         end
         
         % dJ_cond: function for the adaptive sampling
-        function obj = dJ_cond_v5_function(obj)
+        % test: try to work with wavelets
+        % it will simply return the main frequencies of the current signal
+        function obj = dJ_cond_v5_function(obj)            
+            
+            buffer_ready = (obj.init.ActualTimeIndex > obj.init.FNts*obj.init.Fbuflen);
 
-            buffer_ready = (nnz(obj.init.Y_space) >= 2);
+            if buffer_ready && obj.setup.AdaptiveSampling                
 
-            if buffer_ready
-                
-                % init
-                temp_e = 0;
-                
-                for traj = 1:obj.setup.Ntraj
+                % get current buffer - new
+                pos_hat = obj.init.ActualTimeIndex:-obj.init.FNts:(obj.init.ActualTimeIndex-obj.init.FNts*obj.init.Fbuflen);                
+                short_win_data = squeeze(obj.init.Y_full_story(obj.init.traj).val(1,obj.init.wavelet_output_dim,pos_hat));                
 
-                    % where to check
-                    [~, pos_hat] = find(obj.init.Y_space > 1);
-                    pos_hat = obj.init.Y_space(pos_hat)-1;
+                % set data                
+                short_win_data = reshape(short_win_data,numel(obj.init.wavelet_output_dim),numel(pos_hat));
+                buffer = vecnorm(short_win_data,2,1);                 
+                                                                                
+                % frequency constraint                                
+                %[WT, F] = cwt(buffer,obj.init.wvname,1/obj.setup.Ts,'VoicesPerOctave',obj.init.Nv,'FrequencyLimits',obj.init.FLIMITS);                
+                [WT, ~] = cwt(buffer,obj.init.wvname,1/obj.setup.Ts,'VoicesPerOctave',obj.init.Nv);                
 
-                    % Y measure - hat
-                    Yhat = obj.init.Yhat_full_story(traj).val(1,:,pos_hat);
-                    Yhat(1,:,end+1) = obj.init.Yhat_full_story(traj).val(1,:,obj.init.ActualTimeIndex);
-                    Yhat = reshape(Yhat,size(Yhat,2),size(Yhat,3));
-                                        
-                    % Y measure - real
-                    Y_buf = obj.init.Y_full_story(traj).val(1,:,pos_hat);
-                    Y_buf(1,:,end+1) = obj.init.Y_full_story(traj).val(1,:,obj.init.ActualTimeIndex);
-                    Y_buf = reshape(Y_buf,size(Y_buf,2),size(Y_buf,3));
 
-                    % build the condition
-                    n_sum = size(Y_buf,1);
-                    
-                    for i=1:n_sum
-                        temp_e = temp_e + norm(Y_buf(i,:)-Yhat(i,:)); 
-                    end                 
-                end
+                % real values
+                WT_real = real(WT);
+                WT_norm = vecnorm(WT_real,2,1);   
+                WT_norm_filt = movmean(WT_norm,5);                
+                %F = scal2frq(WT_norm_filt,'morl',obj.setup.Ts);
+                % find derivative
+                [WT_norm_peaks,pos_peaks] = findpeaks(WT_norm_filt);                
+                % set freqs
+                if ~isempty(pos_peaks)
+                    % pos max and min on the WT
+                    [pos_max] = find(WT_norm_filt == max(WT_norm_peaks),1,'first');
+                    [pos_min] = find(WT_norm_filt == min(WT_norm_peaks),1,'first');
 
-                obj.init.dJ_cond = norm(temp_e);
+                    % store max min F
+                    %obj.init.Fcwt_story(:,obj.init.ActualTimeIndex) = [F(pos_max) F(pos_min)];
+
+                    % pos max and min on the F
+                    % new                    
+                    F_def(1,1) = 2*pi*WT_norm_filt(pos_max);  %1 max
+                    F_def(2,1) = 2*pi*WT_norm_filt(pos_min);  %2 min
+                       
+                    if min(F_def) < obj.init.Fmin
+                        F_def = zeros(obj.init.nfreqs,1);
+                    end
+
+                    % select freqs
+                    obj.init.freqs = [obj.init.freqs F_def];
+                else
+                    obj.init.freqs = [obj.init.freqs zeros(obj.init.nfreqs,1)];
+                end                                                          
             else
-                obj.init.dJ_cond = 1.1*obj.setup.dJ_high;
-            end
-            
-            obj.init.dJ_cond_story(:,obj.init.ActualTimeIndex) = obj.init.dJ_cond;
-        end
-        
-        % Get Persistent Excitation and its derivative
-        function obj = PE(obj)
-            
-            for traj = 1:obj.setup.Ntraj
-                
-                % PE pos
-                PEmeas = obj.setup.PEPos(1);
-                PEterm = obj.setup.PEPos(2);
-                
-                %%%%
-                if (mod(obj.init.ActualTimeIndex,obj.setup.Nts) == 0)
-                    obj.init.PE_pos_array = [obj.init.PE_pos_array obj.init.ActualTimeIndex];
-                end
-                
-                Y_buf = [];
-                nsamp = length(obj.init.PE_pos_array);
-                if nsamp >= obj.setup.w
-                    Y_buf(1,1,:) = squeeze(obj.init.Y_full_story(traj).val(PEterm,PEmeas,obj.init.PE_pos_array(end-obj.setup.w+1:end)));
-                    Y_buf(1,1,end+1) = obj.init.Y_full_story(traj).val(PEterm,PEmeas,obj.init.ActualTimeIndex); 
-                elseif nsamp > 0
-                    Y_buf(1,1,:) = squeeze(obj.init.Y_full_story(traj).val(PEterm,PEmeas,obj.init.PE_pos_array(end-nsamp+1:end)));
-                    Y_buf(1,1,end+1) = obj.init.Y_full_story(traj).val(PEterm,PEmeas,obj.init.ActualTimeIndex); 
-                else
-                    Y_buf(1,1,1) = obj.init.Y_full_story(traj).val(PEterm,PEmeas,obj.init.ActualTimeIndex); 
-                    Y_buf(1,1,2) = Y_buf(1,1,1);
-                end                
-                                               
-                
-                Y_buf = reshape(Y_buf,size(Y_buf,2),size(Y_buf,3));
-                %%% compute signal richness %%%         
-                variations = diff(sum(Y_buf,1));
-                variations(find(variations==0)) = [];
-                tmp = norm(abs(variations));
-                if isempty(tmp)
-                    tmp = 0;
-                end
-                
-                if (tmp == 0)
-                    obj.init.PE(traj).val(obj.init.ActualTimeIndex) = 0*obj.setup.dPE;
-                else
-                    obj.init.PE(traj).val(obj.init.ActualTimeIndex) = tmp;
-                end
-             
-            end
-             
-             obj.init.maxIterStory(obj.init.ActualTimeIndex) = obj.setup.max_iter;
-        end
+                obj.init.freqs = [obj.init.freqs zeros(obj.init.nfreqs,1)];
+            end                       
+        end                
         
         % target function (observer or control design)
         function obj = target(obj)          
@@ -1160,7 +1139,7 @@ classdef obsopt < handle
                 % save runtime state
                 obj.init.X_est_runtime(traj).val(:,obj.init.ActualTimeIndex) = obj.init.X_est(traj).val(:,obj.init.ActualTimeIndex);
                 % get ESTIMATED measure from ESTIMATED state (xhat)
-                yhat(traj).val = obj.setup.measure(xhat(traj).val,obj.init.params,obj.setup.time(obj.init.ActualTimeIndex),obj.init.input_story(traj).val(:,max(1,obj.init.ActualTimeIndex-1)));
+                yhat(traj).val = obj.setup.measure(xhat(traj).val,obj.init.params,obj.setup.time(obj.init.ActualTimeIndex),obj.init.input_story(traj).val(:,max(1,obj.init.ActualTimeIndex-1)),obj);
             end
             
             for traj=1:obj.setup.Ntraj
@@ -1202,6 +1181,14 @@ classdef obsopt < handle
             % fisrt bunch of data - read Y every Nts and check if the signal is
             distance = obj.init.ActualTimeIndex-obj.init.Y_space(end);   
             NtsPos = mod(obj.init.Nsaved,obj.setup.w)+1;
+            obj.init.NtsPos = NtsPos;
+
+            % if the current Nts is different from the standard one, than
+            % it measn that a complete cycle has been done, and you should
+            % replace it again with the original one
+            if obj.setup.NtsVal(NtsPos) ~= obj.setup.Nts
+                obj.setup.NtsVal(NtsPos) = obj.setup.Nts;
+            end
             
             % set optimization time and iterations depending on the current Nts
             if obj.setup.NtsVal(NtsPos) == min(obj.setup.NtsVal)
@@ -1216,24 +1203,29 @@ classdef obsopt < handle
                 end
             end            
             
-            obj.init.initBuf_flag = (obj.init.ActualTimeIndex > obj.setup.w*obj.setup.Nts);
-            obj = obj.dJ_cond_v5_function();
-            obj = obj.PE();
+            obj = obj.dJ_cond_v5_function();             
+            % define selcted freq: freq_sel=1 MAX freq_sel=2 MIN
+            freq_sel = obj.init.Fselect;
+            % define bound on freq (at least 2 due to Nyquist)
+            freq_bound = obj.init.Fnyq;
+            % set NtsVal depending on freqs
+            if any(obj.init.freqs(:,end))
+                % define freq on which calibrate the sampling time
+                freq = freq_bound*obj.init.freqs(freq_sel,end); % Hz
+                Ts_wv = 1/(freq); % s
+                distance_min = max(1,ceil(Ts_wv/obj.setup.Ts));
+            else
+                distance_min = obj.setup.NtsVal(NtsPos);                
+            end
+
+            % update the minimum distance                        
+            obj.setup.NtsVal(NtsPos) = distance_min;            
             
-            %%%% select optimisation with hystheresis - PE %%%%%
-            % flag = all good, no sampling
-            obj.init.PE_flag = obj.init.PE(traj).val(obj.init.ActualTimeIndex) <= obj.setup.dPE; 
-            obj.init.distance_safe_flag = (distance < obj.init.safety_interval);
-            
-            %%%% select optimisation with hystheresis - dJcond %%%%%
-            hyst_low = (obj.init.dJ_cond_story(max(1,obj.init.ActualTimeIndex-1)) < obj.setup.dJ_low) && (obj.init.dJ_cond >= obj.setup.dJ_low);
-            hyst_high = (obj.init.dJ_cond >= obj.setup.dJ_high);
-            % flag = all good, no sampling
-%             obj.init.hyst_flag = ~(hyst_low || hyst_high);
-            obj.init.hyst_flag = ~(hyst_high);
+            % safety flag
+            obj.init.distance_safe_flag = (distance < obj.init.safety_interval);           
             
             %%%% observer %%%%
-            if  ( ~( ( (distance < obj.setup.NtsVal(NtsPos)) || obj.init.hyst_flag || obj.init.PE_flag ) && (obj.init.distance_safe_flag) ) )
+            if  ( ~( (distance < obj.setup.NtsVal(NtsPos)) && (obj.init.distance_safe_flag) ) )
 
                 if obj.setup.print
                     % Display iteration slengthtep
@@ -1252,7 +1244,7 @@ classdef obsopt < handle
                     end
                 end
 
-                % adaptive sampling
+                % adaptive sampling                
                 obj.init.Y_space(1:end-1) = obj.init.Y_space(2:end);
                 obj.init.Y_space(end) = obj.init.ActualTimeIndex;
                 obj.init.Y_space_full_story(end+1) = obj.init.ActualTimeIndex;
@@ -1264,20 +1256,45 @@ classdef obsopt < handle
 
                 % check only on the first traj as the sampling is coherent
                 % on the 2.
-                if ~obj.setup.WaitAllBuffer
+                % WaitAlBuffer == 0 --> start asap
+                if obj.setup.WaitAllBuffer == 0
                     cols_nonzeros = length(find(obj.init.Y_space ~= 0))*obj.setup.dim_out*nnz(obj.setup.J_temp_scale);                
-                else
+                % WaitAlBuffer == 1 --> start when all the buffer is full
+                elseif obj.setup.WaitAllBuffer == 1
                     cols_nonzeros = length(find(obj.init.Y_space ~= 0));  
+                % WaitAlBuffer == 2 --> start at the last step of the trajectory
+                elseif obj.setup.WaitAllBuffer == 2
+                    cols_nonzeros = obj.setup.Nts;
+                else
+                    error('Wrong Wait Buffer Option')
                 end
 
                 % flag
-                if ~obj.setup.WaitAllBuffer
+                % WaitAlBuffer == 0 --> start asap
+                if obj.setup.WaitAllBuffer == 0
                     flag = 2*length(obj.setup.opt_vars)+1; % Aeyels condition (see https://doi.org/10.48550/arXiv.2204.09359)
-                else
+                % WaitAlBuffer == 1 --> start when all the buffer is full
+                elseif obj.setup.WaitAllBuffer == 1
                     flag = obj.setup.w;
+                % WaitAlBuffer == 2 --> start at the last step of the trajectory
+                elseif obj.setup.WaitAllBuffer == 2
+                    flag = obj.setup.Niter-obj.init.ActualTimeIndex;
+                else
+                    error('Wrong Wait Buffer Option')
                 end
                 % real
                 if cols_nonzeros >= flag                                        
+
+                    if obj.setup.WaitAllBuffer == 2
+                        obj.setup.Niter = obj.init.ActualTimeIndex;
+                        obj.setup.time = obj.setup.time(1:obj.init.ActualTimeIndex);
+                        obj.init.break = 1;
+                        obj.setup.w = numel(obj.init.Y_space_full_story)-1;
+                        obj.init.Y_space = nonzeros(obj.init.Y_space_full_story)';
+                        for traj=1:obj.init.params.Ntraj
+                            obj.init.Y(traj).val = obj.init.Y_full_story(traj).val(:,:,obj.init.Y_space);
+                        end                        
+                    end
 
                     if obj.setup.forward
 
@@ -1373,13 +1390,16 @@ classdef obsopt < handle
                             range = 1:obj.init.ActualTimeIndex;
                             for filt=1:obj.setup.J_nterm
                                 for dim=1:length(obj.setup.dim_out_compare)
-                                    E = (obj.init.Yhat_full_story(traj).val(filt,obj.setup.dim_out_compare(dim),range) - ...
-                                        obj.init.Y_full_story(traj).val(filt,obj.setup.dim_out_compare(dim),range)).^2;
-                                    E = reshape(E,1,size(E,3));
-                                    Emax = max(E);
-                                    if Emax == 0 || (abs(Emax) < 1e-15)
-                                        Emax = 1;
+                                    for traj=1:obj.setup.Ntraj
+                                        E = (obj.init.Yhat_full_story(traj).val(filt,obj.setup.dim_out_compare(dim),range) - ...
+                                            obj.init.Y_full_story(traj).val(filt,obj.setup.dim_out_compare(dim),range)).^2;
+                                        E = reshape(E,1,size(E,3));
+                                        Emax(traj) = max(E);
+                                        if Emax(traj) == 0 || (abs(Emax(traj)) < 1e-15)
+                                            Emax(traj) = 1;
+                                        end                                        
                                     end
+                                    Emax = max(Emax);
                                     obj.init.scale_factor_scaled(obj.setup.dim_out_compare(dim),filt) = obj.init.scale_factor(obj.setup.dim_out_compare(dim),filt)/Emax;
                                 end
                             end        
@@ -1456,9 +1476,12 @@ classdef obsopt < handle
                                     problem.solver = 'patternsearch';   
                                     obj.init.myoptioptions.ConstraintTolerance = 1e-10;
                                     obj.init.myoptioptions.ScaleMesh = 'off';
+                                    obj.init.myoptioptions.MaxMeshSize = 100;
+                                    obj.init.myoptioptions.InitialMeshSize = 100;
                                     obj.init.myoptioptions.Display = 'iter';
-                                    obj.init.myoptioptions.Algorithm = 'nups';
-                                    obj.init.myoptioptions.UseParallel = false;
+                                    obj.init.myoptioptions.Algorithm = 'nups-gps';
+                                    obj.init.myoptioptions.UseParallel = true;                                    
+                                    obj.init.myoptimoptions.UseCompletePoll = true;
                                 elseif strcmp(func2str(obj.setup.fmin),'fminsearchcon')   
                                     problem = createOptimProblem('fmincon','objective',@(x)obj.setup.cost_run(x,obj.init.temp_x0_nonopt,obj.init.temp_x0_filters,obj.init.target,1),...
                                                                             'x0',  obj.init.temp_x0_opt, 'lb', obj.setup.LBcon, 'ub', obj.setup.UBcon, 'Aeq', obj.setup.Acon_eq, 'beq', obj.setup.Bcon_eq, ...
@@ -1477,17 +1500,23 @@ classdef obsopt < handle
                                 if ~obj.setup.MultiStart
                                     try
                                         [NewXopt, J] = obj.setup.fmin(problem);
-                                    catch
+                                    catch ME
                                         [NewXopt, J] = obj.setup.fmin(problem.objective,problem.x0,problem.lb,problem.ub,problem.Aeq,problem.beq,problem.nonlcon,problem.options);
                                     end
                                 else
                                     list = obj.init.params.tpoints.list;
                                     for pp = 1:obj.init.params.tpoints.NumStartPoints
                                         problem.x0 = list(pp,:);
-                                        [J_before, obj_tmp] = obj.setup.cost_run(problem.x0,obj.init.temp_x0_nonopt,obj.init.temp_x0_filters,obj.init.target);     
-                                        [NewXopt(pp,:), J(pp,:)] = obj.setup.fmin(problem);
+                                        [J_before(pp), obj_tmp] = obj.setup.cost_run(problem.x0,obj.init.temp_x0_nonopt,obj.init.temp_x0_filters,obj.init.target);   
+                                        try
+                                            [NewXopt(pp,:), J(pp,:)] = obj.setup.fmin(problem);
+                                        catch ME
+                                            [NewXopt(pp,:), J(pp,:)] = obj.setup.fmin(problem.objective,problem.x0,problem.lb,problem.ub,problem.Aeq,problem.beq,problem.nonlcon,problem.options);
+                                        end
                                     end
+                                    %J_improve = J./J_before';
                                     [J,pos] = min(J);
+                                    J_before = J_before(pos);
                                     NewXopt = NewXopt(pos,:);
                                 end
                             end
@@ -1545,7 +1574,7 @@ classdef obsopt < handle
                                     % NB: the output storage has to be done in
                                     % back_time+1 as the propagation has been
                                     % performed 
-                                    Yhat = obj.setup.measure(x_propagate,obj.init.params,obj.setup.time(back_time),obj.init.input_story(traj).val(:,back_time));
+                                    Yhat = obj.setup.measure(x_propagate,obj.init.params,obj.setup.time(back_time),obj.init.input_story(traj).val(:,back_time),obj);
                                     % get filters - yhat
                                     obj.init.Yhat_full_story(traj).val(1,:,back_time) = Yhat;  
                                     tspan_pos = [max(1,back_time-1), back_time];
@@ -1602,15 +1631,15 @@ classdef obsopt < handle
                                     for j =1:n_iter_propagate                                                                                
 
                                         % back time
-                                        back_time = obj.init.BackIterIndex+j-1;                                        
+                                        back_time = obj.init.BackIterIndex+j;                                        
 
                                         % how do you handle the input?
                                         obj.init.params.ActualTimeIndex = back_time; % here you have the -1 because BackIterIndex is differently set up than in measure_function                                          
                                         
                                         if strcmp(func2str(obj.setup.ode),'odeLsim')                                        
-                                            x_propagate = X.y(:,back_time-obj.init.BackIterIndex+1);
+                                            x_propagate = X.y(:,back_time);
                                         else
-                                            x_propagate = obj.init.X_est(traj).val(:,back_time-obj.init.BackIterIndex+1);
+                                            x_propagate = obj.init.X_est(traj).val(:,back_time);
                                         end
 
                                         %%%% ESTIMATED measurements
@@ -1618,7 +1647,7 @@ classdef obsopt < handle
                                         % NB: the output storage has to be done in
                                         % back_time+1 as the propagation has been
                                         % performed 
-                                        Yhat = obj.setup.measure(x_propagate,obj.init.params,obj.setup.time(back_time),obj.init.input_story(traj).val(:,back_time));
+                                        Yhat = obj.setup.measure(x_propagate,obj.init.params,obj.setup.time(back_time),obj.init.input_story(traj).val(:,back_time-1),obj);
                                         % get filters - yhat
                                         obj.init.Yhat_full_story(traj).val(1,:,back_time) = Yhat;            
                                         tspan_pos = [max(1,back_time-1), back_time];
@@ -1658,6 +1687,8 @@ classdef obsopt < handle
 
                         end
                     end
+
+                else                    
 
                 end
 
