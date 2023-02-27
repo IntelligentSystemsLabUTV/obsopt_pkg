@@ -1,8 +1,9 @@
-%% SIMULATION_GENERAL_V3
+%% SIMULATION_REALDATA_BATTERY_SIMULINK
 % file: simulation_general_v3.m
 % author: Federico Oliva
-% date: 10/01/2022
-% description: function to setup and use the MHE observer on general modelgiaccagli.mattia@gmail.com
+% date: 27/02/2023
+% description: function to setup and use the MHE observer on battery from
+% simulink data (no synthetic model integrated)
 % INPUT: none
 % OUTPUT: params,obs
 function [params,obs] = simulation_realdata_battery_simulink(model_name)
@@ -61,13 +62,13 @@ params = model_init('Ts',Ts,'T0',[t0, tend],'noise',1, 'params_update', params_u
 terminal_states = params.opt_vars;
 terminal_weights = 1e0*ones(size(terminal_states));
 % OCV %
-terminal_weights([3 7 11]) = 1;
+% terminal_weights([3 7 11]) = 1;
 % R0 %
-terminal_weights([4 8 12]) = 1e2;
+% terminal_weights([4 8 12]) = 1e-2;
 % OCV %
-terminal_weights([5 9 13]) = 1e2;
+% terminal_weights([5 9 13]) = 1e-2;
 % OCV %
-terminal_weights([6 10 14]) = 1e4;
+% terminal_weights([6 10 14]) = 1e4;
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 
@@ -77,7 +78,7 @@ obs = obsopt('DataType', 'simulated', 'optimise', 1, 'MultiStart', params.multis
           'Nw', Nw, 'Nts', Nts, 'ode', ode, 'PE_maxiter', 0, 'WaitAllBuffer', 0, 'params',params, 'filters', filterScale,'filterTF', filter, ...
           'model_reference',model_reference, 'measure_reference',measure_reference, ...
           'Jdot_thresh',0.95,'MaxIter', 1, 'Jterm_store', 1, 'AlwaysOpt', 1 , 'print', 0 , 'SafetyDensity', Inf, 'AdaptiveParams', [4 80 2 1 10 params.OutDim_compare], ...
-          'AdaptiveSampling',0, 'FlushBuffer', 1, 'opt', @fminsearchcon, 'terminal', 1, 'terminal_states', terminal_states, 'terminal_weights', terminal_weights, 'terminal_normalise', 0, ...
+          'AdaptiveSampling',0, 'FlushBuffer', 1, 'opt', @fminsearchcon, 'terminal', 1, 'terminal_states', terminal_states, 'terminal_weights', terminal_weights, 'terminal_normalise', 1, ...
           'ConPos', [], 'LBcon', [], 'UBcon', [],'NONCOLcon',@nonlcon_fcn,'Bounds', 1,'BoundsPos',[1 4 5],'BoundsValLow',[1e-3 1e-3 1e-3],'BoundsValUp',[1 1e3 1e3]);
 
 
