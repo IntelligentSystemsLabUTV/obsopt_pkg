@@ -10,10 +10,10 @@
 % t: time instant (may be not used)
 % OUTPUT:
 % y: output measurement
-function y = measure_battery_tushar(x,params,t,u)
+function y = measure_battery_tushar(x,params,t,u,obs)
 
     % compute the control - I
-    params.u = params.input(t,x,params);    
+    params.u = params.input(t,x,params,obs);    
     
     % get the observed components of the state vector
     y(1,:) = x(3,:) - x(2,:) -(x(4,:).*params.u(1,:));

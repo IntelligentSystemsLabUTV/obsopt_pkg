@@ -17,7 +17,7 @@ function x_dot = model_battery_tushar(t,x,params,obs)
     x_dot = x;  
     
     % compute the control
-    params.u = 1*params.input(t,x,params);        
+    params.u = 1*params.input(t,x,params,obs);        
 
     % save input
     tdiff = obs.setup.time-t;   

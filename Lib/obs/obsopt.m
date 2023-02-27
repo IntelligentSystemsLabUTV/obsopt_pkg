@@ -373,7 +373,7 @@ classdef obsopt < handle
                 pos = find(strcmp(varargin,'BoundsWeight'));
                 obj.setup.boundsWeight = varargin{pos+1};                
             else
-                obj.setup.boundsWeight = [];
+                obj.setup.boundsWeight = ones(1,numel(obj.setup.boundsPos));
             end
             
             % constraint pos
@@ -959,9 +959,9 @@ classdef obsopt < handle
                         % init value
                         init_value = obj.init.temp_x0(obj.init.traj).val(obj.setup.boundsPos(bound));
                         % barrier - low
-                        err_low = min(X.y(obj.setup.boundsPos(bound),:)-obj.setup.boundsValLow(bound));
+                        err_low = min(X.y(obj.setup.boundsPos(bound),2:end)-obj.setup.boundsValLow(bound));
                         % barrier - up
-                        err_up = max(obj.setup.boundsValUp(bound)-X.y(obj.setup.boundsPos(bound),:));
+                        err_up = max(obj.setup.boundsValUp(bound)-X.y(obj.setup.boundsPos(bound),2:end));
                         % terminal
                         err_terminal = norm(X.y(obj.setup.boundsPos(bound),:)-init_value);
                         % sum stuff

@@ -21,11 +21,11 @@ function [c, ceq] = nonlcon_fcn(xopt,xnonopt,obs)
 %     end
     
     % gamma negative
-    c = [c; -(x(obs.init.params.GammaPos) - tol)];
+%     c = [c; -(x(obs.init.params.GammaPos) - tol)];
     
     % PSI roots < 0
-    tmp = (real(roots(x(obs.init.params.PsiPos))) + tol);
-    c = [c; tmp];
+%     tmp = (real(roots(x(obs.init.params.PsiPos))) + tol);
+%     c = [c; tmp];
             
     % cons
     ceq = [];

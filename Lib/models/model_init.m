@@ -11,11 +11,21 @@
 % params: structure with all the necessary parameter to the model
 function params = model_init(varargin)
 
+    % input law definition. Default is free evolution 
+    if any(strcmp(varargin,'addons'))
+        pos = find(strcmp(varargin,'addons'));
+        if ~isempty(varargin{pos+1})
+            addon = varargin{pos+1};
+        else
+            addon = [];
+        end 
+    end
+
     % get params_init.m script
     if any(strcmp(varargin,'params_init'))
         pos = find(strcmp(varargin,'params_init'));
         params_init = varargin{pos+1};
-        params = params_init();
+        params = params_init(addon);
     else
         params.X = 5;
     end
@@ -136,7 +146,7 @@ function params = model_init(varargin)
         else
             params.input = @(x,params) 0;
         end 
-    end
+    end    
                
     % remark: the params.Ntraj variable describes on how many different
     % trajectories the MHE is run. This makes sense in the control design
@@ -161,7 +171,7 @@ function params = model_init(varargin)
             
             % randomly define the percentage (bool flag, see below)
             randflag = 1; 
-            noise_std = 1*5e-1;
+            noise_std = 0*5e-1;
 
             % if case: random perturbation percentage - optimised vars            
             if randflag

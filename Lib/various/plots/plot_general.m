@@ -27,7 +27,7 @@ function plot_general(obj,varargin)
             if 1 || strcmp(obj.setup.DataType,'simulated')
                 plot(obj.setup.time,obj.init.X(traj).val(obj.setup.plot_vars(i),:),'b--','LineWidth',2);
             end
-            plot(obj.setup.time,obj.init.X_est(traj).val(obj.setup.plot_vars(i),:),'r--','LineWidth',2);                                                  
+            plot(obj.setup.time,obj.init.X_est_runtime(traj).val(obj.setup.plot_vars(i),:),'r--','LineWidth',2);                                                  
         end    
 
         % labels
@@ -58,7 +58,7 @@ function plot_general(obj,varargin)
                 if 1 || strcmp(obj.setup.DataType,'simulated')
                     plot(obj.setup.time,obj.init.X(traj).val(obj.setup.plot_params(i),:),'b--','LineWidth',2);
                 end
-                plot(obj.setup.time,obj.init.X_est(traj).val(obj.setup.plot_params(i),:),'g--','LineWidth',2);                                                      
+                plot(obj.setup.time,obj.init.X_est_runtime(traj).val(obj.setup.plot_params(i),:),'g--','LineWidth',2);                                                      
             end
 
             % labels
@@ -87,7 +87,7 @@ function plot_general(obj,varargin)
             box on
 
             % plot
-            est_error = obj.init.X(1).val(obj.setup.plot_vars(i),:) - obj.init.X_est(1).val(obj.setup.plot_vars(i),:);
+            est_error = obj.init.X(1).val(obj.setup.plot_vars(i),:) - obj.init.X_est_runtime(1).val(obj.setup.plot_vars(i),:);
 
             log_flag = 1;
             if ~log_flag
@@ -119,7 +119,7 @@ function plot_general(obj,varargin)
                 box on
 
                 % plot
-                est_error = obj.init.X(1).val(obj.setup.plot_params(i),:) - obj.init.X_est(1).val(obj.setup.plot_params(i),:);
+                est_error = obj.init.X(1).val(obj.setup.plot_params(i),:) - obj.init.X_est_runtime(1).val(obj.setup.plot_params(i),:);
 
                 log_flag = 1;
                 if ~log_flag
@@ -149,7 +149,7 @@ function plot_general(obj,varargin)
 
         % plot
         for iter=1:obj.setup.Niter
-            est_error_norm(iter) = norm(obj.init.X(1).val(obj.setup.plot_vars,iter) - obj.init.X_est(1).val(obj.setup.plot_vars,iter));
+            est_error_norm(iter) = norm(obj.init.X(1).val(obj.setup.plot_vars,iter) - obj.init.X_est_runtime(1).val(obj.setup.plot_vars,iter));
         end
 
         log_flag = 0;
@@ -178,7 +178,7 @@ function plot_general(obj,varargin)
 
         % plot
         for iter=1:obj.setup.Niter
-            est_error_norm(iter) = norm(obj.init.X(1).val(obj.setup.plot_params,iter) - obj.init.X_est(1).val(obj.setup.plot_params,iter));
+            est_error_norm(iter) = norm(obj.init.X(1).val(obj.setup.plot_params,iter) - obj.init.X_est_runtime(1).val(obj.setup.plot_params,iter));
         end
 
         log_flag = 0;
