@@ -56,17 +56,8 @@ function y = measure_rover(x,params,tspan,u,obs)
             D = reshape(obs.init.params.last_D(traj,:),params.Nanchor,1);
         end
     
-        %%% get the IMU accelerations
-        if mod(pos(k)+offset_UWBsamp,params.IMU_samp) == 0                 
-            xd = obs.setup.model([t(k) t(k)+params.Ts],x,params,obs);        
-            IMU_true = reshape(xd(params.pos_v,:),numel(params.pos_v),1);          
-            obs.init.params.last_IMU_acc(traj,:) = IMU_true;
-        else       
-            IMU_true = reshape(obs.init.params.last_IMU_acc(traj,:),params.space_dim,1);
-        end
-    
-        % add bias on IMU
-        IMU_true = IMU_true + params.bias*x(params.pos_bias,k);
+        %%% get the IMU accelerations              
+        IMU_true = reshape(x(params.pos_acc,k),numel(params.pos_acc),1);                    
 
         % final measure
         y(:,k) = [D; P_true; V_true; IMU_true];                     

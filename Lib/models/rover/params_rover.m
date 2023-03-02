@@ -66,49 +66,48 @@ function params = params_rover
     % anchor stuff
     an_dp = 15;
     an_dz = 2;
+    Nhillmax = 4;
 
     %%% gaussian stuff %%%
+    % different hill configuration for each traj
     ds = 1e-2*params.err_scale;
     [params.X_gauss, params.Y_gauss] = meshgrid(-an_dp:ds:an_dp, -an_dp:ds:an_dp);
-    params.A_gauss = 2;
-    params.sigma_gauss = 2;
-    ds = 1;
-    params.hill(1,:) = [-an_dp*ds -an_dp*ds];
-    params.hill(2,:) = [-an_dp*ds an_dp*ds];
-    params.hill(3,:) = [an_dp*ds an_dp*ds];
-    params.hill(4,:) = [an_dp*ds -an_dp*ds];
-    params.G_gauss = [];
-    for hills=1:size(params.hill,1)
-        try
-            params.G_gauss = 1*params.G_gauss + 1*params.A_gauss*exp(-1/(params.sigma_gauss^2)*((params.Y_gauss-params.hill(hills,2)/2).^2 + (params.X_gauss-params.hill(hills,1)/2).^2));
-        catch
-            params.G_gauss = 1*params.A_gauss*exp(-1/(params.sigma_gauss^2)*((params.Y_gauss-params.hill(hills,2)/2).^2 + (params.X_gauss-params.hill(hills,1)/2).^2));
+    for traj = 1:params.Ntraj
+
+        params.A_gauss(traj) = rand();
+        params.sigma_gauss(traj) = 3 + (5-3)*rand();
+        ds = 1;
+        ranges = [-an_dp*ds an_dp*ds; -an_dp*ds an_dp*ds];
+        Nhill = randi(Nhillmax,1);
+        for hill = 1:Nhill
+            x = ranges(1,1) + (ranges(1,2)-ranges(1,1))*rand();
+            y = ranges(2,1) + (ranges(2,2)-ranges(2,1))*rand();
+            params.hill(traj).val(hill,:) = [x y];
+        end     
+
+        params.G_gauss(traj).val = [];
+        for hill=1:Nhill
+            try
+                params.G_gauss(traj).val = 1*params.G_gauss(traj).val + 1*params.A_gauss(traj)*exp(-1/(params.sigma_gauss(traj)^2)*((params.Y_gauss-params.hill(traj).val(hill,2)/2).^2 + (params.X_gauss-params.hill(traj).val(hill,1)/2).^2));
+            catch
+                params.G_gauss(traj).val = 1*params.A_gauss(traj)*exp(-1/(params.sigma_gauss(traj)^2)*((params.Y_gauss-params.hill(traj).val(hill,2)/2).^2 + (params.X_gauss-params.hill(traj).val(hill,1)/2).^2));
+            end
         end
+
     end
+    
 
     % multistart
     params.multistart = 0;
 
     % observer params    
-%     params.theta = 1*[0.6695    0.1459    0.0045    0.0003         0];
-    params.theta = 0*[1 1 1 1 1 1];
+    params.theta = 0*[1 1 1 1];
     params.alpha = 0*[5 0];
-
-    % bandpass
-%     p = [0.5 10];
-%     params.beta = 1*[1 -sum(p)];
-%     params.C = 1*[prod(p) sum(p)];
-% 
-%     A = [0 1; -params.C ];
-%     B = params.beta';
-%     C = [1 0];
-%     params.f = ss(A,B,C,0);
-%     params.alpha(1) = 1/getPeakGain(params.f);
-%     params.f = ss(A,params.alpha(1)*B,C,0);  
+%     params.theta = [1.0324    0.0001   -0.0001   -0.0139  -71.8589    0.8568    0.4621    0.0027];
+%     params.alpha = [151.5251 0];    
    
     %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
     % hyb obs parameters
-%     params.dim_Gamma = length(params.C) + length(params.theta) +length(params.beta) + length(params.alpha);
     params.dim_Gamma = length(params.theta) + length(params.alpha);
 
     % model parameters
@@ -179,7 +178,7 @@ function params = params_rover
     params.jerk_enable = 0;
     params.sigma_w = 1e-2;
     params.proc_acc = 1;
-    params.proc_bias = 1;
+    params.proc_bias = 0;
     params.bias = 1;
 
     %%%%%% EKF %%%%%
@@ -197,7 +196,7 @@ function params = params_rover
     
     % process noise - model
     %params.Q = params.sigma_w^2*1e0*diag([1e0*ones(1,3) params.bias*1e0*ones(1,3)]);
-    params.Q = 1*1e0*diag([1e4 1e4 1e4 params.proc_bias*[1e-2 1e-2 1e-2]]);
+    params.Q = 1*diag([params.proc_acc*1e1*ones(1,3) params.proc_bias*1e-2*ones(1,3)]);
 
     % EKF covariance matrix
     for traj=1:params.Ntraj
@@ -213,7 +212,7 @@ function params = params_rover
     params.d_est = zeros(params.Nanchor,1);
     %%%%%%%%%%%%%%%%%%%%%%%%
     
-    % initial condition    
+    % initial condition - anchors square
     params.X(1).val(:,1) = 1*[10;0;0;0;params.bias*0.1; ...                % x pos + IMU bias
                               10;0;0;0;params.bias*0.1; ...                % y pos + IMU bias
                               0;0;0;0;params.bias*0.05; ...                % z pos + IMU bias
@@ -221,6 +220,17 @@ function params = params_rover
                               -an_dp;an_dp;1*an_dz;   ...
                               an_dp;an_dp;1*an_dz;    ...
                               an_dp;-an_dp;1*an_dz;   ...    % anchors                                                                                                        
+                              params.theta'; ...                              
+                              params.alpha'];  
+
+    % initial condition - anchors diamond
+    params.X(1).val(:,1) = 1*[10;0;0;0;params.bias*0.1; ...                % x pos + IMU bias
+                              10;0;0;0;params.bias*0.1; ...                % y pos + IMU bias
+                              0;0;0;0;params.bias*0.05; ...                % z pos + IMU bias
+                              -an_dp;0;1*an_dz;  ...
+                              0;an_dp;1*an_dz;   ...
+                              an_dp;0;1*an_dz;    ...
+                              0;-an_dp;1*an_dz;   ...    % anchors                                                                                                        
                               params.theta'; ...                              
                               params.alpha'];  
 
@@ -237,18 +247,7 @@ function params = params_rover
 %                               params.beta'; ...
 %                               params.alpha'];
     %%%%%%%%%%%%%%%%%%%%%%%
-
-    % hills on z - correct initialization
-    p_now = params.X(1).val(params.pos_p(1:2),1);
-    p_est = zeros(1,2);
-    p_grid = [params.X_gauss(1,:); params.Y_gauss(:,1)'];
-    for i=1:2
-        pdiff = p_grid(i,:)-p_now(i);   
-        p_est(i) = find(abs(pdiff) == min(abs(pdiff)),1,'first');                
-    end
-    z0 = params.G_gauss(p_est(1),p_est(2));
-    params.X(1).val(params.pos_p(3),1) = z0; 
-    
+       
     % position in the state vector of the estimated parameters
     params.estimated_params = params.pos_Gamma;
     
@@ -293,6 +292,20 @@ function params = params_rover
         % from starting positions
 %         params.X(traj).val(params.pos_p,1) = pos_init(traj,:);
     end    
+
+    % hills on z - correct initialization
+    for traj = 1:params.Ntraj
+        p_now = params.X(traj).val(params.pos_p(1:2),1);
+        p_est = zeros(1,2);
+        p_grid = [params.X_gauss(1,:); params.Y_gauss(:,1)'];
+        for i=1:2
+            pdiff = p_grid(i,:)-p_now(i);   
+            p_est(i) = find(abs(pdiff) == min(abs(pdiff)),1,'first');                
+        end
+        z0 = params.G_gauss(traj).val(p_est(1),p_est(2));
+        params.X(traj).val(params.pos_p(3),1) = z0; 
+    end
+
     
     % plot vars (used to plot the state estimation. When the parameters are
     % too many, consider to use only the true state components)

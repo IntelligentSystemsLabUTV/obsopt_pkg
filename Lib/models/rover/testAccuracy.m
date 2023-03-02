@@ -1,6 +1,6 @@
 %%
 clear ex ey ez
-start=200;
+start=3000;
 for i=1:params.Ntraj
     ex(i,:) = obs.init.X(i).val(1,:)-obs.init.X_est(i).val(1,:);
     ey(i,:) = obs.init.X(i).val(6,:)-obs.init.X_est(i).val(6,:);

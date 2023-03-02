@@ -55,6 +55,11 @@ function obs = EKF_rover(obs,xhat_kk_1,y_k)
     % get jacobians    
     [GFx, GFw, GHx] = G(xhat_kk_1,params.Ts,y_k,params);      
     GHs = GHx(posH_row,:);
+
+    % test sensitivity
+    if mod(k,params.UWB_samp_EKF) == 0
+        obs.init.GHx(k,:,:) = GHx; 
+    end
     
     % project covariance (eq. 12)
     Phat_kk_1 = GFx*Phat_0*GFx' + GFw*params.Q*GFw';    

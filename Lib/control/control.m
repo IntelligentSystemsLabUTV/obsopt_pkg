@@ -53,7 +53,7 @@ function u = control(t,drive,params,obs)
             pdiff = p_grid(i,:)-p_now(i);   
             p_est(i) = find(abs(pdiff) == min(abs(pdiff)),1,'first');                
         end
-        z_des = params.G_gauss(p_est(2),p_est(1));
+        z_des = params.G_gauss(traj).val(p_est(2),p_est(1));
         z_now = drive(params.pos_p(3));
         zdot_now = drive(params.pos_v(3));
 

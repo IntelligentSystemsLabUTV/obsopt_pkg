@@ -45,22 +45,9 @@ function [y, obs] = measure_rover_reference(x,params,t,u,obs)
     end    
 
     %%% get the IMU accelerations
-    if mod(pos(end),params.IMU_samp) == 0 
-        % save story
-        old_u = obs.init.input_story_ref(traj).val(:,pos(1));
-        old_buffer = obs.init.params.err_der_buffer;
-        old_counter = obs.init.params.err_der_counter;
-
-        % compute
-        xd = obs.setup.model_reference(t,x,params,obs);
-
-        % restore
-        obs.init.input_story_ref(traj).val(:,pos(1)) = old_u;
-        obs.init.params.err_der_buffer = old_buffer;
-        obs.init.params.err_der_counter = old_counter;
-
+    if mod(pos(end),params.IMU_samp) == 0         
         % meas
-        IMU_true = reshape(xd(params.pos_v,:),numel(params.pos_v),size(xd,2));
+        IMU_true = reshape(obs.init.input_story_ref(traj).val(1:3,pos(1)),numel(params.pos_acc),size(x,2));
         obs.init.params.last_IMU_acc_ref(traj,:) = IMU_true;
     else       
         IMU_true = reshape(obs.init.params.last_IMU_acc_ref(traj,:),params.space_dim,1);

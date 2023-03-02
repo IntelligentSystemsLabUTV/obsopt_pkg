@@ -42,7 +42,7 @@ function plot_3Dobject(obj,varargin)
 
             % test
             if i==3
-                plot(obj.setup.time,obj.init.reference_story(1).val(1,:),'k','LineWidth',1.5);
+                plot(obj.setup.time(2:end),obj.init.reference_story(1).val(1,:),'k','LineWidth',1.5);
             end
             
             % labels
@@ -52,7 +52,7 @@ function plot_3Dobject(obj,varargin)
         %linkaxes(ax);
         legend('True','Est')   
         xlabel(['time [s]']) 
-    catch
+    catch ME
         close
         fig_count = fig_count -1;
     end
@@ -534,7 +534,7 @@ function plot_3Dobject(obj,varargin)
         % plot hills
         pos_p = obj.init.params.pos_p;
 %         surf(params.X_gauss,params.Y_gauss,params.G_gauss,'FaceAlpha',0.5,'EdgeColor','none');
-        plot3(obj.init.X(1).val(pos_p(1),:),obj.init.X(1).val(pos_p(2),:),obj.init.reference_story(1).val(1,:),'k','LineWidth',2);
+        plot3(obj.init.X(1).val(pos_p(1),2:end),obj.init.X(1).val(pos_p(2),2:end),obj.init.reference_story(1).val(1,:),'k','LineWidth',2);
         % plot anchors
         P_a(1,:) = obj.init.params.pos_anchor(1):3:obj.init.params.pos_anchor(end);
         P_a(2,:) = obj.init.params.pos_anchor(2):3:obj.init.params.pos_anchor(end); 

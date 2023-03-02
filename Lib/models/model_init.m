@@ -161,13 +161,17 @@ function params = model_init(varargin)
             
             % randomly define the percentage (bool flag, see below)
             randflag = 1; 
-            noise_std = 1*5e-1;
+            noise_std = 1*ones(1,numel(params.multi_traj_var));
+            noise_std(1:2) = 5e-1;
+            noise_std(3) = 1e-1;
+            noise_std(4:6) = 2e-1;
+            noise_std(7:9) = 2e-1;
 
             % if case: random perturbation percentage - optimised vars            
             if randflag
-                params.perc(params.multi_traj_var,traj) = 1*randn(1,length(params.multi_traj_var))*noise_std;
+                params.perc(params.multi_traj_var,traj) = 1*randn(1,length(params.multi_traj_var)).*noise_std;
             else
-                params.perc(params.multi_traj_var,traj) = 1*ones(1,length(params.multi_traj_var))*noise_std;
+                params.perc(params.multi_traj_var,traj) = 1*ones(1,length(params.multi_traj_var)).*noise_std;
             end            
             
 
@@ -178,7 +182,7 @@ function params = model_init(varargin)
             if params.noise                                            
                 % around init
                 params.X_est(traj).val(params.multi_traj_var,1) = init(params.multi_traj_var).*(1 + params.noise*params.perc(params.multi_traj_var,traj).*ones(length(params.multi_traj_var),1)) + ...
-                                                                  params.noise*noise_std.*randn(length(params.multi_traj_var),1);                  
+                                                                  params.noise*noise_std'.*randn(length(params.multi_traj_var),1);                  
             end
 
             % test - bias starting always from 0
