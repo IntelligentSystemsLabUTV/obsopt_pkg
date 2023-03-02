@@ -2,16 +2,12 @@
 clc
 clear
 
-A = [0 1 0 0; ...
-0 0 1 0; ...
-0 0 0 0; ...
-0 0 0 0];
+A = [0  1   0;  ...
+     0  0   -1; ...
+     0  0   0];     
 
-B = [0 0 1 0]';
-
-C = [1 0 0 0; ...
-0 0 1 1];
-
+B = [0  0   1]';
+C = [0  0   1];
 D = 0;
 
 sysc = ss(A,B,C,D);
@@ -20,21 +16,20 @@ Ts = 1e-2;
 
 sysd = c2d(sysc,Ts);
 
-syms theta [1 8]
+syms theta [1 4]
 syms s
 
 
-Gamma = [theta(1)   0           0           0; ...
-         0          theta(2)    0           0; ...
-         theta(3)   0           theta(4)    theta(4); ...
-         theta(5)   0           0           theta(6)];
+Gamma = [-theta(1)   0           0; ...
+         0          -theta(2)    0; ...
+         -theta(3)  -theta(4)    0];
 
 
-I = eye(4);
+I = eye(3);
 
-PHI = (I - Gamma);%*sysd.A;
+PHI = (I + Gamma)*sysd.A;
 PHI_pol = (s*I - Gamma);
 
-thetaval = [1.2 1.7 5 5 5 0.2 5 0.9];
+thetaval = [0.5 0.5 0 -30];
 
 PHIval = double(subs(PHI,theta,thetaval));

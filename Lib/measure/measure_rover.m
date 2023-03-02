@@ -57,7 +57,10 @@ function y = measure_rover(x,params,tspan,u,obs)
         end
     
         %%% get the IMU accelerations              
-        IMU_true = reshape(x(params.pos_acc,k),numel(params.pos_acc),1);                    
+        IMU_true = reshape(x(params.pos_acc,k),numel(params.pos_acc),1);    
+
+        % bias
+        IMU_true = IMU_true + params.bias*(x(params.pos_bias));
 
         % final measure
         y(:,k) = [D; P_true; V_true; IMU_true];                     
