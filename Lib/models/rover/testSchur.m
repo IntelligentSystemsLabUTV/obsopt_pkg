@@ -3,20 +3,21 @@ clc
 clear
 
 %% setup model
-A = [0  1   0;  ...
-     0  0   -1; ...
-     0  0   0];     
-    
-B = [0  -1  0]';
-C = [1  0   1];
+A = [-0.02  -1.4    9.8;    ...
+     -0.01  -0.4    0;      ...
+     0      1       0];
+B = [9.8 6.3 0]';
+C = [1 0 1];
 D = 0;
 
 dim = size(A,1);
     
 sysc = ss(A,B,C,D);    
+
+% sampling
 Ts = 2e-1;
-Tm = 0.5*Ts;
-TM = 2*Ts;
+Tm = 1;
+TM = 3;
     
 sysd = c2d(sysc,Ts);
 
@@ -27,7 +28,7 @@ Oc = obsv(sysc);
 Od = obsv(sysd);
   
 %% test Schur
-if 1
+if 0
     syms theta [1 5]
     syms s
         
@@ -44,8 +45,8 @@ if 1
     PHIval = double(subs(PHI,theta,thetaval));
 end
 
-%% RICCATI solve
-if 0
+%% Sferlazza algorithm
+if 1
     % STEP 1 - INIT
     % solve in beta,TAU
     % init
