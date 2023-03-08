@@ -27,7 +27,7 @@ function params = params_rover
     params.Kff = [0 0 0];
 
     % number of reference trajectories (under development)
-    params.Ntraj = 2;
+    params.Ntraj = 1;
 
     % control error derivative
     params.wlen_err = 4;
@@ -126,7 +126,7 @@ function params = params_rover
     
     % sampling
     params.IMU_samp = 1;
-    params.UWB_samp = 20;
+    params.UWB_samp = 100;
     params.UWB_pos = []; 
 
     % memory
@@ -155,7 +155,7 @@ function params = params_rover
     params.noise_mat_original(params.pos_acc_out,1) = 1*1e-2;   % noise on IMU - sigma
     params.noise_mat_original(params.pos_dist_out,1) = 1*2e-1;  % noise on UWB - sigma    
     params.mean = params.noise_mat_original(:,1);
-    params.noise_mat(:,1) = 1*params.noise_mat_original(:,1);    
+    params.noise_mat(:,1) = 0*params.noise_mat_original(:,1);    
 
     %%% process noise %%%
     params.jerk_enable = 0;
