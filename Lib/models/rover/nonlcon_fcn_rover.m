@@ -31,10 +31,8 @@ function [c, ceq] = nonlcon_fcn_rover(xopt,xnonopt,obs)
 %     c = [c; theta_constr_up; theta_constr_down];
 
     % negative poles for filter
-%     A = [0 1; -x(obs.init.params.pos_Gamma(1:2))'];
-%     C_eig = eig(A);
-%     min_eig = 1e-4;    
-%     c = [c; real(C_eig) + min_eig; imag(C_eig); -imag(C_eig)];
+    alpha = x(obs.init.params.pos_Gamma(6));
+    c = [c; -alpha];
     
             
     % cons

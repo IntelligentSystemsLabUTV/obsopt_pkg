@@ -17,29 +17,17 @@ function params = params_rover
     params.Ts = 1e-2;
     
     % control parameters
-    % 2nd order system
-%     params.wnx = [0.2 1];
-%     params.wny = [0.2 1];
-    params.wnx = [0.4];
-    params.wny = [0.9];
-    params.Ax = -[0.5 1];
-    params.Ay = -[0.5 1];     
-    params.Ax_tot = sum(params.Ax);
-    params.Ay_tot = sum(params.Ay);
-    params.phi = [0 pi/2];
-    params.rhox = 0.01;
-    params.rhoy = 0.01;
     % vines
-    params.freq_u = 48;    
-    params.amp_ux = -5/3;
-    params.amp_uy = -5/3;
-    params.Ku = [10 10];    
+    params.freq_u = 96*2;    
+    params.amp_ux = -5/(6*2);
+    params.amp_uy = -5/(6*2);
+    params.Ku = 1e2*[1 1];    
     params.Kdu = [0 0];      
     params.Kz = 1*[9000 190];
     params.Kff = [0 0 0];
 
     % number of reference trajectories (under development)
-    params.Ntraj = 1;
+    params.Ntraj = 2;
 
     % control error derivative
     params.wlen_err = 4;
@@ -54,11 +42,6 @@ function params = params_rover
         params.err_der_counter(traj).val = 0;
     end 
     
-    % different omega for trajectories
-    for traj = 2:params.Ntraj
-        params.wnx(traj) = params.wnx(1)*(1+rand());        
-        params.wny(traj) = params.wny(1)*(1+rand());
-    end
     
     % state dimension
     params.space_dim = 3;   % 2D or 3D space for the rover 
@@ -74,7 +57,7 @@ function params = params_rover
     [params.X_gauss, params.Y_gauss] = meshgrid(-an_dp:ds:an_dp, -an_dp:ds:an_dp);
     for traj = 1:params.Ntraj
 
-        params.A_gauss(traj) = rand();
+        params.A_gauss(traj) = 1*rand();
         params.sigma_gauss(traj) = 3 + (5-3)*rand();
         ds = 1;
         ranges = [-an_dp*ds an_dp*ds; -an_dp*ds an_dp*ds];
@@ -101,10 +84,10 @@ function params = params_rover
     params.multistart = 0;
 
     % observer params    
-    params.theta = 1*[0.5 0.5 0 -0.5];
-    params.alpha = 1*[50 0];
-%     params.theta = [1.0324    0.0001   -0.0001   -0.0139  -71.8589    0.8568    0.4621    0.0027];
-%     params.alpha = [151.5251 0];    
+    params.theta = 0*[0.5 0.5 -0.5 0 0];
+    params.alpha = 0*[50 0];
+%     params.theta = [1.0009 0.0383 -53.7322 -0.0695];
+%     params.alpha = [167.6849 0];    
    
     %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
     % hyb obs parameters
@@ -169,10 +152,10 @@ function params = params_rover
     % noise (on distances + acceleration)
     params.noise_mat = 0*ones(params.OutDim,2);    
     % sigma
-    params.noise_mat_original(params.pos_acc_out,1) = 1*1e-1;   % noise on IMU - sigma
+    params.noise_mat_original(params.pos_acc_out,1) = 1*1e-2;   % noise on IMU - sigma
     params.noise_mat_original(params.pos_dist_out,1) = 1*2e-1;  % noise on UWB - sigma    
     params.mean = params.noise_mat_original(:,1);
-    params.noise_mat(:,1) = 0*params.noise_mat_original(:,1);    
+    params.noise_mat(:,1) = 1*params.noise_mat_original(:,1);    
 
     %%% process noise %%%
     params.jerk_enable = 0;
@@ -210,42 +193,18 @@ function params = params_rover
     params.d_true = zeros(params.Nanchor,1);
     params.d_noise = zeros(params.Nanchor,1);
     params.d_est = zeros(params.Nanchor,1);
-    %%%%%%%%%%%%%%%%%%%%%%%%
-    
-    % initial condition - anchors square
-    params.X(1).val(:,1) = 1*[10;0;0;0;params.bias*0.1; ...                % x pos + IMU bias
-                              10;0;0;0;params.bias*0.1; ...                % y pos + IMU bias
-                              0;0;0;0;params.bias*0.05; ...                % z pos + IMU bias
-                              -an_dp;-an_dp;1*an_dz;  ...
-                              -an_dp;an_dp;1*an_dz;   ...
-                              an_dp;an_dp;1*an_dz;    ...
-                              an_dp;-an_dp;1*an_dz;   ...    % anchors                                                                                                        
-                              params.theta'; ...                              
-                              params.alpha'];  
+    %%%%%%%%%%%%%%%%%%%%%%%%        
 
     % initial condition - anchors diamond
-    params.X(1).val(:,1) = 1*[10;0;0;0;params.bias*0.1; ...                % x pos + IMU bias
-                              10;0;0;0;params.bias*0.1; ...                % y pos + IMU bias
-                              0;0;0;0;params.bias*0.05; ...                % z pos + IMU bias
+    params.X(1).val(:,1) = 1*[8;0;0;0;params.bias*10; ...                % x pos + IMU bias
+                              8;0;0;0;params.bias*5; ...                % y pos + IMU bias
+                              0;0;0;0;params.bias*2; ...                % z pos + IMU bias
                               -an_dp;0;1*an_dz;  ...
                               0;an_dp;1*an_dz;   ...
                               an_dp;0;1*an_dz;    ...
                               0;-an_dp;1*an_dz;   ...    % anchors                                                                                                        
                               params.theta'; ...                              
-                              params.alpha'];  
-
-    %%%% 1D REALIZATION %%%%      
-%     params.X(1).val(:,1) = 1*[10;0;0;0;params.bias*0.1; ...                % x pos + IMU bias
-%                               10;0;0;0;params.bias*0.0; ...                % y pos + IMU bias
-%                               0;0;0;0;params.bias*0.00; ...                % z pos + IMU bias
-%                               -an_dp;10;0;  ...
-%                               -an_dp;10;0;   ...
-%                               an_dp;10;0;    ...
-%                               an_dp;10;0;   ...    % anchors                                                                          
-%                               params.C'; ...              % params                              
-%                               params.theta'; ...
-%                               params.beta'; ...
-%                               params.alpha'];
+                              params.alpha'];      
     %%%%%%%%%%%%%%%%%%%%%%%
        
     % position in the state vector of the estimated parameters
@@ -253,7 +212,6 @@ function params = params_rover
     
     % which vars am I optimising
     params.opt_vars = [params.pos_Gamma];
-%     params.opt_vars = [params.pos_p params.pos_v params.pos_acc];
     
     % set the not optimised vars
     tmp = 1:length(params.X(1).val(:,1));

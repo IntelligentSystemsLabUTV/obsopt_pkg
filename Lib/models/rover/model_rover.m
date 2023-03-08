@@ -50,19 +50,19 @@ function [x_dot, x] = model_rover(tspan,x,params,obs)
             x(1) = x(1) + params.theta(1)*(p_jump(1)-x(1));
             x(2) = x(2) + params.theta(2)*(p_jump_der(1)-x(2));
             x(3) = x(3);
-            x(5) = x(5) + params.theta(3)*(p_jump(1)-x(1)) + params.theta(4)*(p_jump_der(1)-x(2));
+            x(5) = x(5) + params.theta(3)*(p_jump(1)-x(1)) + params.theta(4)*(p_jump_der(1)-x(2)) + params.theta(5)*x(5);
     
             % jump map - y
             x(6) = x(6) + params.theta(1)*(p_jump(2)-x(6));
             x(7) = x(7) + params.theta(2)*(p_jump_der(2)-x(7));
             x(8) = x(8);
-            x(10) = x(10) + params.theta(3)*(p_jump(2)-x(6)) + params.theta(4)*(p_jump_der(2)-x(7));
+            x(10) = x(10) + params.theta(3)*(p_jump(2)-x(6)) + params.theta(4)*(p_jump_der(2)-x(7)) + params.theta(5)*x(10);
 
             % jump map - z
             x(11) = x(11) + params.theta(1)*(p_jump(3)-x(11));
             x(12) = x(12) + params.theta(2)*(p_jump_der(3)-x(12));
             x(13) = x(13);
-            x(15) = x(15) + params.theta(3)*(p_jump(3)-x(11)) + params.theta(4)*(p_jump_der(3)-x(12));
+            x(15) = x(15) + params.theta(3)*(p_jump(3)-x(11)) + params.theta(4)*(p_jump_der(3)-x(12)) + params.theta(5)*x(15);
         end
     
         %%%% OBSERVER DYNAMICS %%%

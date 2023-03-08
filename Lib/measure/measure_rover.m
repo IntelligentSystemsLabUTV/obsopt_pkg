@@ -60,7 +60,9 @@ function y = measure_rover(x,params,tspan,u,obs)
         IMU_true = reshape(x(params.pos_acc,k),numel(params.pos_acc),1);    
 
         % bias
-        IMU_true = IMU_true + params.bias*(x(params.pos_bias));
+        if params.EKF
+            IMU_true = IMU_true + params.bias*(x(params.pos_bias));
+        end
 
         % final measure
         y(:,k) = [D; P_true; V_true; IMU_true];                     

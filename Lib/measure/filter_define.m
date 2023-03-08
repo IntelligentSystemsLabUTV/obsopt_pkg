@@ -91,9 +91,6 @@ function [filter, filterScale, reference] = filter_define(Ts,Nts)
     reference.D = D.D;
     reference.G = G;
     reference.dim = size(D.B,1);
-    reference.x0 = 4*ones(reference.dim,1);
-    
-    %%% butterworth %%%
-    [reference.butter.b,reference.butter.a] = butter(1,0.8);
+    reference.x0 = 4*ones(reference.dim,1);    
     
 end
