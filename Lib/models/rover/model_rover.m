@@ -34,53 +34,100 @@ function [x_dot, x] = model_rover(tspan,x,params,obs)
         y = obs.init.Y_full_story(obs.init.traj).val(1,:,pos(1));
         a = y(params.pos_acc_out);        
     
-        % Jump - only on the UWB
-        if (mod(pos(1),params.UWB_samp) == 0) && (~params.EKF)
+        if params.sferlazza == 0
+            % Jump - only on the UWB
+            if (mod(pos(1),params.UWB_samp) == 0) && (~params.EKF)
+        
+                % adjacency matrix
+                for dim=1:params.space_dim
+                    Pa(dim,:) = x(params.pos_anchor(dim):params.space_dim:params.pos_anchor(end));            
+                end
+        
+                %%% TEST %%%
+                p_jump = obs.init.params.p_jump(obs.init.traj).val(:,pos(1)/params.UWB_samp);
+                p_jump_der = obs.init.params.p_jump_der(obs.init.traj).val(:,pos(1)/params.UWB_samp);            
+                
+                % jump map - x
+                x(1) = x(1) + params.theta(1)*(p_jump(1)-x(1));
+                x(2) = x(2) + params.theta(2)*(p_jump_der(1)-x(2));
+                x(3) = x(3) + params.theta(3)*(p_jump(1)-x(1)) + params.theta(4)*(p_jump_der(1)-x(2)) + params.theta(5)*x(3);
+                x(4) = x(4);
+                        
+                % jump map - y
+                x(5) = x(5) + params.theta(1)*(p_jump(2)-x(5));
+                x(6) = x(6) + params.theta(2)*(p_jump_der(2)-x(6));
+                x(7) = x(7) + params.theta(3)*(p_jump(2)-x(5)) + params.theta(4)*(p_jump_der(2)-x(6)) + params.theta(5)*x(7);
+                x(8) = x(8);                
     
-            % adjacency matrix
-            for dim=1:params.space_dim
-                Pa(dim,:) = x(params.pos_anchor(dim):params.space_dim:params.pos_anchor(end));            
-            end
-    
-            %%% TEST %%%
-            p_jump = obs.init.params.p_jump(obs.init.traj).val(:,pos(1)/params.UWB_samp);
-            p_jump_der = obs.init.params.p_jump_der(obs.init.traj).val(:,pos(1)/params.UWB_samp);            
+                % jump map - z
+                x(9) = x(9) + params.theta(1)*(p_jump(3)-x(9));
+                x(10) = x(10) + params.theta(2)*(p_jump_der(3)-x(10));
+                x(11) = x(11) + params.theta(3)*(p_jump(3)-x(9)) + params.theta(4)*(p_jump_der(3)-x(10)) + params.theta(5)*x(11);
+                x(12) = x(12);                
+            end   
+
+            %%%% OBSERVER DYNAMICS %%%
+            % model dynamics
+            % x axis
+            x_dot(1) = x(2);
+            x_dot(2) = x(4)-x(3);
+            x_dot(4) = params.alpha(1)*(a(1)-x(4));        
             
-            % jump map - x
-            x(1) = x(1) + params.theta(1)*(p_jump(1)-x(1));
-            x(2) = x(2) + params.theta(2)*(p_jump_der(1)-x(2));
-            x(3) = x(3);
-            x(5) = x(5) + params.theta(3)*(p_jump(1)-x(1)) + params.theta(4)*(p_jump_der(1)-x(2)) + params.theta(5)*x(5);
-    
-            % jump map - y
-            x(6) = x(6) + params.theta(1)*(p_jump(2)-x(6));
-            x(7) = x(7) + params.theta(2)*(p_jump_der(2)-x(7));
-            x(8) = x(8);
-            x(10) = x(10) + params.theta(3)*(p_jump(2)-x(6)) + params.theta(4)*(p_jump_der(2)-x(7)) + params.theta(5)*x(10);
+            % y axis
+            x_dot(5) = x(6);
+            x_dot(6) = x(8)-x(7);
+            x_dot(8) = params.alpha(1)*(a(2)-x(8));
+        
+            % z axis
+            x_dot(9) = x(10);
+            x_dot(10) = x(12)-x(11);
+            x_dot(12) = params.alpha(1)*(a(3)-x(12));
 
-            % jump map - z
-            x(11) = x(11) + params.theta(1)*(p_jump(3)-x(11));
-            x(12) = x(12) + params.theta(2)*(p_jump_der(3)-x(12));
-            x(13) = x(13);
-            x(15) = x(15) + params.theta(3)*(p_jump(3)-x(11)) + params.theta(4)*(p_jump_der(3)-x(12)) + params.theta(5)*x(15);
-        end
-    
-        %%%% OBSERVER DYNAMICS %%%
-        % model dynamics
-        % x axis
-        x_dot(1) = x(2);
-        x_dot(2) = x(3)-x(5);
-        x_dot(3) = params.alpha(1)*(a(1)-x(3));        
-    
-        % y axis
-        x_dot(6) = x(7);
-        x_dot(7) = x(8)-x(10);
-        x_dot(8) = params.alpha(1)*(a(2)-x(8));
+        else
 
-        % z axis
-        x_dot(11) = x(12);
-        x_dot(12) = x(13)-x(15);
-        x_dot(13) = params.alpha(1)*(a(3)-x(13));
+            % Jump - only on the UWB
+            if (mod(pos(1),params.UWB_samp) == 0) && (~params.EKF)
+        
+                % adjacency matrix
+                for dim=1:params.space_dim
+                    Pa(dim,:) = x(params.pos_anchor(dim):params.space_dim:params.pos_anchor(end));            
+                end
+        
+                %%% TEST %%%
+                p_jump = obs.init.params.p_jump(obs.init.traj).val(:,pos(1)/params.UWB_samp);
+                p_jump_der = obs.init.params.p_jump_der(obs.init.traj).val(:,pos(1)/params.UWB_samp);            
+                
+                % jump map - x
+                range = params.range_sfer(1,:);
+                e = [p_jump(1); p_jump_der(1); a(1)]-params.Csfer*x(range);                
+                x(range) = x(range)+params.Ksfer*e;
+        
+                % jump map - y
+                range = params.range_sfer(2,:);
+                e = [p_jump(2); p_jump_der(2); a(2)]-params.Csfer*x(range);                
+                x(range) = x(range)+params.Ksfer*e;
+    
+                % jump map - z                
+                range = params.range_sfer(3,:);
+                e = [p_jump(3); p_jump_der(3); a(3)]-params.Csfer*x(range);                
+                x(range) = x(range)+params.Ksfer*e;
+            end    
+
+            %%% MODEL DYNAMICS %%%
+
+            % flow map - x
+            range = params.range_sfer(1,:);
+            x_dot(range) = params.Asfer*x(range) + params.Bsfer*a(1);
+
+            % flow map - y
+            range = params.range_sfer(2,:);
+            x_dot(range) = params.Asfer*x(range) + params.Bsfer*a(2);
+
+            % flow map - z
+            range = params.range_sfer(3,:);
+            x_dot(range) = params.Asfer*x(range) + params.Bsfer*a(3);
+
+        end        
 
     %%%%%%%%%%%%% EKF MODEL %%%%%%%%%%%%
     elseif (params.EKF && ~params.hyb) && ~params.dryrun

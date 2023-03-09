@@ -3,32 +3,60 @@ clc
 clear
 
 %% setup model
-A = [-0.02  -1.4    9.8;    ...
-     -0.01  -0.4    0;      ...
-     0      1       0];
-B = [9.8 6.3 0]';
-C = [1 0 1];
-D = 0;
+% sferlazza
+if 0
+    A = [-0.02  -1.4    9.8;    ...
+         -0.01  -0.4    0;      ...
+         0      1       0];
+    B = [9.8 6.3 0]';
+    C = [1 0 1];
+    D = 0;
+end
+
+% Localization
+if 1
+    af = 1;
+    A = [0  1   0   0; ...
+         0  0   -1  1; ...
+         0  0   0   0; ...
+         0  0   0   -af];
+    B = [0 0 0 af]';
+    C = [1  0   0   0; ...
+         0  1   0   0; ...
+         0  0   0   1];
+    D = 0;
+end
+
+% with D
+if 0
+    % case same observer as plant
+    A = [0  1   0 ; ...
+         0  0   0; ...
+         0  0   0];
+    B = [0 1 0]';
+    C = [1  0   0; ...
+         0  0   1];
+    D = [0; 1];   
+end
 
 dim = size(A,1);
     
 sysc = ss(A,B,C,D);    
 
 % sampling
-Ts = 2e-1;
-Tm = 1;
-TM = 3;
-    
-sysd = c2d(sysc,Ts);
-
+Tm = 0.1;
+TM = 0.3;
 I = eye(dim);
 
 %% test observability
 Oc = obsv(sysc);
-Od = obsv(sysd);
   
 %% test Schur
 if 0
+
+    Ts = 2e-1;
+    sysd = c2d(sysc,Ts);
+    Od = obsv(sysd);
     syms theta [1 5]
     syms s
         
@@ -47,6 +75,16 @@ end
 
 %% Sferlazza algorithm
 if 1
+
+    % obsv analysis    
+    deltatau = 1e-3:1e-2:5e-1;
+    for i=1:numel(deltatau)
+        sysd = c2d(sysc,deltatau(i));
+        Od = obsv(sysd);
+        [~,S,~] = svd(Od);
+        min_obsv_svd(i) = min(diag(S));
+    end
+
     % STEP 1 - INIT
     % solve in beta,TAU
     % init
@@ -54,9 +92,7 @@ if 1
     % scalar
     [beta,n,sbeta] = lmivar(1,[1 1]);
     % matrix TAU
-    [TAU,n,sTAU] = lmivar(1,[dim 1]); 
-    % compose vars to create eq. A.1
-    [COND,n,sCOND] = lmivar(3,transpose((A+sbeta*I))*TAU+TAU*(A+sbeta*I));
+    [TAU,n,sTAU] = lmivar(1,[dim 1]);         
     
     % constraints: there is no right side (everything zero)    
     % constraints: -TAU < 0
@@ -64,22 +100,25 @@ if 1
     lmiterm([-1 1 1 TAU],I,I,'s');
     % constraints: -beta < 0
     lmiterm([2 1 1 0],0);
-    lmiterm([-2 1 1 beta],1,1);    
+    lmiterm([-2 1 1 beta],1,1);        
     % eq. A.1: -COND < 0
     lmiterm([3 1 1 0],0*I);
-    lmiterm([-3 1 1 COND],I,I,'s');
+    lmiterm([-3 1 1 TAU],transpose((A+beta*I)),I,'s');
+    lmiterm([-3 1 1 TAU],I,(A+beta*I),'s');
           
 
     % get constraints
     lmis = getlmis;
+    % get number of vars
+    ndec = decnbr(lmis);
+
     % solve
-    [alpha,popt]=gevp(lmis,2);
+%     [alpha,popt]=gevp(lmis,3);
+    [alpha,popt]=feasp(lmis);    
 
     % test results
-    betaout = popt(1);
-    TAUout = [  popt(2) popt(3) popt(5); ...
-                popt(3) popt(4) popt(6); ...
-                popt(5) popt(6) popt(7)];
+    betaout = dec2mat(lmis,popt,beta);
+    TAUout = dec2mat(lmis,popt,TAU);    
     CONDout = transpose((A+betaout*I))*TAUout+TAUout*(A+betaout*I);
 
     try chol(CONDout);
@@ -91,7 +130,7 @@ if 1
     % eigs
     lambdam = min(eig(TAUout));
     lambdaM = max(eig(TAUout));
-    gamma = sqrt(lambdaM/lambdam);
+    gamma = sqrt(lambdaM/lambdam);    
 
     %%% STEP 2
     % compute constant vals
@@ -104,85 +143,88 @@ if 1
     P = sdpvar(dim); 
 
     % define constraints - initial
-    C = set(P >= I) + set(P <= p*I);
-    for i=1:numel(Tcall)
-        systmp = c2d(sysc,Tcall(i));
-        eA = systmp.A;
-        Ep = [Cperp'*eA'*P*eA*Cperp,    zeros(size(Cperp,2),dim); ...
+    Con = [];
+    Con = [Con; P >= 1e0*I];
+    Con = [Con; P <= p*I];
+    for i=1:numel(Tcall)        
+        eA = expm(A*Tcall(i));
+        eA_ = expm(-A*Tcall(i));
+        Ep = [Cperp'*eA_'*P*eA_*Cperp,    Cperp'*P'; ...
               P*Cperp,                 P];
-        C = C + set(Ep >= 2*mu*eye(size(Ep,1)));
+        Con = [Con; Ep >= 2*mu*eye(size(Ep,1))];
     end    
     % define cost function
     O = p;
     % options
-    ops = sdpsettings('solver','gurobi','debug',1);
+    ops = sdpsettings('solver','mosek','debug',1);
 
     %%% start iterations
     END = 0;
     while ~END
         
         % solve
-        sol = solvesdp(C,O);
+        sol = solvesdp(Con,O,ops);
 
         % check feasibility
-        if ~FEASIBLE
+        if sol.problem
             END = 1;
             disp('NOT FEASIBLE')
-        end
-
-        % define delta
-        delta = mu/(sol.p*norm(A)*gamma*exp(betaout*TM));
-        TcallD = Tm:2*delta:TM;
-        for i=1:numel(TcallD)
-            systmp = c2d(sysc,TcallD(i));
-            eA = systmp.A;
-            Pstar = sol.P;
-            Ep = [Cperp'*eA'*Pstar*eA*Cperp,    zeros(size(Cperp,2),dim); ...
-                  Pstar*Cperp,                  Pstar];
-            mineigs(i,1) = min(eig(Ep));
-            mineigs(i,2) = TcallD(i);            
-        end
-
-        % check if algorithm ok - all eigs are above mu
-        if prod(mineigs(:,1) > mu)
-            END = 1;
-            disp('SOLUTION FOUND (PSTAR)')
         else
-            % find worst case
-            [~,kbar] = min(mineigs(:,1));
-            taubar = mineigs(kbar,2);
+            % values
+            Pstar = value(P);
+            pstar = value(p);
 
-            % add constraint
-            systmp = c2d(sysc,taubar);
-            eA = systmp.A;
-            Pstar = sol.P;
-            Ep = [Cperp'*eA'*Pstar*eA*Cperp,    zeros(size(Cperp,2),dim); ...
-                  Pstar*Cperp,                  Pstar];
-            C = C + set(Ep >= 2*mu*eye(size(Ep,1)));
-        end
-        
-    end
-
+             % define delta
+            delta = max(1e-4,mu/(pstar*norm(A)*gamma*exp(betaout*TM)));         
+            TcallD = Tm:2*delta:TM;
+            for i=1:numel(TcallD)            
+                % eq. 13 
+                eA = expm(A*TcallD(i));         
+                eA_ = expm(-A*TcallD(i));         
+                Ep = [Cperp'*eA_'*Pstar*eA_*Cperp,    Cperp'*Pstar'; ...
+                      Pstar*Cperp,                  Pstar];
+                mineigs(i,1) = min(eig(Ep));
+                mineigs(i,2) = TcallD(i);                        
+            end
     
+            % check if algorithm ok - all eigs are above mu
+            if prod(mineigs(:,1) > mu)
+                END = 1;
+                disp('SOLUTION FOUND (PSTAR)')
+            else
+                % find worst case
+                kbar = find(mineigs(:,1) == min(mineigs(:,1)),1,'first');
+                taubar = mineigs(kbar,2);
+    
+                % add constraint            
+                eA = expm(A*taubar);                   
+                eA_ = expm(-A*taubar);
+                Ep = [Cperp'*eA_'*P*eA_*Cperp,    Cperp'*P; ...
+                      P*Cperp,                  P];
+                Con = [Con;Ep >= 2*mu*eye(size(Ep,1))];
+            end
+        end 
+    end  
 end
 
-%% example
-if 0
-    a1 = [-1 2; 1 -3];
-    a2 = [-0.8 1.5; 1.3 -2.7];
-    a3 = [-1.4 0.9; 0.7 -2];
-    setlmis([]); 
-    p = lmivar(1,[2 1]);
-    
-    lmiterm([1 1 1 0],1) 	% P > I : I 
-    lmiterm([-1 1 1 p],1,1) 	% P > I : P 
-    lmiterm([2 1 1 p],1,a1,'s') 	% LFC # 1 (lhs) 
-    lmiterm([-2 1 1 p],1,1) 	% LFC # 1 (rhs) 
-    lmiterm([3 1 1 p],1,a2,'s') 	% LFC # 2 (lhs) 
-    lmiterm([-3 1 1 p],1,1) 	% LFC # 2 (rhs) 
-    lmiterm([4 1 1 p],1,a3,'s') 	% LFC # 3 (lhs) 
-    lmiterm([-4 1 1 p],1,1) 	% LFC # 3 (rhs) 
-    lmis = getlmis;
-    % solve
-    [alpha,popt]=gevp(lmis,3);
+%% test result
+if 1
+    deltacheck = Tm:1e-3:TM;
+    for i=1:numel(deltacheck)        
+        Ts = deltacheck(i);        
+        
+        %% perp and P
+        eA = expm(A*Ts);
+        eA_ = expm(-A*Ts);                                   
+        
+        %% compute gain
+        T1 = Cperp*pinv(Cperp'*eA_'*Pstar*eA_*Cperp)*Cperp';
+        T2 = (eA_'*Pstar*eA_)'*C';
+        K = (C'-T1*T2)*pinv(C*C');
+        
+        %% dynamics matrix
+        PHI = (eye(dim)-K*C)*eA;    
+        eig_store(:,i) = real(eig(PHI));
+        Schur_store(i) = prod(any(abs(eig_store(:,i))>1));
+    end
 end

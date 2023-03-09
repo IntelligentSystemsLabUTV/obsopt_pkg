@@ -34,17 +34,17 @@ function [x_dot, x] = model_rover_reference(tspan,x,params,obs)
     % x axis
     x_dot(1) = x(2);
     x_dot(2) = params.u(1,1) + params.proc_acc*w(1);
-    x_dot(5) = params.proc_bias*w(4);
+    x_dot(3) = params.proc_bias*w(4);
     
     % y axis
-    x_dot(6) = x(7);
-    x_dot(7) = params.u(2,1) + params.proc_acc*w(2);
-    x_dot(10) = params.proc_bias*w(5);
+    x_dot(5) = x(6);
+    x_dot(6) = params.u(2,1) + params.proc_acc*w(2);
+    x_dot(7) = params.proc_bias*w(5);
 
     % y axis
-    x_dot(11) = x(12);
-    x_dot(12) = params.u(3,1) + params.proc_acc*w(3);
-    x_dot(15) = params.proc_bias*w(6);
+    x_dot(9) = x(10);
+    x_dot(10) = params.u(3,1) + params.proc_acc*w(3);
+    x_dot(11) = params.proc_bias*w(6);
 
     % all the remaining are the anchors
     

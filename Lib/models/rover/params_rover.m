@@ -84,28 +84,25 @@ function params = params_rover
     params.multistart = 0;
 
     % observer params    
-    params.theta = 0*[0.5 0.5 -0.5 0 0];
-    params.alpha = 0*[50 0];
-%     params.theta = [1.0009 0.0383 -53.7322 -0.0695];
-%     params.alpha = [167.6849 0];    
+    params.theta = 0*[0.5 0.5 -0.5 2 1];
+    params.alpha = 0*[50 0];      
+%     params.theta = [4.2469e-01   8.0590e-01  -2.8708e+01  -8.2988e+00  -2.1367e-02];
+%     params.alpha = 1*[2.3893e+00            0];
    
     %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
     % hyb obs parameters
     params.dim_Gamma = length(params.theta) + length(params.alpha);
 
     % model parameters
-    params.dim_state = 5*params.space_dim + params.Nanchor*params.space_dim + params.dim_Gamma;    % done on the observer model (easier to compare)
+    params.dim_state = 4*params.space_dim + params.Nanchor*params.space_dim + params.dim_Gamma;    % done on the observer model (easier to compare)
 
     % shared position (hyb and EKF)
-    params.pos_p = [1 6 11];   % see mode_rover.m
-    params.pos_v = [2 7 12];   % see mode_rover.m  
-    params.pos_acc = [3 8 13];
-    % positions for hyb
-    params.pos_jerk = [4 9 14];
-    % positions for biases
-    params.pos_bias = [5 10 15];   % IMU bias
+    params.pos_p = [1 5 9];   % see mode_rover.m
+    params.pos_v = [2 6 10];   % see mode_rover.m  
+    params.pos_bias = [3 7 11];   % IMU bias
+    params.pos_acc = [4 8 12];       
     % rest of stuff
-    params.pos_anchor = [5*params.space_dim+1:params.dim_state-params.dim_Gamma];    % after all the double integrators come the anchors   
+    params.pos_anchor = [4*params.space_dim+1:params.dim_state-params.dim_Gamma];    % after all the double integrators come the anchors   
     params.pos_Gamma = [params.pos_anchor(end)+1:params.dim_state];
     params.pos_fc = [params.pos_p params.pos_v];
     params.dim_state_est = numel(params.pos_fc);
@@ -126,7 +123,7 @@ function params = params_rover
     
     % sampling
     params.IMU_samp = 1;
-    params.UWB_samp = 100;
+    params.UWB_samp = 20;
     params.UWB_pos = []; 
 
     % memory
@@ -155,7 +152,7 @@ function params = params_rover
     params.noise_mat_original(params.pos_acc_out,1) = 1*1e-2;   % noise on IMU - sigma
     params.noise_mat_original(params.pos_dist_out,1) = 1*2e-1;  % noise on UWB - sigma    
     params.mean = params.noise_mat_original(:,1);
-    params.noise_mat(:,1) = 0*params.noise_mat_original(:,1);    
+    params.noise_mat(:,1) = 1*params.noise_mat_original(:,1);    
 
     %%% process noise %%%
     params.jerk_enable = 0;
@@ -169,6 +166,7 @@ function params = params_rover
     params.EKF = 0;        
     params.hyb = 1;
     params.dryrun = 0;
+    params.sferlazza = 1;
 
     %%% noise matrices
     % measurement noise
@@ -196,9 +194,9 @@ function params = params_rover
     %%%%%%%%%%%%%%%%%%%%%%%%        
 
     % initial condition - anchors diamond
-    params.X(1).val(:,1) = 1*[8;0;0;0;params.bias*10; ...                % x pos + IMU bias
-                              8;0;0;0;params.bias*5; ...                % y pos + IMU bias
-                              0;0;0;0;params.bias*2; ...                % z pos + IMU bias
+    params.X(1).val(:,1) = 1*[8;0;params.bias*0.1;0; ...                % x pos + IMU bias
+                              8;0;params.bias*0.2;0; ...                % y pos + IMU bias
+                              0;0;params.bias*0.1;0; ...                % z pos + IMU bias
                               -an_dp;0;1*an_dz;  ...
                               0;an_dp;1*an_dz;   ...
                               an_dp;0;1*an_dz;    ...
@@ -282,6 +280,27 @@ function params = params_rover
     params.ss_EKF = ss(params.A_EKF,params.B_EKF,params.C_EKF,0);
     params.ssd_EKF = c2d(params.ss_EKF,1e-2);
 
+    %%% matrices for sferlazza method %%%    
+    if 1
+        % case same observer as hyb
+        params.alphasfer = 1;
+        params.alphasfer = params.alpha(1);
+        params.Asfer = [0  1   0   0; ...
+                        0  0   -1  1; ...
+                        0  0   0   0; ...
+                        0  0   0   -params.alphasfer];
+        params.Bsfer = [0 0 0 params.alphasfer]';
+        params.Csfer = [1  0   0   0; ...
+                        0  1   0   0; ...
+                        0  0   0   1];
+        params.Dsfer = 0;
+        params.Ksfer = [1.0000e+00  0               0; ...
+                        0           1.0000e+00      0; ...
+                        5.1365e-02  -6.7930e-01     2.3483e-01; ...
+                        0            0              1.0000e+00];
+        params.range_sfer = [1:4; 5:8; 9:12];    
+    end
+    
 
     
 end
