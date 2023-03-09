@@ -85,7 +85,7 @@ function params = params_rover
 
     % observer params    
     params.theta = 0*[0.5 0.5 -0.5 2 1];
-    params.alpha = 0*[50 0];      
+    params.alpha = 1*[1 0];      
 %     params.theta = [4.2469e-01   8.0590e-01  -2.8708e+01  -8.2988e+00  -2.1367e-02];
 %     params.alpha = 1*[2.3893e+00            0];
    
@@ -166,7 +166,7 @@ function params = params_rover
     params.EKF = 0;        
     params.hyb = 1;
     params.dryrun = 0;
-    params.sferlazza = 1;
+    params.sferlazza = 0;
 
     %%% noise matrices
     % measurement noise
