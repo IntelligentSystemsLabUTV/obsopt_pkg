@@ -14,7 +14,7 @@ if 0
 end
 
 % Localization
-if 1
+if 0
     af = 1;
     A = [0  1   0   0; ...
          0  0   -1  1; ...
@@ -27,7 +27,30 @@ if 1
     D = 0;
 end
 
-% with D
+% error dynamics - with PD
+if 0
+    % case same observer as plant
+    A = [0  1   0 ; ...
+         0  0   -1; ...
+         0  0   0];
+    B = [0 0 0]';
+    C = [1  0   0; ...
+         0  1   0];
+    D = 0;   
+end
+
+% error dynamics - without PD
+if 1
+    % case same observer as plant
+    A = [0  1   0 ; ...
+         0  0   -1; ...
+         0  0   0];
+    B = [0 0 0]';
+    C = [1  0   0];
+    D = 0;   
+end
+
+% plant dynamics
 if 0
     % case same observer as plant
     A = [0  1   0 ; ...
@@ -35,8 +58,8 @@ if 0
          0  0   0];
     B = [0 1 0]';
     C = [1  0   0; ...
-         0  0   1];
-    D = [0; 1];   
+         0  0   0];
+    D = [0; 0];   
 end
 
 dim = size(A,1);
@@ -77,12 +100,12 @@ end
 if 1
 
     % obsv analysis    
-    deltatau = 1e-3:1e-2:5e-1;
+    deltatau = 1e-3:1e-2:10e0;
     for i=1:numel(deltatau)
         sysd = c2d(sysc,deltatau(i));
         Od = obsv(sysd);
-        [~,S,~] = svd(Od);
-        min_obsv_svd(i) = min(diag(S));
+        S = svd(Od);
+        min_obsv_svd(i) = max(S);
     end
 
     % STEP 1 - INIT
@@ -113,7 +136,7 @@ if 1
     ndec = decnbr(lmis);
 
     % solve
-%     [alpha,popt]=gevp(lmis,3);
+%     [alpha,popt]=gevp(lmis,2);
     [alpha,popt]=feasp(lmis);    
 
     % test results
@@ -208,7 +231,7 @@ if 1
 end
 
 %% test result
-if 1
+if ~sol.problem
     deltacheck = Tm:1e-3:TM;
     for i=1:numel(deltacheck)        
         Ts = deltacheck(i);        

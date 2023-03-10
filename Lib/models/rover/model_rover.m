@@ -48,41 +48,24 @@ function [x_dot, x] = model_rover(tspan,x,params,obs)
                 p_jump_der = obs.init.params.p_jump_der(obs.init.traj).val(:,pos(1)/params.UWB_samp);            
                 
                 % jump map - x
-                x(1) = x(1) + params.theta(1)*(p_jump(1)-x(1));
-                x(2) = x(2) + params.theta(2)*(p_jump_der(1)-x(2));
+                x(1) = x(1) + params.theta(1)*(p_jump(1)-x(1)) + params.alpha(1)*(p_jump(1)-x(1))^3;
+                x(2) = x(2) + params.theta(2)*(p_jump_der(1)-x(2)) + params.alpha(2)*(p_jump_der(1)-x(2))^3;
                 x(3) = x(3) + params.theta(3)*(p_jump(1)-x(1)) + params.theta(4)*(p_jump_der(1)-x(2)) + params.theta(5)*x(3);
                 x(4) = x(4);
                         
                 % jump map - y
-                x(5) = x(5) + params.theta(1)*(p_jump(2)-x(5));
-                x(6) = x(6) + params.theta(2)*(p_jump_der(2)-x(6));
+                x(5) = x(5) + params.theta(1)*(p_jump(2)-x(5)) + params.alpha(1)*(p_jump(2)-x(5))^3;
+                x(6) = x(6) + params.theta(2)*(p_jump_der(2)-x(6)) + params.alpha(2)*(p_jump_der(2)-x(6))^3;
                 x(7) = x(7) + params.theta(3)*(p_jump(2)-x(5)) + params.theta(4)*(p_jump_der(2)-x(6)) + params.theta(5)*x(7);
                 x(8) = x(8);                
     
                 % jump map - z
-                x(9) = x(9) + params.theta(1)*(p_jump(3)-x(9));
-                x(10) = x(10) + params.theta(2)*(p_jump_der(3)-x(10));
+                x(9) = x(9) + params.theta(1)*(p_jump(3)-x(9)) + params.alpha(1)*(p_jump(3)-x(9))^3;
+                x(10) = x(10) + params.theta(2)*(p_jump_der(3)-x(10)) + params.alpha(2)*(p_jump_der(3)-x(10))^3;
                 x(11) = x(11) + params.theta(3)*(p_jump(3)-x(9)) + params.theta(4)*(p_jump_der(3)-x(10)) + params.theta(5)*x(11);
                 x(12) = x(12);                
             end   
-
-            %%%% OBSERVER DYNAMICS %%%
-            % model dynamics
-            % x axis
-            x_dot(1) = x(2);
-            x_dot(2) = x(4)-x(3);
-            x_dot(4) = params.alpha(1)*(a(1)-x(4));        
             
-            % y axis
-            x_dot(5) = x(6);
-            x_dot(6) = x(8)-x(7);
-            x_dot(8) = params.alpha(1)*(a(2)-x(8));
-        
-            % z axis
-            x_dot(9) = x(10);
-            x_dot(10) = x(12)-x(11);
-            x_dot(12) = params.alpha(1)*(a(3)-x(12));
-
         else
 
             % Jump - only on the UWB
@@ -98,36 +81,43 @@ function [x_dot, x] = model_rover(tspan,x,params,obs)
                 p_jump_der = obs.init.params.p_jump_der(obs.init.traj).val(:,pos(1)/params.UWB_samp);            
                 
                 % jump map - x
-                range = params.range_sfer(1,:);
-                e = [p_jump(1); p_jump_der(1); a(1)]-params.Csfer*x(range);                
+                range = params.range_sfer_jump(1,:);
+                xref = [p_jump(1); p_jump_der(1)];
+                xref = [p_jump(1)];
+%                 xref = [p_jump(1); a(1)];
+                e = xref-params.Cproj*x(range);                
                 x(range) = x(range)+params.Ksfer*e;
         
                 % jump map - y
-                range = params.range_sfer(2,:);
-                e = [p_jump(2); p_jump_der(2); a(2)]-params.Csfer*x(range);                
+                range = params.range_sfer_jump(2,:);
+                xref = [p_jump(2); p_jump_der(2)];
+                xref = [p_jump(2)];
+%                 xref = [p_jump(2); a(2)];
+                e = xref-params.Cproj*x(range);                
                 x(range) = x(range)+params.Ksfer*e;
     
                 % jump map - z                
-                range = params.range_sfer(3,:);
-                e = [p_jump(3); p_jump_der(3); a(3)]-params.Csfer*x(range);                
+                range = params.range_sfer_jump(3,:);
+                xref = [p_jump(3); p_jump_der(3)];
+                xref = [p_jump(3)];
+%                 xref = [p_jump(3); a(3)];
+                e = xref-params.Cproj*x(range);                
                 x(range) = x(range)+params.Ksfer*e;
-            end    
+            end                
 
-            %%% MODEL DYNAMICS %%%
+        end 
 
-            % flow map - x
-            range = params.range_sfer(1,:);
-            x_dot(range) = params.Asfer*x(range) + params.Bsfer*a(1);
+        % flow map - x
+        range = params.range_sfer_flow(1,:);
+        x_dot(range) = params.Asfer*x(range) + params.Bsfer*a(1);
 
-            % flow map - y
-            range = params.range_sfer(2,:);
-            x_dot(range) = params.Asfer*x(range) + params.Bsfer*a(2);
+        % flow map - y
+        range = params.range_sfer_flow(2,:);
+        x_dot(range) = params.Asfer*x(range) + params.Bsfer*a(2);
 
-            % flow map - z
-            range = params.range_sfer(3,:);
-            x_dot(range) = params.Asfer*x(range) + params.Bsfer*a(3);
-
-        end        
+        % flow map - z
+        range = params.range_sfer_flow(3,:);
+        x_dot(range) = params.Asfer*x(range) + params.Bsfer*a(3);
 
     %%%%%%%%%%%%% EKF MODEL %%%%%%%%%%%%
     elseif (params.EKF && ~params.hyb) && ~params.dryrun

@@ -27,7 +27,7 @@ function params = params_rover
     params.Kff = [0 0 0];
 
     % number of reference trajectories (under development)
-    params.Ntraj = 1;
+    params.Ntraj = 2;
 
     % control error derivative
     params.wlen_err = 4;
@@ -84,8 +84,8 @@ function params = params_rover
     params.multistart = 0;
 
     % observer params    
-    params.theta = 0*[0.5 0.5 -0.5 2 1];
-    params.alpha = 1*[1 0];      
+    params.theta = 0*[0.5 0.5 -0.5 0.5 0];
+    params.alpha = 0*[0 0];      
 %     params.theta = [4.2469e-01   8.0590e-01  -2.8708e+01  -8.2988e+00  -2.1367e-02];
 %     params.alpha = 1*[2.3893e+00            0];
    
@@ -281,9 +281,40 @@ function params = params_rover
     params.ssd_EKF = c2d(params.ss_EKF,1e-2);
 
     %%% matrices for sferlazza method %%%    
-    if 1
-        % case same observer as hyb
+    dyn = 2;
+    if dyn == 2
+
+        % case error dynamics
         params.alphasfer = 1;
+        params.sferbias = 0;        
+        params.Asfer = [0  1   0   0; ...
+                        0  0   -1  1; ...
+                        0  0   0   0; ...
+                        0  0   0   -params.alphasfer];
+        params.Bsfer = [0 0 0 params.alphasfer]';
+        params.Csfer = [1  0   0   0; ...
+                        0  1   0   0; ...
+                        0  0   0   1];
+        params.Dsfer = 0;
+        params.Aproj = [0  1   0; ...
+                        0  0   -1; ...
+                        0  0   0];
+        params.Bproj = [0 0 0]';
+        params.Cproj = [1  0   0; ...
+                        0  1   0];
+        params.Dproj = 0;
+        % error dynamics        
+        params.Ksfer = [1.0000  0; ...
+                        0       1.0000; ...
+                        0.0515  -0.6793];                
+        params.range_sfer_flow = [1:4; 5:8; 9:12];    
+        params.range_sfer_jump = [1:3; 5:7; 9:11]; 
+
+    elseif dyn == 3
+
+        % case error dynamics
+        params.alphasfer = 300;
+        params.sferbias = 0;
         params.alphasfer = params.alpha(1);
         params.Asfer = [0  1   0   0; ...
                         0  0   -1  1; ...
@@ -294,11 +325,42 @@ function params = params_rover
                         0  1   0   0; ...
                         0  0   0   1];
         params.Dsfer = 0;
-        params.Ksfer = [1.0000e+00  0               0; ...
-                        0           1.0000e+00      0; ...
-                        5.1365e-02  -6.7930e-01     2.3483e-01; ...
-                        0            0              1.0000e+00];
-        params.range_sfer = [1:4; 5:8; 9:12];    
+        params.Aproj = [0  1   0; ...
+                        0  0   -1; ...
+                        0  0   0];
+        params.Bproj = [0 0 0]';
+        params.Cproj = [1  0   0];
+        params.Dproj = 0;
+        % error dynamics        
+        params.Ksfer = [1.0000; ...
+                        1.2662; ...
+                        -0.5457];                
+        params.range_sfer_flow = [1:4; 5:8; 9:12];    
+        params.range_sfer_jump = [1:3; 5:7; 9:11];
+    else
+
+        % case error dynamics
+        params.alphasfer = 1;
+        params.sferbias = 1;
+        params.alphasfer = params.alpha(1);
+        params.Asfer = [0  1   0; ...
+                        0  0   0; ...
+                        0  0   0];
+        params.Bsfer = [0 1 0]';
+        params.Csfer = [1  0   0; ...
+                        0  0   1];
+        params.Dsfer = [0; 1];
+        params.Aproj = params.Asfer;
+        params.Bproj = params.Bsfer;
+        params.Cproj = params.Csfer;
+        params.Dproj = params.Dsfer;        
+        % nominal plant
+        params.Ksfer = [1.0000         0; ...
+                        0.6666         0; ...
+                        0              1];        
+        params.range_sfer_flow = [1:3; 5:7; 9:11];    
+        params.range_sfer_jump = params.range_sfer_flow; 
+
     end
     
 
