@@ -27,7 +27,7 @@ function params = params_rover
     params.Kff = [0 0 0];
 
     % number of reference trajectories (under development)
-    params.Ntraj = 2;
+    params.Ntraj = 5;
 
     % control error derivative
     params.wlen_err = 4;
@@ -83,11 +83,17 @@ function params = params_rover
     % multistart
     params.multistart = 0;
 
-    % observer params    
+    %%% observer params %%%
+    % theta
     params.theta = 0*[0.5 0.5 -0.5 0.5 0];
+    params.theta = [0.9927    0.1010    1.3028   -0.0441         0];
+
+    % alpha
     params.alpha = 0*[0 0];      
-%     params.theta = [4.2469e-01   8.0590e-01  -2.8708e+01  -8.2988e+00  -2.1367e-02];
-%     params.alpha = 1*[2.3893e+00            0];
+
+    % filter
+    params.lowpass = 100;
+    
    
     %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
     % hyb obs parameters
@@ -234,7 +240,8 @@ function params = params_rover
 
 
     % same initial condition for all the trajectories (under development)
-    params.multi_traj_var = [params.pos_p params.pos_v params.pos_acc]; 
+    params.perturbed_vars = [params.pos_p params.pos_v params.pos_acc]; 
+    params.multi_traj_var = [params.pos_p params.pos_bias]; 
     pos_init = [3 3;  ...
                 -3 3; ...
                 -3 -3; ...
@@ -243,11 +250,13 @@ function params = params_rover
         params.X(traj).val(:,1) = params.X(1).val(:,1);
 
         % random
-        params.X(traj).val(params.multi_traj_var,1) = params.X(1).val(params.multi_traj_var,1).*(1 + 0*5e-1*randn(length(params.multi_traj_var),1));
+        params.X(traj).val(params.multi_traj_var,1) = params.X(1).val(params.multi_traj_var,1).*(1 + 1*1e-1*randn(length(params.multi_traj_var),1));
 
         % from starting positions
 %         params.X(traj).val(params.pos_p,1) = pos_init(traj,:);
-    end    
+    end   
+
+
 
     % hills on z - correct initialization
     for traj = 1:params.Ntraj
@@ -285,7 +294,7 @@ function params = params_rover
     if dyn == 2
 
         % case error dynamics
-        params.alphasfer = 1;
+        params.alphasfer = params.lowpass;
         params.sferbias = 0;        
         params.Asfer = [0  1   0   0; ...
                         0  0   -1  1; ...
@@ -313,9 +322,8 @@ function params = params_rover
     elseif dyn == 3
 
         % case error dynamics
-        params.alphasfer = 300;
-        params.sferbias = 0;
-        params.alphasfer = params.alpha(1);
+        params.alphasfer = params.lowpass;
+        params.sferbias = 0;        
         params.Asfer = [0  1   0   0; ...
                         0  0   -1  1; ...
                         0  0   0   0; ...
@@ -340,9 +348,8 @@ function params = params_rover
     else
 
         % case error dynamics
-        params.alphasfer = 1;
-        params.sferbias = 1;
-        params.alphasfer = params.alpha(1);
+        params.alphasfer = params.lowpass;
+        params.sferbias = 1;        
         params.Asfer = [0  1   0; ...
                         0  0   0; ...
                         0  0   0];

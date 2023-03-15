@@ -83,7 +83,7 @@ function [x_dot, x] = model_rover(tspan,x,params,obs)
                 % jump map - x
                 range = params.range_sfer_jump(1,:);
                 xref = [p_jump(1); p_jump_der(1)];
-                xref = [p_jump(1)];
+%                 xref = [p_jump(1)];
 %                 xref = [p_jump(1); a(1)];
                 e = xref-params.Cproj*x(range);                
                 x(range) = x(range)+params.Ksfer*e;
@@ -91,7 +91,7 @@ function [x_dot, x] = model_rover(tspan,x,params,obs)
                 % jump map - y
                 range = params.range_sfer_jump(2,:);
                 xref = [p_jump(2); p_jump_der(2)];
-                xref = [p_jump(2)];
+%                 xref = [p_jump(2)];
 %                 xref = [p_jump(2); a(2)];
                 e = xref-params.Cproj*x(range);                
                 x(range) = x(range)+params.Ksfer*e;
@@ -99,7 +99,7 @@ function [x_dot, x] = model_rover(tspan,x,params,obs)
                 % jump map - z                
                 range = params.range_sfer_jump(3,:);
                 xref = [p_jump(3); p_jump_der(3)];
-                xref = [p_jump(3)];
+%                 xref = [p_jump(3)];
 %                 xref = [p_jump(3); a(3)];
                 e = xref-params.Cproj*x(range);                
                 x(range) = x(range)+params.Ksfer*e;

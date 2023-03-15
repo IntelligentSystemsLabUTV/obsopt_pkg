@@ -28,7 +28,7 @@ if 0
 end
 
 % error dynamics - with PD
-if 0
+if 1
     % case same observer as plant
     A = [0  1   0 ; ...
          0  0   -1; ...
@@ -40,7 +40,7 @@ if 0
 end
 
 % error dynamics - without PD
-if 1
+if 0
     % case same observer as plant
     A = [0  1   0 ; ...
          0  0   -1; ...
@@ -75,7 +75,7 @@ I = eye(dim);
 Oc = obsv(sysc);
   
 %% test Schur
-if 0
+if 1
 
     Ts = 2e-1;
     sysd = c2d(sysc,Ts);
@@ -84,20 +84,20 @@ if 0
     syms s
         
         
-    Gamma = [theta(1)   0           0; ...
-             0          theta(2)    0; ...
-             theta(3)   theta(4)    -theta(5)];       
+    Gamma = [1-theta(1)   0           0; ...
+             0          1-0*theta(2)    0; ...
+             -theta(3)   -theta(4)    1];       
         
     eA = expm(sysc.A*Ts);
-    PHI = (I - Gamma)*eA;    
+    PHI = Gamma*eA;    
         
-    thetaval = [0.4247    0.8059  -28.7079   -8.2988   -0.0214];  
-%     thetaval = [0.8209    0.8622 -202.9812  -10.5832         0];
+%     thetaval = [0.7992    0.5398  -41.6652    0.8930         0];  % dryrun
+    thetaval = [0.9927    0.1010    1.3028   -0.0441         0];  % noise
     PHIval = double(subs(PHI,theta,thetaval));
 end
 
 %% Sferlazza algorithm
-if 1
+if 0
 
     % obsv analysis    
     deltatau = 1e-3:1e-2:10e0;
@@ -228,26 +228,28 @@ if 1
             end
         end 
     end  
-end
 
-%% test result
-if ~sol.problem
-    deltacheck = Tm:1e-3:TM;
-    for i=1:numel(deltacheck)        
-        Ts = deltacheck(i);        
-        
-        %% perp and P
-        eA = expm(A*Ts);
-        eA_ = expm(-A*Ts);                                   
-        
-        %% compute gain
-        T1 = Cperp*pinv(Cperp'*eA_'*Pstar*eA_*Cperp)*Cperp';
-        T2 = (eA_'*Pstar*eA_)'*C';
-        K = (C'-T1*T2)*pinv(C*C');
-        
-        %% dynamics matrix
-        PHI = (eye(dim)-K*C)*eA;    
-        eig_store(:,i) = real(eig(PHI));
-        Schur_store(i) = prod(any(abs(eig_store(:,i))>1));
+    %% test result
+    if ~sol.problem
+        deltacheck = Tm:1e-3:TM;
+        for i=1:numel(deltacheck)        
+            Ts = deltacheck(i);        
+            
+            %% perp and P
+            eA = expm(A*Ts);
+            eA_ = expm(-A*Ts);                                   
+            
+            %% compute gain
+            T1 = Cperp*pinv(Cperp'*eA_'*Pstar*eA_*Cperp)*Cperp';
+            T2 = (eA_'*Pstar*eA_)'*C';
+            K = (C'-T1*T2)*pinv(C*C');
+            
+            %% dynamics matrix
+            PHI = (eye(dim)-K*C)*eA;    
+            eig_store(:,i) = real(eig(PHI));
+            Schur_store(i) = prod(any(abs(eig_store(:,i))>1));
     end
 end
+end
+
+
