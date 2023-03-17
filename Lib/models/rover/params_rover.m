@@ -27,7 +27,7 @@ function params = params_rover
     params.Kff = [0 0 0];
 
     % number of reference trajectories (under development)
-    params.Ntraj = 5;
+    params.Ntraj = 1;
 
     % control error derivative
     params.wlen_err = 4;
@@ -85,8 +85,8 @@ function params = params_rover
 
     %%% observer params %%%
     % theta
-    params.theta = 0*[0.5 0.5 -0.5 0.5 0];
-    params.theta = [0.9927    0.1010    1.3028   -0.0441         0];
+    params.theta = 0*[0.5 0.5 -0.5];
+%     params.theta = [0.9927    0.1010    1.3028   -0.0441         0];
 
     % alpha
     params.alpha = 0*[0 0];      
