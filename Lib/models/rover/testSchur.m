@@ -85,14 +85,15 @@ if 1
         
         
     Gamma = [1-theta(1)   0           0; ...
-             0          1-0*theta(2)    0; ...
+             0          1-theta(2)    0; ...
              -theta(3)   -theta(4)    1];       
         
     eA = expm(sysc.A*Ts);
+%     eA = eye(3)+sysc.A*Ts;
     PHI = Gamma*eA;    
         
-%     thetaval = [0.7992    0.5398  -41.6652    0.8930         0];  % dryrun
-    thetaval = [0.9927    0.1010    1.3028   -0.0441         0];  % noise
+    thetaval = [1.9971         0    0.0875         0         0];  % true x1x2
+%     thetaval = [0.9927    0.1010    1.3028   -0.0441         0];  % noise
     PHIval = double(subs(PHI,theta,thetaval));
 end
 
