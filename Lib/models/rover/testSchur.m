@@ -28,24 +28,24 @@ if 0
 end
 
 % error dynamics - with PD
-if 1
+if 0
     % case same observer as plant
     A = [0  1   0 ; ...
          0  0   -1; ...
          0  0   0];
-    B = [0 0 0]';
+    B = [0 -1 0]';
     C = [1  0   0; ...
          0  1   0];
     D = 0;   
 end
 
 % error dynamics - without PD
-if 0
+if 1
     % case same observer as plant
     A = [0  1   0 ; ...
          0  0   -1; ...
          0  0   0];
-    B = [0 0 0]';
+    B = [0 -1 0]';
     C = [1  0   0];
     D = 0;   
 end
@@ -80,20 +80,20 @@ if 1
     Ts = 2e-1;
     sysd = c2d(sysc,Ts);
     Od = obsv(sysd);
-    syms theta [1 5]
+    syms theta [1 3]
     syms s
         
         
-    Gamma = [1-theta(1)   0           0; ...
-             0          1-theta(2)    0; ...
-             -theta(3)   -theta(4)    1];       
+    Gamma = [1-theta(1)  0    0; ...
+            -theta(1)    1    0; ...
+             -theta(1)   0    1];       
         
-    eA = expm(sysc.A*Ts);
-%     eA = eye(3)+sysc.A*Ts;
+%     eA = expm(sysc.A*Ts);
+    eA = eye(3)+sysc.A*Ts;
     PHI = Gamma*eA;    
-        
-    thetaval = [1.9971         0    0.0875         0         0];  % true x1x2
-%     thetaval = [0.9927    0.1010    1.3028   -0.0441         0];  % noise
+            
+    thetaval = [0.3873  0.2875  -0.0558]; % noise - learn
+    thetaval = [1.0000  1.2662  -0.5457]; % sferlazza
     PHIval = double(subs(PHI,theta,thetaval));
 end
 

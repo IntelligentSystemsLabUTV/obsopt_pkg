@@ -32,7 +32,8 @@ function [x_dot, x] = model_rover(tspan,x,params,obs)
 
         % meas available
         y = obs.init.Y_full_story(obs.init.traj).val(1,:,pos(1));
-        a = y(params.pos_acc_out);        
+        a = y(params.pos_acc_out);     
+        xp = x;
     
         if params.sferlazza == 0
             % Jump - only on the UWB
@@ -48,22 +49,24 @@ function [x_dot, x] = model_rover(tspan,x,params,obs)
                 p_jump_der = obs.init.params.p_jump_der(obs.init.traj).val(:,pos(1)/params.UWB_samp);            
                 
                 % jump map - x
-                x(1) = x(1) + params.theta(1)*(p_jump(1)-x(1)) + params.alpha(1)*(p_jump(1)-x(1))^3;
-                x(2) = x(2) + params.theta(2)*(p_jump(1)-x(1));
-                x(3) = x(3) + params.theta(3)*(p_jump(1)-x(1));
-                x(4) = x(4);
+                xp(1) = x(1) + params.theta(1)*(p_jump(1)-x(1)) + params.alpha(1)*(p_jump(1)-x(1))^3;
+                xp(2) = x(2) + params.theta(2)*(p_jump(1)-x(1));
+                xp(3) = x(3) + params.theta(3)*(p_jump(1)-x(1));
+                xp(4) = x(4);
                         
                 % jump map - y
-                x(5) = x(5) + params.theta(1)*(p_jump(2)-x(5)) + params.alpha(1)*(p_jump(2)-x(5))^3;
-                x(6) = x(6) + params.theta(2)*(p_jump(2)-x(5));
-                x(7) = x(7) + params.theta(3)*(p_jump(2)-x(5));
-                x(8) = x(8);                
+                xp(5) = x(5) + params.theta(1)*(p_jump(2)-x(5)) + params.alpha(1)*(p_jump(2)-x(5))^3;
+                xp(6) = x(6) + params.theta(2)*(p_jump(2)-x(5));
+                xp(7) = x(7) + params.theta(3)*(p_jump(2)-x(5));
+                xp(8) = x(8);                
     
                 % jump map - z
-                x(9) = x(9) + params.theta(1)*(p_jump(3)-x(9)) + params.alpha(1)*(p_jump(3)-x(9))^3;
-                x(10) = x(10) + params.theta(2)*(p_jump(3)-x(9));
-                x(11) = x(11) + params.theta(3)*(p_jump(3)-x(9));
-                x(12) = x(12);                
+                xp(9) = x(9) + params.theta(1)*(p_jump(3)-x(9)) + params.alpha(1)*(p_jump(3)-x(9))^3;
+                xp(10) = x(10) + params.theta(2)*(p_jump(3)-x(9));
+                xp(11) = x(11) + params.theta(3)*(p_jump(3)-x(9));
+                xp(12) = x(12);   
+
+                x = xp;
             end   
             
         else
@@ -81,28 +84,24 @@ function [x_dot, x] = model_rover(tspan,x,params,obs)
                 p_jump_der = obs.init.params.p_jump_der(obs.init.traj).val(:,pos(1)/params.UWB_samp);            
                 
                 % jump map - x
-                range = params.range_sfer_jump(1,:);
-                xref = [p_jump(1); p_jump_der(1)];
-%                 xref = [p_jump(1)];
-%                 xref = [p_jump(1); a(1)];
+                range = params.range_sfer_jump(1,:);                
+                xref = [p_jump(1)];
                 e = xref-params.Cproj*x(range);                
-                x(range) = x(range)+params.Ksfer*e;
+                xp(range) = x(range)+params.Ksfer*e;
         
                 % jump map - y
-                range = params.range_sfer_jump(2,:);
-                xref = [p_jump(2); p_jump_der(2)];
-%                 xref = [p_jump(2)];
-%                 xref = [p_jump(2); a(2)];
+                range = params.range_sfer_jump(2,:);                
+                xref = [p_jump(2)];
                 e = xref-params.Cproj*x(range);                
-                x(range) = x(range)+params.Ksfer*e;
+                xp(range) = x(range)+params.Ksfer*e;
     
                 % jump map - z                
-                range = params.range_sfer_jump(3,:);
-                xref = [p_jump(3); p_jump_der(3)];
-%                 xref = [p_jump(3)];
-%                 xref = [p_jump(3); a(3)];
+                range = params.range_sfer_jump(3,:);                
+                xref = [p_jump(3)];
                 e = xref-params.Cproj*x(range);                
-                x(range) = x(range)+params.Ksfer*e;
+                xp(range) = x(range)+params.Ksfer*e;
+
+                x = xp;
             end                
 
         end 

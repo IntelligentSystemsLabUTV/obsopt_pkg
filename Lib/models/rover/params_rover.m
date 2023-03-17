@@ -85,7 +85,7 @@ function params = params_rover
 
     %%% observer params %%%
     % theta
-    params.theta = 0*[0.5 0.5 -0.5];
+    params.theta = 0*[1.0000  1.2662  -0.5457];
 %     params.theta = [0.9927    0.1010    1.3028   -0.0441         0];
 
     % alpha
@@ -290,36 +290,8 @@ function params = params_rover
     params.ssd_EKF = c2d(params.ss_EKF,1e-2);
 
     %%% matrices for sferlazza method %%%    
-    dyn = 2;
-    if dyn == 2
-
-        % case error dynamics
-        params.alphasfer = params.lowpass;
-        params.sferbias = 0;        
-        params.Asfer = [0  1   0   0; ...
-                        0  0   -1  1; ...
-                        0  0   0   0; ...
-                        0  0   0   -params.alphasfer];
-        params.Bsfer = [0 0 0 params.alphasfer]';
-        params.Csfer = [1  0   0   0; ...
-                        0  1   0   0; ...
-                        0  0   0   1];
-        params.Dsfer = 0;
-        params.Aproj = [0  1   0; ...
-                        0  0   -1; ...
-                        0  0   0];
-        params.Bproj = [0 0 0]';
-        params.Cproj = [1  0   0; ...
-                        0  1   0];
-        params.Dproj = 0;
-        % error dynamics        
-        params.Ksfer = [1.0000  0; ...
-                        0       1.0000; ...
-                        0.0515  -0.6793];                
-        params.range_sfer_flow = [1:4; 5:8; 9:12];    
-        params.range_sfer_jump = [1:3; 5:7; 9:11]; 
-
-    elseif dyn == 3
+    dyn = 1;
+    if dyn == 1
 
         % case error dynamics
         params.alphasfer = params.lowpass;
@@ -345,29 +317,7 @@ function params = params_rover
                         -0.5457];                
         params.range_sfer_flow = [1:4; 5:8; 9:12];    
         params.range_sfer_jump = [1:3; 5:7; 9:11];
-    else
-
-        % case error dynamics
-        params.alphasfer = params.lowpass;
-        params.sferbias = 1;        
-        params.Asfer = [0  1   0; ...
-                        0  0   0; ...
-                        0  0   0];
-        params.Bsfer = [0 1 0]';
-        params.Csfer = [1  0   0; ...
-                        0  0   1];
-        params.Dsfer = [0; 1];
-        params.Aproj = params.Asfer;
-        params.Bproj = params.Bsfer;
-        params.Cproj = params.Csfer;
-        params.Dproj = params.Dsfer;        
-        % nominal plant
-        params.Ksfer = [1.0000         0; ...
-                        0.6666         0; ...
-                        0              1];        
-        params.range_sfer_flow = [1:3; 5:7; 9:11];    
-        params.range_sfer_jump = params.range_sfer_flow; 
-
+    
     end
     
 
