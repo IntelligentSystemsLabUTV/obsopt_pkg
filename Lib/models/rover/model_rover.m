@@ -49,20 +49,20 @@ function [x_dot, x] = model_rover(tspan,x,params,obs)
                 
                 % jump map - x
                 x(1) = x(1) + params.theta(1)*(p_jump(1)-x(1)) + params.alpha(1)*(p_jump(1)-x(1))^3;
-                x(2) = x(2) + params.theta(2)*(p_jump_der(1)-x(2)) + params.alpha(2)*(p_jump_der(1)-x(2))^3;
-                x(3) = x(3) + params.theta(3)*(p_jump(1)-x(1)) + params.theta(4)*(p_jump_der(1)-x(2)) + params.theta(5)*x(3);
+                x(2) = x(2) + params.theta(2)*(p_jump(1)-x(1));
+                x(3) = x(3) + params.theta(3)*(p_jump(1)-x(1));
                 x(4) = x(4);
                         
                 % jump map - y
                 x(5) = x(5) + params.theta(1)*(p_jump(2)-x(5)) + params.alpha(1)*(p_jump(2)-x(5))^3;
-                x(6) = x(6) + params.theta(2)*(p_jump_der(2)-x(6)) + params.alpha(2)*(p_jump_der(2)-x(6))^3;
-                x(7) = x(7) + params.theta(3)*(p_jump(2)-x(5)) + params.theta(4)*(p_jump_der(2)-x(6)) + params.theta(5)*x(7);
+                x(6) = x(6) + params.theta(2)*(p_jump(2)-x(5));
+                x(7) = x(7) + params.theta(3)*(p_jump(2)-x(5));
                 x(8) = x(8);                
     
                 % jump map - z
                 x(9) = x(9) + params.theta(1)*(p_jump(3)-x(9)) + params.alpha(1)*(p_jump(3)-x(9))^3;
-                x(10) = x(10) + params.theta(2)*(p_jump_der(3)-x(10)) + params.alpha(2)*(p_jump_der(3)-x(10))^3;
-                x(11) = x(11) + params.theta(3)*(p_jump(3)-x(9)) + params.theta(4)*(p_jump_der(3)-x(10)) + params.theta(5)*x(11);
+                x(10) = x(10) + params.theta(2)*(p_jump(3)-x(9));
+                x(11) = x(11) + params.theta(3)*(p_jump(3)-x(9));
                 x(12) = x(12);                
             end   
             
