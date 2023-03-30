@@ -10,8 +10,10 @@ function [obs,params] = simulation_rover
 %%%% Init Section %%%%
 % uncomment to close previously opened figures
 % close all
-rng('default');
-rng(5);
+% rng('default');
+% rng(42);
+rng(23);
+% rng(5);
     
 % init observer buffer (see https://doi.org/10.48550/arXiv.2204.09359)
 Nw = 30;

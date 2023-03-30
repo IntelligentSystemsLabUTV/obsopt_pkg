@@ -1,43 +1,8 @@
 %%
-clc
+% clc
 clear
 
 %% setup model
-% sferlazza
-if 0
-    A = [-0.02  -1.4    9.8;    ...
-         -0.01  -0.4    0;      ...
-         0      1       0];
-    B = [9.8 6.3 0]';
-    C = [1 0 1];
-    D = 0;
-end
-
-% Localization
-if 0
-    af = 1;
-    A = [0  1   0   0; ...
-         0  0   -1  1; ...
-         0  0   0   0; ...
-         0  0   0   -af];
-    B = [0 0 0 af]';
-    C = [1  0   0   0; ...
-         0  1   0   0; ...
-         0  0   0   1];
-    D = 0;
-end
-
-% error dynamics - with PD
-if 0
-    % case same observer as plant
-    A = [0  1   0 ; ...
-         0  0   -1; ...
-         0  0   0];
-    B = [0 -1 0]';
-    C = [1  0   0; ...
-         0  1   0];
-    D = 0;   
-end
 
 % error dynamics - without PD
 if 1
@@ -48,18 +13,6 @@ if 1
     B = [0 -1 0]';
     C = [1  0   0];
     D = 0;   
-end
-
-% plant dynamics
-if 0
-    % case same observer as plant
-    A = [0  1   0 ; ...
-         0  0   0; ...
-         0  0   0];
-    B = [0 1 0]';
-    C = [1  0   0; ...
-         0  0   0];
-    D = [0; 0];   
 end
 
 dim = size(A,1);
@@ -85,15 +38,16 @@ if 1
         
         
     Gamma = [1-theta(1)  0    0; ...
-            -theta(1)    1    0; ...
-             -theta(1)   0    1];       
+            -theta(2)    1    0; ...
+             -theta(3)   0    1];       
         
-%     eA = expm(sysc.A*Ts);
-    eA = eye(3)+sysc.A*Ts;
+    eA = expm(sysc.A*Ts);
+%     eA = eye(3)+sysc.A*Ts;
     PHI = Gamma*eA;    
             
-    thetaval = [0.3873  0.2875  -0.0558]; % noise - learn
-    thetaval = [1.0000  1.2662  -0.5457]; % sferlazza
+%     thetaval = [1.1717    3.6205  -10.3678]; % nonoise - learn
+    thetaval = [0.4221    0.2888   -0.0281]; % yesnoise - learn
+%     thetaval = [1.0000  1.2662  -0.5457]; % sferlazza
     PHIval = double(subs(PHI,theta,thetaval));
 end
 

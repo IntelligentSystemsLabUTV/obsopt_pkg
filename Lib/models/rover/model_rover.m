@@ -49,21 +49,21 @@ function [x_dot, x] = model_rover(tspan,x,params,obs)
                 p_jump_der = obs.init.params.p_jump_der(obs.init.traj).val(:,pos(1)/params.UWB_samp);            
                 
                 % jump map - x
-                xp(1) = x(1) + params.theta(1)*(p_jump(1)-x(1)) + params.alpha(1)*(p_jump(1)-x(1))^3;
-                xp(2) = x(2) + params.theta(2)*(p_jump(1)-x(1));
-                xp(3) = x(3) + params.theta(3)*(p_jump(1)-x(1));
+                xp(1) = x(1) + params.theta(1)*(p_jump(1)-x(1)) + params.theta(4)*(p_jump(1)-x(1))^3;
+                xp(2) = x(2) + params.theta(2)*(p_jump(1)-x(1)) + params.theta(5)*(p_jump(1)-x(1))^3;
+                xp(3) = x(3) + params.theta(3)*(p_jump(1)-x(1)) + params.theta(6)*(p_jump(1)-x(1))^3;
                 xp(4) = x(4);
                         
                 % jump map - y
-                xp(5) = x(5) + params.theta(1)*(p_jump(2)-x(5)) + params.alpha(1)*(p_jump(2)-x(5))^3;
-                xp(6) = x(6) + params.theta(2)*(p_jump(2)-x(5));
-                xp(7) = x(7) + params.theta(3)*(p_jump(2)-x(5));
-                xp(8) = x(8);                
+                xp(5) = x(5) + params.theta(1)*(p_jump(2)-x(5)) + params.theta(4)*(p_jump(2)-x(5))^3;
+                xp(6) = x(6) + params.theta(2)*(p_jump(2)-x(5)) + params.theta(5)*(p_jump(2)-x(5))^3;
+                xp(7) = x(7) + params.theta(3)*(p_jump(2)-x(5)) + params.theta(6)*(p_jump(1)-x(5))^3;
+                xp(8) = x(8);               2
     
                 % jump map - z
-                xp(9) = x(9) + params.theta(1)*(p_jump(3)-x(9)) + params.alpha(1)*(p_jump(3)-x(9))^3;
-                xp(10) = x(10) + params.theta(2)*(p_jump(3)-x(9));
-                xp(11) = x(11) + params.theta(3)*(p_jump(3)-x(9));
+                xp(9) = x(9) + params.theta(1)*(p_jump(3)-x(9)) + params.theta(4)*(p_jump(3)-x(9))^3;
+                xp(10) = x(10) + params.theta(2)*(p_jump(3)-x(9)) + params.theta(5)*(p_jump(3)-x(9))^3;
+                xp(11) = x(11) + params.theta(3)*(p_jump(3)-x(9)) + params.theta(6)*(p_jump(3)-x(9))^3;
                 xp(12) = x(12);   
 
                 x = xp;

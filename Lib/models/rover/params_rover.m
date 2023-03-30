@@ -27,7 +27,7 @@ function params = params_rover
     params.Kff = [0 0 0];
 
     % number of reference trajectories (under development)
-    params.Ntraj = 1;
+    params.Ntraj = 5;
 
     % control error derivative
     params.wlen_err = 4;
@@ -85,8 +85,9 @@ function params = params_rover
 
     %%% observer params %%%
     % theta
-    params.theta = 0*[1.0000  1.2662  -0.5457];
-%     params.theta = [0.9927    0.1010    1.3028   -0.0441         0];
+    params.theta = 1*[1.0000  1.2662  -0.5457];
+    params.theta = 1*[0.4221    0.2888   -0.0281];
+    params.theta = zeros(1,6);
 
     % alpha
     params.alpha = 0*[0 0];      
@@ -155,7 +156,7 @@ function params = params_rover
     % noise (on distances + acceleration)
     params.noise_mat = 0*ones(params.OutDim,2);    
     % sigma
-    params.noise_mat_original(params.pos_acc_out,1) = 1*1e-2;   % noise on IMU - sigma
+    params.noise_mat_original(params.pos_acc_out,1) = 1*5e-2;   % noise on IMU - sigma
     params.noise_mat_original(params.pos_dist_out,1) = 1*2e-1;  % noise on UWB - sigma    
     params.mean = params.noise_mat_original(:,1);
     params.noise_mat(:,1) = 1*params.noise_mat_original(:,1);    
@@ -240,7 +241,7 @@ function params = params_rover
 
 
     % same initial condition for all the trajectories (under development)
-    params.perturbed_vars = [params.pos_p params.pos_v params.pos_acc]; 
+    params.perturbed_vars = [params.pos_p]; 
     params.multi_traj_var = [params.pos_p params.pos_bias]; 
     pos_init = [3 3;  ...
                 -3 3; ...

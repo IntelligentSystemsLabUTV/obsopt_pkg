@@ -163,9 +163,9 @@ function params = model_init(varargin)
             randflag = 1; 
             noise_std = 1*ones(1,numel(params.perturbed_vars));
             noise_std(1:2) = 5e-1;
-            noise_std(3) = 1e-1;
-            noise_std(4:6) = 2e-1;
-            noise_std(7:9) = 2e-1;
+            noise_std(3) = 5e-1;
+%             noise_std(4:6) = 2e-1;
+%             noise_std(7:9) = 2e-1;
 
             % if case: random perturbation percentage - optimised vars            
             if randflag
