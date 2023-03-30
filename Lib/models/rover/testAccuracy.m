@@ -2,12 +2,16 @@
 clear  e ex ey ez meanx meany meanz sigmax sigmay sigmaz 
 start=3000;
 
-tmp = 'results/simulations/rover/testsferlazza/10TRAJ_200S_LINEAR_YESBIAS_YESNOISE_RANDHILL_YP_SEED0';
-for sim=1:5
-    name(sim).val = [tmp, num2str(sim)];
+tmp = 'results/simulations/rover/learnhyb/1TRAJ_200S_EKF_YESBIAS_YESNOISE_RANDHILL_YP';
+if 0
+    for sim=1:5
+        name(sim).val = [tmp, num2str(sim)];
+    end
+else
+    name(1).val = tmp;
 end
 sigma = [];
-for sim = 1:5
+for sim = 1:1
     load(name(sim).val)
     for i=1:params.Ntraj
         e(i).val = obs.init.X(i).val-obs.init.X_est(i).val;    

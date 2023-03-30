@@ -57,8 +57,8 @@ function [x_dot, x] = model_rover(tspan,x,params,obs)
                 % jump map - y
                 xp(5) = x(5) + params.theta(1)*(p_jump(2)-x(5)) + params.theta(4)*(p_jump(2)-x(5))^3;
                 xp(6) = x(6) + params.theta(2)*(p_jump(2)-x(5)) + params.theta(5)*(p_jump(2)-x(5))^3;
-                xp(7) = x(7) + params.theta(3)*(p_jump(2)-x(5)) + params.theta(6)*(p_jump(1)-x(5))^3;
-                xp(8) = x(8);               2
+                xp(7) = x(7) + params.theta(3)*(p_jump(2)-x(5)) + params.theta(6)*(p_jump(2)-x(5))^3;
+                xp(8) = x(8);               
     
                 % jump map - z
                 xp(9) = x(9) + params.theta(1)*(p_jump(3)-x(9)) + params.theta(4)*(p_jump(3)-x(9))^3;
@@ -125,18 +125,15 @@ function [x_dot, x] = model_rover(tspan,x,params,obs)
             % model dynamics
             % x axis
             x_dot(1) = x(2);    
-            x_dot(2) = x(3);
-            x_dot(3) = 0;
+            x_dot(2) = x(4);            
             
             % y axis
-            x_dot(6) = x(7);    
-            x_dot(7) = x(8);   
-            x_dot(8) = 0;
+            x_dot(5) = x(6);    
+            x_dot(6) = x(8);               
     
             % z axis
-            x_dot(11) = x(12);    
-            x_dot(12) = x(13);   
-            x_dot(13) = 0;
+            x_dot(9) = x(10);    
+            x_dot(10) = x(12);               
         else
             % perfect realization
             A = params.ssd_EKF.A;

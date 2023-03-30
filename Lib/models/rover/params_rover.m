@@ -27,7 +27,7 @@ function params = params_rover
     params.Kff = [0 0 0];
 
     % number of reference trajectories (under development)
-    params.Ntraj = 5;
+    params.Ntraj = 1;
 
     % control error derivative
     params.wlen_err = 4;
@@ -170,15 +170,15 @@ function params = params_rover
 
     %%%%%% EKF %%%%%
     % enable noise
-    params.EKF = 0;        
-    params.hyb = 1;
+    params.EKF = 1;        
+    params.hyb = 0;
     params.dryrun = 0;
     params.sferlazza = 0;
 
     %%% noise matrices
     % measurement noise
     params.R = diag([params.noise_mat_original(params.pos_dist_out,1).^2.*ones(params.Nanchor,1);     ...  % UWB         
-                     zeros(numel([params.pos_p params.pos_v]),1);                           ...  % P,V
+                     zeros(numel([params.pos_p params.pos_v]),1);                                     ...  % P,V
                      params.noise_mat_original(params.pos_acc_out,1).^2.*ones(params.space_dim,1);    ... % IMU ACC                     
         ]);      
     
