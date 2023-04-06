@@ -21,18 +21,11 @@ function [c, ceq] = nonlcon_fcn_rover(xopt,xnonopt,obs)
 %     normy = vecnorm(X(obs.init.params.pos_p(2),:),2,1);
 %     gamma(:,1) = x(obs.init.params.pos_Gamma(3))+ x(obs.init.params.pos_Gamma(4))*normx;
 %     gamma(:,2) = x(obs.init.params.pos_Gamma(3))+ x(obs.init.params.pos_Gamma(4))*normy;    
-% 
-%     theta_constr_up = [gamma(:,1); gamma(:,2); theta2] - 1;
-%     theta_constr_down = -[gamma(:,1); gamma(:,2); theta2];
-    
-%     theta = x(obs.init.params.pos_Gamma(1:8));
-%     theta_constr_up = [theta([1 2 6 8])] - 1;
-%     theta_constr_down = -[theta];
-%     c = [c; theta_constr_up; theta_constr_down];
 
-    % negative poles for filter
-%     alpha = x(obs.init.params.pos_Gamma(6));
-%     c = [c; -alpha];
+%     % CUBIC TERMS
+    ThetaCubic = x(obs.init.params.pos_Gamma(4:6));
+    ThetaCubic_constr_down = -ThetaCubic;
+    c = [c; ThetaCubic_constr_down];
     
             
     % cons

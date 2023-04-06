@@ -27,7 +27,7 @@ function params = params_rover
     params.Kff = [0 0 0];
 
     % number of reference trajectories (under development)
-    params.Ntraj = 1;
+    params.Ntraj = 5;
 
     % control error derivative
     params.wlen_err = 4;
@@ -87,7 +87,7 @@ function params = params_rover
     % theta
     params.theta = 1*[1.0000  1.2662  -0.5457];
     params.theta = 1*[0.4221    0.2888   -0.0281];
-    params.theta = zeros(1,6);
+    params.theta = 1*[0.3713    0.2401   -0.0264    0.0097    0.0797   -0.0095];
 
     % alpha
     params.alpha = 0*[0 0];      
@@ -170,8 +170,8 @@ function params = params_rover
 
     %%%%%% EKF %%%%%
     % enable noise
-    params.EKF = 1;        
-    params.hyb = 0;
+    params.EKF = 0;        
+    params.hyb = 1;
     params.dryrun = 0;
     params.sferlazza = 0;
 

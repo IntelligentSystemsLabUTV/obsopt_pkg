@@ -48,7 +48,7 @@ if 1
 %     thetaval = [1.1717    3.6205  -10.3678]; % nonoise - learn
 %     thetaval = [0.4221    0.2888   -0.0281]; % yesnoise - learn
 %     thetaval = [1.0000  1.2662  -0.5457]; % sferlazza
-    thetaval = [0.3713    0.2401   -0.0264]%    0.0097    0.0797   -0.0095]; % yesnoise - learn cubic
+    thetaval = [0.3713    0.2401   -0.0264];%    0.0097    0.0797   -0.0095]; % yesnoise - learn cubic
     PHIval = double(subs(PHI,theta,thetaval));
 end
 
