@@ -162,8 +162,8 @@ function params = model_init(varargin)
             % randomly define the percentage (bool flag, see below)
             randflag = 1; 
             noise_std = 1*ones(1,numel(params.perturbed_vars));
-            noise_std(1:2) = 5e-1;
-            noise_std(3) = 5e-1;
+            noise_std(1:2) = 1*5e-1;
+            noise_std(3) = 1*5e-1;
 %             noise_std(4:6) = 2e-1;
 %             noise_std(7:9) = 2e-1;
 

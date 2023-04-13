@@ -9,7 +9,7 @@
 % obs: observer class instance (may be not used)
 % OUTPUT:
 % x_dot: dynamics equations
-function [x_dot, x] = model_rover(tspan,x,params,obs)
+function [x_dot, x] = model_rover_bearing(tspan,x,params,obs)
 
     % init the dynamics 
     x_dot = zeros(length(x),1);
@@ -46,7 +46,7 @@ function [x_dot, x] = model_rover(tspan,x,params,obs)
         
                 %%% TEST %%%
                 p_jump = obs.init.params.p_jump(obs.init.traj).val(:,pos(1)/params.UWB_samp);
-                p_jump_der = obs.init.params.p_jump_der(obs.init.traj).val(:,pos(1)/params.UWB_samp);            
+                p_jump_der = obs.init.params.p_jump_der(obs.init.traj).val(:,pos(1)/params.UWB_samp);                 
                 
                 % jump map - x
                 xp(1) = x(1) + params.theta(1)*(p_jump(1)-x(1)) + params.theta(4)*(p_jump(1)-x(1))^3;
@@ -65,6 +65,9 @@ function [x_dot, x] = model_rover(tspan,x,params,obs)
                 xp(10) = x(10) + params.theta(2)*(p_jump(3)-x(9)) + params.theta(5)*(p_jump(3)-x(9))^3;
                 xp(11) = x(11) + params.theta(3)*(p_jump(3)-x(9)) + params.theta(6)*(p_jump(3)-x(9))^3;
                 xp(12) = x(12);   
+                
+                % jump map - theta
+                xp(13) = x(13) + 1*(y(params.pos_theta_out) - x(13));
 
                 x = xp;
             end   
