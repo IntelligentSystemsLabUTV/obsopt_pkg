@@ -5,7 +5,7 @@
 % description: function to setup and use the MHE observer on general model
 % INPUT: none
 % OUTPUT: params,obs
-function [obs,params] = simulation_rover
+function [obs,params] = simulation_rover_realdata(out)
 
 %%%% Init Section %%%%
 % uncomment to close previously opened figures
@@ -23,8 +23,8 @@ Nts = 300;
 Ts = 1e-2;
 
 % set initial and final time instant
-t0 = 0;
-tend = 200;
+t0 = out.IMUtime_resamp(1);
+tend = out.IMUtime_resamp(end);
 % uncomment to test the MHE with a single optimisation step
 % tend = 1*(Nw*Nts-1)*Ts;
 
@@ -37,12 +37,8 @@ params_update = @params_update_rover;
 %%%% model function %%%%
 model = @model_rover;
 
-%%%% model reference function %%%%
-model_reference = @model_rover_reference;
-
 %%%% measure function %%%%
 measure = @measure_rover;
-measure_reference = @measure_rover_reference;
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 %%%% filters %%%%
@@ -51,13 +47,10 @@ measure_reference = @measure_rover_reference;
 %%%% integration method %%%%
 ode = @odeEuler;
 
-%%%% input law %%%
-input_law = @control;
-
 %%%% params init %%%%
 params = model_init('Ts',Ts,'T0',[t0, tend],'noise',1, 'params_update', params_update, ...
             'model',model,'measure',measure,'ode',ode, 'odeset', [1e-3 1e-6], ...
-            'input_enable',1,'input_law',input_law,'params_init',params_init);
+            'params_init',params_init);
              
 %%%% observer init %%%%
 % defien arrival cost
@@ -67,10 +60,9 @@ terminal_weights = 1e0*ones(size(terminal_states));
 % create observer class instance. For more information on the setup
 % options check directly the class constructor in obsopt.m
 obs = obsopt('DataType', 'simulated', 'optimise', 0 , 'MultiStart', params.multistart, 'J_normalise', 1, 'MaxOptTime', Inf, ... 
-          'Nw', Nw, 'Nts', Nts, 'ode', ode, 'PE_ma0iter', 0, 'WaitAllBuffer', 2, 'params',params, 'filters', filterScale,'filterTF', filter, ...
-          'model_reference',model_reference, 'measure_reference',measure_reference, ...
+          'Nw', Nw, 'Nts', Nts, 'ode', ode, 'PE_ma0iter', 0, 'WaitAllBuffer', 0, 'params',params, 'filters', filterScale,'filterTF', filter, ...
           'Jdot_thresh',0.95,'MaxIter', 3, 'Jterm_store', 1, 'AlwaysOpt', 1 , 'print', 0 , 'SafetyDensity', Inf, 'AdaptiveParams', [10 160 1 1 0.5 params.pos_acc_out(1:2)], ...
-          'AdaptiveSampling',1, 'FlushBuffer', 1, 'opt', @patternsearch, 'terminal', 0, 'terminal_states', terminal_states, 'terminal_weights', terminal_weights, 'terminal_normalise', 1, ...
+          'AdaptiveSampling',0, 'FlushBuffer', 1, 'opt', @patternsearch, 'terminal', 0, 'terminal_states', terminal_states, 'terminal_weights', terminal_weights, 'terminal_normalise', 1, ...
           'ConPos', [], 'LBcon', [], 'UBcon', [],'Bounds', 0,'NONCOLcon',@nonlcon_fcn_rover);
 
 %% %%%% SIMULATION %%%%
@@ -109,10 +101,8 @@ for i = 1:obs.setup.Niter
         % propagate only if the time gets over the initial time instant
         if(obs.init.ActualTimeIndex > 1)                
             
-            % true system - correct initial condition and no noise
-            % considered                 
-            X = obs.setup.ode(@(t,x)obs.setup.model_reference(t, x, obs.setup.params, obs), tspan, obs.init.X(traj).val(:,startpos),params.odeset); 
-            obs.init.X(traj).val(:,startpos:stoppos) = [X.y(:,1),X.y(:,end)];
+            % true system - set to zero if no ground truth is available
+            obs.init.X(traj).val(:,startpos:stoppos) = zeros(params.dim_state,1);
     
             % real system - initial condition perturbed             
             X = obs.setup.ode(@(t,x)obs.setup.model(t, x, obs.init.params, obs), tspan, obs.init.X_est(traj).val(:,startpos),params.odeset);
@@ -122,8 +112,10 @@ for i = 1:obs.setup.Niter
         
         %%%% REAL MEASUREMENT %%%%
         % here the noise is noise added aggording to noise_spec
-        [y_meas(traj).val, obs] = obs.setup.measure_reference(obs.init.X(traj).val(:,stoppos),obs.init.params,obs.setup.time(startpos:stoppos),...
-                                                                            obs.init.input_story_ref(traj).val(:,max(1,startpos)),obs);          
+        y_meas(traj).val = [out.UWB(obs.init.ActualTimeIndex,:).'; ...                          % distances
+                            obs.init.X(traj).val(params.pos_p,obs.init.ActualTimeIndex); ...    % true pos - ground truth
+                            obs.init.X(traj).val(params.pos_v,obs.init.ActualTimeIndex); ...    % true vel - ground truth
+                            out.IMU(obs.init.ActualTimeIndex,:).'];
     end
     
     %%%% MHE OBSERVER (SAVE MEAS) %%%%

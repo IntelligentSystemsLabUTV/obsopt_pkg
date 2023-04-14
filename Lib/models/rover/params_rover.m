@@ -85,9 +85,9 @@ function params = params_rover
 
     %%% observer params %%%
     % theta
-    params.theta = 1*[1.0000  1.2662  -0.5457];
-    params.theta = 1*[0.4221    0.2888   -0.0281];
-    params.theta = 1*[0.3713    0.2401   -0.0264    0.0097    0.0797   -0.0095];
+    % params.theta = 1*[1.0000  1.2662  -0.5457   0   0   0];
+    params.theta = 1*[0.4221    0.2888   -0.0281    0   0   0];
+    % params.theta = 1*[0.3713    0.2401   -0.0264    0.0097    0.0797   -0.0095];
 
     % alpha
     params.alpha = 0*[0 0];      
