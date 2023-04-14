@@ -39,6 +39,7 @@ model = @model_rover;
 
 %%%% measure function %%%%
 measure = @measure_rover;
+measure_reference = @measure_rover_reference_realdata;
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 %%%% filters %%%%
@@ -51,6 +52,9 @@ ode = @odeEuler;
 params = model_init('Ts',Ts,'T0',[t0, tend],'noise',1, 'params_update', params_update, ...
             'model',model,'measure',measure,'ode',ode, 'odeset', [1e-3 1e-6], ...
             'params_init',params_init);
+
+% add out to params
+params.out = out;
              
 %%%% observer init %%%%
 % defien arrival cost
@@ -61,6 +65,7 @@ terminal_weights = 1e0*ones(size(terminal_states));
 % options check directly the class constructor in obsopt.m
 obs = obsopt('DataType', 'simulated', 'optimise', 0 , 'MultiStart', params.multistart, 'J_normalise', 1, 'MaxOptTime', Inf, ... 
           'Nw', Nw, 'Nts', Nts, 'ode', ode, 'PE_ma0iter', 0, 'WaitAllBuffer', 0, 'params',params, 'filters', filterScale,'filterTF', filter, ...
+          'measure_reference', measure_reference, ...
           'Jdot_thresh',0.95,'MaxIter', 3, 'Jterm_store', 1, 'AlwaysOpt', 1 , 'print', 0 , 'SafetyDensity', Inf, 'AdaptiveParams', [10 160 1 1 0.5 params.pos_acc_out(1:2)], ...
           'AdaptiveSampling',0, 'FlushBuffer', 1, 'opt', @patternsearch, 'terminal', 0, 'terminal_states', terminal_states, 'terminal_weights', terminal_weights, 'terminal_normalise', 1, ...
           'ConPos', [], 'LBcon', [], 'UBcon', [],'Bounds', 0,'NONCOLcon',@nonlcon_fcn_rover);
@@ -102,7 +107,7 @@ for i = 1:obs.setup.Niter
         if(obs.init.ActualTimeIndex > 1)                
             
             % true system - set to zero if no ground truth is available
-            obs.init.X(traj).val(:,startpos:stoppos) = zeros(params.dim_state,1);
+            obs.init.X(traj).val(:,startpos:stoppos) = zeros(params.dim_state,1+(stoppos-startpos));
     
             % real system - initial condition perturbed             
             X = obs.setup.ode(@(t,x)obs.setup.model(t, x, obs.init.params, obs), tspan, obs.init.X_est(traj).val(:,startpos),params.odeset);
@@ -112,10 +117,11 @@ for i = 1:obs.setup.Niter
         
         %%%% REAL MEASUREMENT %%%%
         % here the noise is noise added aggording to noise_spec
-        y_meas(traj).val = [out.UWB(obs.init.ActualTimeIndex,:).'; ...                          % distances
-                            obs.init.X(traj).val(params.pos_p,obs.init.ActualTimeIndex); ...    % true pos - ground truth
-                            obs.init.X(traj).val(params.pos_v,obs.init.ActualTimeIndex); ...    % true vel - ground truth
-                            out.IMU(obs.init.ActualTimeIndex,:).'];
+        [y_meas(traj).val, obs] = obs.setup.measure_reference(obs.init.X(traj).val(:,stoppos),obs.init.params,obs.setup.time(startpos:stoppos),...
+                                                                            obs.init.input_story_ref(traj).val(:,max(1,startpos)),obs);
+
+        % set the input story, if available
+        obs.init.input_story_ref(traj).val(:,obs.init.ActualTimeIndex) = zeros(1,params.dim_input);
     end
     
     %%%% MHE OBSERVER (SAVE MEAS) %%%%

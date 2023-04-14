@@ -662,6 +662,9 @@ classdef obsopt < handle
                 obj.init.drive_out(i).val = [];
                 obj.init.input_story(i).val(:,1) = zeros(obj.setup.params.dim_input,1);
                 obj.init.input_story_ref(i).val(:,1) = zeros(obj.setup.params.dim_input,1);
+
+                % noise story if used
+                obj.init.noise_story(i).val(:,1) = zeros(obj.setup.dim_out,1);
             end
             
             % input dimension
