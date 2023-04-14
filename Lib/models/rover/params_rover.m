@@ -27,7 +27,7 @@ function params = params_rover
     params.Kff = [0 0 0];
 
     % number of reference trajectories (under development)
-    params.Ntraj = 5;
+    params.Ntraj = 1;
 
     % control error derivative
     params.wlen_err = 4;
@@ -47,7 +47,13 @@ function params = params_rover
     params.space_dim = 3;   % 2D or 3D space for the rover 
 
     % anchor stuff
-    an_dp = 15;
+    % pos anchors Mesh 1
+    AM1 = [1 7 -1 -1; 3.5 -1 -3.5 1];
+    % pos anchors Mesh 1
+    AM2 = [7 6 -7 -6; 2.5 -3.5 -2.5 3.5];    
+    % square box
+    an_dp = max(abs(AM1));
+    % height
     an_dz = 2;
     Nhillmax = 4;
 
@@ -170,8 +176,8 @@ function params = params_rover
 
     %%%%%% EKF %%%%%
     % enable noise
-    params.EKF = 0;        
-    params.hyb = 1;
+    params.EKF = 1;        
+    params.hyb = 0;
     params.dryrun = 0;
     params.sferlazza = 0;
 
@@ -204,10 +210,10 @@ function params = params_rover
     params.X(1).val(:,1) = 1*[8;0;params.bias*0.1;0; ...                % x pos + IMU bias
                               8;0;params.bias*0.2;0; ...                % y pos + IMU bias
                               0;0;params.bias*0.1;0; ...                % z pos + IMU bias
-                              -an_dp;0;1*an_dz;  ...
-                              0;an_dp;1*an_dz;   ...
-                              an_dp;0;1*an_dz;    ...
-                              0;-an_dp;1*an_dz;   ...    % anchors                                                                                                        
+                              AM1(1,1);AM1(2,1);1*an_dz;  ...           % anchors Mesh 1
+                              AM1(1,2);AM1(2,2);1*an_dz;   ...
+                              AM1(1,3);AM1(2,3);1*an_dz;    ...
+                              AM1(1,4);AM1(2,4);1*an_dz;
                               params.theta'; ...                              
                               params.alpha'];      
     %%%%%%%%%%%%%%%%%%%%%%%
