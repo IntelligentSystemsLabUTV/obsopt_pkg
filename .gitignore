@@ -7,7 +7,7 @@ config/
 x86/
 doc/
 slprj/
-data/
+#data/
 
 # files
 *.asv
