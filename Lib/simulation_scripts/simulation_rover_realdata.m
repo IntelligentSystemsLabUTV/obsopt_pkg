@@ -108,7 +108,7 @@ for i = 1:obs.setup.Niter
             
             % true system - set to zero if no ground truth is available
             try
-                obs.init.X(traj).val(:,startpos:stoppos) = out.X(traj).val(params.dim_state,1+(stoppos-startpos));
+                obs.init.X(traj).val(:,startpos:stoppos) = out.X(traj).val(:,startpos:stoppos);
             catch
                 obs.init.X(traj).val(:,startpos:stoppos) = zeros(params.dim_state,1+(stoppos-startpos));
             end
@@ -119,14 +119,20 @@ for i = 1:obs.setup.Niter
             obs.init.X_est(traj).val(:,startpos:stoppos) = [X.y(:,1),X.y(:,end)]; 
                       
         end
+
+        % set the input story, if available
+        try
+            obs.init.input_story_ref(traj).val(:,obs.init.ActualTimeIndex) = out.input_story(traj).val(:,obs.init.ActualTimeIndex);
+        catch
+            obs.init.input_story_ref(traj).val(:,obs.init.ActualTimeIndex) = zeros(1,params.dim_input);
+        end
         
         %%%% REAL MEASUREMENT %%%%
         % here the noise is noise added aggording to noise_spec
         [y_meas(traj).val, obs] = obs.setup.measure_reference(obs.init.X(traj).val(:,stoppos),obs.init.params,obs.setup.time(startpos:stoppos),...
                                                                             obs.init.input_story_ref(traj).val(:,max(1,startpos)),obs);
 
-        % set the input story, if available
-        obs.init.input_story_ref(traj).val(:,obs.init.ActualTimeIndex) = zeros(1,params.dim_input);
+        
     end
     
     %%%% MHE OBSERVER (SAVE MEAS) %%%%
