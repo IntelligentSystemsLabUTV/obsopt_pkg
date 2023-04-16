@@ -36,6 +36,18 @@ function out = preprocess(filename)
     % resample and interp IMU at 100Hz
     UWBtime_resamp = (UWBtspan(1):UWBt:UWBtspan(2)).';
     UWB_resamp = interp1(UWBtime_raw,UWB_raw,UWBtime_resamp);
+    
+    % make the two arrays consistent
+    tscale = UWBt/IMUt;
+    IMU_expected = size(UWB_resamp,1)*tscale;    
+    tmp = size(IMU_resamp,1);
+    if tmp > IMU_expected
+        IMU_resamp = IMU_resamp(1:IMU_expected,:);
+        IMUtime_resamp = IMUtime_resamp(1:IMU_expected);
+    else
+        IMU_resamp(tmp+1:IMU_expected,:) = repmat(IMU_resamp(end,:),IMU_expected-tmp,1);
+        IMUtime_resamp(tmp+1:IMU_expected) = IMUtime_resamp(tmp) + (IMUt:IMUt:(IMU_expected-tmp)*IMUt).';
+    end    
 
     % define filter IMU
     order = 2;
@@ -72,7 +84,7 @@ function out = preprocess(filename)
     out.UWBtime_resamp = UWBtime_resamp;
     out.IMUt = IMUt;
     out.UWBt = UWBt;
-    out.tscale = UWBt/IMUt;
+    out.tscale = tscale;
     out.F_IMU = F_IMU;
     out.F_UWB = F_UWB;
 

@@ -67,7 +67,7 @@ obs = obsopt('DataType', 'simulated', 'optimise', 0 , 'MultiStart', params.multi
           'Nw', Nw, 'Nts', Nts, 'ode', ode, 'PE_ma0iter', 0, 'WaitAllBuffer', 0, 'params',params, 'filters', filterScale,'filterTF', filter, ...
           'measure_reference', measure_reference, ...
           'Jdot_thresh',0.95,'MaxIter', 3, 'Jterm_store', 1, 'AlwaysOpt', 1 , 'print', 0 , 'SafetyDensity', Inf, 'AdaptiveParams', [10 160 1 1 0.5 params.pos_acc_out(1:2)], ...
-          'AdaptiveSampling',0, 'FlushBuffer', 1, 'opt', @patternsearch, 'terminal', 0, 'terminal_states', terminal_states, 'terminal_weights', terminal_weights, 'terminal_normalise', 1, ...
+          'AdaptiveSampling',0, 'FlushBuffer', 1, 'opt', @fminunc, 'terminal', 0, 'terminal_states', terminal_states, 'terminal_weights', terminal_weights, 'terminal_normalise', 1, ...
           'ConPos', [], 'LBcon', [], 'UBcon', [],'Bounds', 0,'NONCOLcon',@nonlcon_fcn_rover);
 
 %% %%%% SIMULATION %%%%
@@ -107,7 +107,12 @@ for i = 1:obs.setup.Niter
         if(obs.init.ActualTimeIndex > 1)                
             
             % true system - set to zero if no ground truth is available
-            obs.init.X(traj).val(:,startpos:stoppos) = zeros(params.dim_state,1+(stoppos-startpos));
+            try
+                obs.init.X(traj).val(:,startpos:stoppos) = out.X(traj).val(params.dim_state,1+(stoppos-startpos));
+            catch
+                obs.init.X(traj).val(:,startpos:stoppos) = zeros(params.dim_state,1+(stoppos-startpos));
+            end
+            
     
             % real system - initial condition perturbed             
             X = obs.setup.ode(@(t,x)obs.setup.model(t, x, obs.init.params, obs), tspan, obs.init.X_est(traj).val(:,startpos),params.odeset);

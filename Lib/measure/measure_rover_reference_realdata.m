@@ -30,10 +30,15 @@ function [y, obs] = measure_rover_reference_realdata(x,params,t,u,obs)
     % different sampling times
     if mod(pos(end),params.UWB_samp) == 0
         
-        % true distances and noisy:
-        % if no ground truth they coincide with the
-        % measured
-        D = params.out.UWB(pos(end)/params.UWB_samp,:).';
+        % adjacency matrix
+        for dim=1:params.space_dim
+            Pa(dim,:) = x(params.pos_anchor(dim):params.space_dim:params.pos_anchor(end));            
+        end
+        
+        % true distances - depends on the groun truth
+        D = get_dist(P_true,Pa);
+        
+        % noisy distances - depends on the data           
         D_noise = params.out.UWB(pos(end)/params.UWB_samp,:).';
 
         % save position buffer
@@ -45,11 +50,12 @@ function [y, obs] = measure_rover_reference_realdata(x,params,t,u,obs)
     end    
 
     %%% get the IMU accelerations
-    if mod(pos(end),params.IMU_samp) == 0         
-        % true IMU and noisy:
-        % if no ground truth they coincide with the
-        % measured
-        IMU_true = params.out.IMU(pos(end),:).';
+    if mod(pos(end),params.IMU_samp) == 0   
+        
+        % true IMU - depends on the groun truth
+        IMU_true = reshape(obs.init.input_story_ref(traj).val(1:3,pos(1)),numel(params.pos_acc),size(x,2));
+        
+        % noisy IMU - depends on the data      
         IMU_noise = params.out.IMU(pos(end),:).';
         obs.init.params.last_IMU_acc_ref(traj,:) = IMU_true;
     else       
@@ -82,12 +88,7 @@ function [y, obs] = measure_rover_reference_realdata(x,params,t,u,obs)
         catch
             noise(params.pos_acc_out) = 0;
         end
-    end 
-
-    % adjacency matrix
-    for dim=1:params.space_dim
-        Pa(dim,:) = x(params.pos_anchor(dim):params.space_dim:params.pos_anchor(end));            
-    end
+    end     
 
     %%% OPT - pjump %%%
     if mod(pos(end),params.UWB_samp) == 0
