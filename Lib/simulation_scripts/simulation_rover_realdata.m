@@ -12,8 +12,8 @@ function [obs,params] = simulation_rover_realdata(out)
 % close all
 % rng('default');
 % rng(42);
-rng(23);
-% rng(2);
+% rng(23);
+rng(2);
     
 % init observer buffer (see https://doi.org/10.48550/arXiv.2204.09359)
 Nw = 30;
@@ -51,10 +51,7 @@ ode = @odeEuler;
 %%%% params init %%%%
 params = model_init('Ts',Ts,'T0',[t0, tend],'noise',1, 'params_update', params_update, ...
             'model',model,'measure',measure,'ode',ode, 'odeset', [1e-3 1e-6], ...
-            'params_init',params_init);
-
-% add out to params
-params.out = out;
+            'params_init',params_init,'out',out);
              
 %%%% observer init %%%%
 % defien arrival cost
@@ -126,7 +123,7 @@ for i = 1:obs.setup.Niter
         catch
             obs.init.input_story_ref(traj).val(:,obs.init.ActualTimeIndex) = zeros(1,params.dim_input);
         end
-        
+
         %%%% REAL MEASUREMENT %%%%
         % here the noise is noise added aggording to noise_spec
         [y_meas(traj).val, obs] = obs.setup.measure_reference(obs.init.X(traj).val(:,stoppos),obs.init.params,obs.setup.time(startpos:stoppos),...

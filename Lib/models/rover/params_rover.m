@@ -7,7 +7,12 @@
 % INPUT: none
 % OUTPUT:
 % params: structure with all the necessary parameters
-function params = params_rover
+function params = params_rover(varargin)
+
+    % get varargin
+    if numel(varargin) > 0
+        params.out = varargin{1};
+    end
 
     % system parameters
     params.m = 1;
@@ -48,13 +53,13 @@ function params = params_rover
 
     % anchor stuff
     % pos anchors Mesh 1
-    AM1 = [1 7 -1 -7; 3.5 -1 -3.5 1];
+    AM1 = params.out.AM1(1:2,:);
     % pos anchors Mesh 1
     AM2 = [7 6 -7 -6; 2.5 -3.5 -2.5 3.5];    
     % square box
-    an_dp = max(abs(AM1));
+    an_dp = max(max(abs(AM1)));
     % height
-    an_dz = 2.2;
+    an_dz = mean(params.out.AM1(3,:));
     Nhillmax = 4;
 
     %%% gaussian stuff %%%
@@ -63,7 +68,7 @@ function params = params_rover
     [params.X_gauss, params.Y_gauss] = meshgrid(-an_dp:ds:an_dp, -an_dp:ds:an_dp);
     for traj = 1:params.Ntraj
 
-        params.A_gauss(traj) = 1*rand();
+        params.A_gauss(traj) = 0*rand();
         params.sigma_gauss(traj) = 3 + (5-3)*rand();
         ds = 1;
         ranges = [-an_dp*ds an_dp*ds; -an_dp*ds an_dp*ds];
@@ -129,6 +134,7 @@ function params = params_rover
     params.OutDim = params.Nanchor + 3*params.space_dim;  
     params.observed_state = [];   % not reading the state    
     params.pos_dist_out = 1:params.Nanchor;
+
     params.pos_acc_out = [params.Nanchor + 2*params.space_dim + 1:params.OutDim];
     params.pos_v_out = [params.Nanchor + params.space_dim + 1:params.Nanchor + 2*params.space_dim];
     params.pos_p_out = [params.Nanchor + 1:params.Nanchor + params.space_dim];
@@ -142,8 +148,10 @@ function params = params_rover
     % memory
     params.last_noise = zeros(params.Ntraj,params.OutDim);
     params.last_D = zeros(params.Ntraj,params.Nanchor);
+    params.last_D_meas = zeros(params.Ntraj,params.Nanchor);
     params.last_D_ref = zeros(params.Ntraj,params.Nanchor);
     params.last_IMU_acc = zeros(params.Ntraj,numel(params.pos_acc_out));
+    params.last_IMU_acc_meas = zeros(params.Ntraj,numel(params.pos_acc_out));
     params.last_IMU_acc_ref = zeros(params.Ntraj,numel(params.pos_acc_out));
 
     % derivative of the pjump
@@ -207,9 +215,9 @@ function params = params_rover
     %%%%%%%%%%%%%%%%%%%%%%%%        
 
     % initial condition - anchors diamond
-    params.X(1).val(:,1) = 1*[0;0;params.bias*0.1;0; ...                % x pos + IMU bias
-                              0;0;params.bias*0.2;0; ...                % y pos + IMU bias
-                              0;0;params.bias*0.1;0; ...                % z pos + IMU bias
+    params.X(1).val(:,1) = 1*[0;0;0;0; ...                % x pos + IMU bias
+                              0;0;0;0; ...                % y pos + IMU bias
+                              1.46;0;0;0; ...                % z pos + IMU bias
                               AM1(1,1);AM1(2,1);1*an_dz;  ...           % anchors Mesh 1
                               AM1(1,2);AM1(2,2);1*an_dz;   ...
                               AM1(1,3);AM1(2,3);1*an_dz;    ...
@@ -286,7 +294,7 @@ function params = params_rover
     params.dim_out_plot = [params.pos_p_out params.pos_v_out];       
 
     % fminunc
-    params.dist_optoptions = optimoptions('fminunc', 'MaxIter', 1, 'display','off');
+    params.dist_optoptions = optimoptions('fminunc', 'MaxIter', 10, 'display','off');
 
     %%% exponential of matrix - EKF model %%%
     params.A_EKF = [0 1; ...

@@ -29,38 +29,45 @@ function [y, obs] = measure_rover_reference_realdata(x,params,t,u,obs)
 
     % different sampling times
     if mod(pos(end),params.UWB_samp) == 0
-        
         % adjacency matrix
         for dim=1:params.space_dim
-            Pa(dim,:) = x(params.pos_anchor(dim):params.space_dim:params.pos_anchor(end));            
+            Pa(dim,:) = obs.init.X_est(traj).val(params.pos_anchor(dim):params.space_dim:params.pos_anchor(end),1);            
         end
         
         % true distances - depends on the groun truth
         D = get_dist(P_true,Pa);
+
+        % position
+        tmp = min(max(1,ceil(pos(end)/params.UWB_samp)),floor(params.Niter/params.UWB_samp));
         
-        % noisy distances - depends on the data           
-        D_noise = params.out.UWB(pos(end)/params.UWB_samp,:).';
+        % noisy distances - depends on the data     
+         D_noise = params.out.UWB(tmp,:).';
+        % D_noise = D;
 
         % save position buffer
         obs.init.params.UWB_pos(end+1) = pos(end);
         obs.init.params.last_D_ref(traj,:) = D;
+        obs.init.params.last_D_meas(traj,:) = D_noise;
     else
         D = reshape(obs.init.params.last_D_ref(traj,:),params.Nanchor,1);
-        D_noise = D + reshape(obs.init.noise_story(traj).val(params.pos_dist_out,max(1,pos(1)-1)),params.Nanchor,1);
+        D_noise = reshape(obs.init.params.last_D_meas(traj,:),params.Nanchor,1);
     end    
 
     %%% get the IMU accelerations
     if mod(pos(end),params.IMU_samp) == 0   
+        % position
+        tmp = min(max(1,ceil(pos(end)/params.IMU_samp)),floor(params.Niter/params.IMU_samp));
         
         % true IMU - depends on the groun truth
-        IMU_true = reshape(obs.init.input_story_ref(traj).val(1:3,pos(1)),numel(params.pos_acc),size(x,2));
+        IMU_true = reshape(obs.init.input_story_ref(traj).val(1:3,tmp),numel(params.pos_acc),size(x,2));
         
         % noisy IMU - depends on the data      
-        IMU_noise = params.out.IMU(pos(end),:).';
+        IMU_noise = params.out.IMU(tmp,:).';
         obs.init.params.last_IMU_acc_ref(traj,:) = IMU_true;
+        obs.init.params.last_IMU_acc_meas(traj,:) = IMU_noise;
     else       
         IMU_true = reshape(obs.init.params.last_IMU_acc_ref(traj,:),params.space_dim,1);
-        IMU_noise = IMU_true + reshape(obs.init.noise_story(traj).val(params.acc_out,max(1,pos(1)-1)),params.dim_space,1);
+        IMU_noise = reshape(obs.init.params.last_IMU_acc_meas(traj,:),params.space_dim,1);
     end
 
     %%% true meas

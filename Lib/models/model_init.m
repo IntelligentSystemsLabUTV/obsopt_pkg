@@ -15,7 +15,15 @@ function params = model_init(varargin)
     if any(strcmp(varargin,'params_init'))
         pos = find(strcmp(varargin,'params_init'));
         params_init = varargin{pos+1};
-        params = params_init();
+
+        if any(strcmp(varargin,'out'))
+            pos = find(strcmp(varargin,'out'));
+            out = varargin{pos+1};
+            params = params_init(out);
+        else
+            params = params_init();
+        end
+        
     else
         params.X = 5;
     end

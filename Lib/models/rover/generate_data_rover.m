@@ -3,10 +3,10 @@
 
 %% save vars
 out.X = obs.init.X;
-out.IMU_raw = squeeze(obs.init.Ytrue_full_story.val(1,params.pos_acc_out,:)).';
-out.UWB_raw = squeeze(obs.init.Ytrue_full_story.val(1,params.pos_dist_out,1:params.UWB_samp:end)).';
+out.IMU_raw = squeeze(obs.init.Y_full_story.val(1,params.pos_acc_out,1:params.IMU_samp:end)).';
+out.UWB_raw = squeeze(obs.init.Y_full_story.val(1,params.pos_dist_out,1:params.UWB_samp:end)).';
 out.IMU_resamp = out.IMU_raw;
-out.UWB_resamp = out.UWB_raw();
+out.UWB_resamp = out.UWB_raw;
 out.IMU = out.IMU_raw;
 out.UWB = out.UWB_raw;
 out.IMUtime_raw = obs.setup.time(1:params.IMU_samp:end);
