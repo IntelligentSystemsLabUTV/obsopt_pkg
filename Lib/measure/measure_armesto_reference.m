@@ -28,7 +28,9 @@ function [y, obs] = measure_armesto_reference(x,params,t,u,obs)
 
     % noise
     noise = obs.setup.noise*(params.noise_mat(:,2).*randn(obs.setup.dim_out,1) + params.noise_mat(:,1));
-    noise(params.pos_biased_out) = noise(params.pos_biased_out) + x(params.pos_bias);
+
+    % add bias
+    noise(params.pos_acc_out,:) = noise(params.pos_acc_out,:) + x(params.pos_bias,:);
     y = y_true + noise;
     y(params.pos_quat_out) = quatnormalize(y(params.pos_quat_out)');
 
@@ -54,7 +56,7 @@ function [y, obs] = measure_armesto_reference(x,params,t,u,obs)
     obs.init.params.last_IMU_omega(traj,:) = y(params.pos_omega_out);
 
     % store
-    obs.init.Ytrue_full_story(traj).val(1,:,pos) = y_true;    
-    obs.init.noise_story(traj).val(:,pos) = noise;
-    obs.init.Y_full_story(traj).val(1,:,pos) = y;
+    obs.init.Ytrue_full_story(traj).val(1,:,pos(end)) = y_true;    
+    obs.init.noise_story(traj).val(:,pos(end)) = noise;
+    obs.init.Y_full_story(traj).val(1,:,pos(end)) = y;
 end

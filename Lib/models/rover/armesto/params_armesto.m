@@ -8,28 +8,12 @@
 % OUTPUT:
 % params: structure with all the necessary parameters
 function params = params_armesto    
-    
-    % control parameters   
-    params.Ts = 1e-2;
-    params.wnx = [0.4];
-    params.wny = [0.4];
-    params.Ax = -[0.5 1];
-    params.Ay = -[0.5 1];     
-    params.Ax_tot = sum(params.Ax);
-    params.Ay_tot = sum(params.Ay);
-    params.phi = [0 pi/2];
-    params.rhox = 0.01;
-    params.rhoy = 0.01;
-    % vines
-    params.freq_u = 48;    
-    params.amp_ux = -1/2;
-    params.amp_uy = -1/6;
-    params.Ku = [10 10];
 
     % number of reference trajectories (under development)
     params.Ntraj = 1;        
     
-    % space dimension        
+    % physics      
+    % params.g = -9.81;
 
     % multistart
     params.multistart = 0;
@@ -37,30 +21,33 @@ function params = params_armesto
     % observer params        
    
 %     %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-    params.dim_state = 28;        
+    params.gamma = 0;
+    params.dim_state = 28 + length(params.gamma);        
     params.pos_p = [1:3];           % see mode_rover.m
     params.pos_v = [4:6];           % see mode_rover.m    
     params.pos_acc = [7:9];         % see mode_rover.m    
     params.pos_bias = [10:12];      % see mode_rover.m    
     params.pos_quat = [13:16];      % see mode_rover.m    
-    params.pos_omega = [17:19];     % see mode_rover.m    
-    params.pos_jerk = [20:22];      % see mode_rover.m    
-    params.pos_alpha = [23:25];     % see mode_rover.m    
-    params.pos_bias_dyn = [26:28];  % see mode_rover.m   
+    params.pos_omega = [17:19];     % see mode_rover.m  
+    params.pos_bias_v = [20:22];    % see mode_rover.m  
+    params.pos_jerk = [23:25];      % see mode_rover.m    
+    params.pos_alpha = [26:28];     % see mode_rover.m    
+    params.pos_gamma = [29:params.dim_state];
+     
     params.pos_fc = [params.pos_p params.pos_v params.pos_acc params.pos_bias];
     params.dim_state_est = numel(params.pos_fc);
 
     % input dim
-    params.dim_input = 3;           % input on each dimension + orientation
+    params.dim_input = 6;           % input on each dimension + orientation
 
     % output dim
     params.OutDim = length([params.pos_p params.pos_quat params.pos_acc params.pos_omega]);  
     params.observed_state = [params.pos_p params.pos_quat params.pos_acc params.pos_omega];     
-    params.OutDim_compare = params.OutDim;
     params.pos_p_out = [1:3];
     params.pos_quat_out = [4:7];
     params.pos_acc_out = [8:10];
     params.pos_omega_out = [11:13];
+    params.OutDim_compare = [params.pos_p_out params.pos_quat_out params.pos_acc_out, params.pos_omega_out];
 
     % sampling
     params.IMU_samp = 1;
@@ -73,7 +60,6 @@ function params = params_armesto
     params.last_IMU_acc = zeros(params.Ntraj,numel(params.pos_acc_out));
     params.last_IMU_omega = zeros(params.Ntraj,numel(params.pos_omega_out));
                
-
     % noise (on distances + acceleration)
     params.noise_mat = 0*ones(params.OutDim,2);
     % bias
@@ -88,55 +74,30 @@ function params = params_armesto
     params.noise_mat(params.pos_omega_out,2) = 0*1e-2;      % noise on IMU gyro - sigma
 
     % enable noise
-    params.EKF = 1;
-    params.jerk_enable = 1;
+    params.jerk_enable = 0;
     params.alpha_enable = 0;
-    params.bias_dyn_enable = 1;
-    params.pos_biased_out = params.pos_p_out;
-
-    %%% noise matrices
-    % measurement noise
-    params.R = diag([params.noise_mat(params.pos_p_out).^2*eye(3), ...         % CAM POS
-                     params.noise_mat(params.pos_quat_out).^2*eye(4), ...      % CAM QUAT
-                     params.noise_mat(params.pos_acc_out).^2*eye(3), ...       % IMU ACC
-                     params.noise_mat(params.pos_omega_out).^2*eye(3), ...     % IMU OMEGA
-        ]);      
-    
-    % process noise - centripetal model
-    params.Q = diag([1e0 1e0 1e0,    ... % JERK
-                     1e0 1e0 1e0,    ... % ALPHA
-                     1e5 1e5 1e5,    ... % BIAS VEL
-        ]);
-
-    % EKF covariance matrix
-    for traj=1:params.Ntraj
-        params.Phat(traj).val(1,:,:) = 1e0*eye(params.dim_state);
-    end
-
-    % observer stuff
-    params.time_J = [];
-    params.d_true = zeros(params.Nanchor,1);
-    params.d_noise = zeros(params.Nanchor,1);
-    params.d_est = zeros(params.Nanchor,1);
-    
+    params.bias_v_enable = 1;
+        
     % initial condition
-    params.X(1).val(:,1) = 1*[  ...
+    params.perturbed_vars = [params.pos_p params.pos_v params.pos_quat params.pos_omega];
+    params.X(1).val(:,1) = 1*[              ...
                               0;0;0;        ... % pos
                               0;0;0;        ... % vel
                               0;0;0;        ... % acc                
                               0;0;0;        ... % bias
                               1;0;0;0;      ... % quat
+                              0;0;0;        ... % bias vel
                               0;0;0;        ... % omega
                               0;0;0;        ... % jerk
                               0;0;0;        ... % alpha
-                              0;0;0;        ... % bias vel
+                              0;            ... % gamma
                               ];
     
     % position in the state vector of the estimated parameters
-    params.estimated_params = [params.pos_bias];
+    params.estimated_params = [params.pos_gamma];
     
     % which vars am I optimising
-    params.opt_vars = [];
+    params.opt_vars = [params.pos_p params.pos_v params.pos_acc params.pos_quat params.pos_omega params.pos_gamma];
     
     % set the not optimised vars
     tmp = 1:length(params.X(1).val(:,1));
@@ -172,8 +133,8 @@ function params = params_armesto
     
     % plot vars (used to plot the state estimation. When the parameters are
     % too many, consider to use only the true state components)
-    params.plot_vars = [params.pos_p params.pos_v params.pos_acc];
-    params.plot_params = [params.pos_bias params.pos_jerk params.pos_alpha params.pos_bias_dyn];
+    params.plot_vars = [params.pos_p params.pos_quat];
+    params.plot_params = [params.pos_p params.pos_omega];
     params.dim_out_plot = params.OutDim;       
         
 end

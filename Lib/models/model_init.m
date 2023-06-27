@@ -169,11 +169,7 @@ function params = model_init(varargin)
             
             % randomly define the percentage (bool flag, see below)
             randflag = 1; 
-            noise_std = 1*ones(1,numel(params.perturbed_vars));
-            noise_std(1:2) = 1*5e-1;
-            noise_std(3) = 1*5e-1;
-%             noise_std(4:6) = 2e-1;
-%             noise_std(7:9) = 2e-1;
+            noise_std = 1e-1*ones(1,numel(params.perturbed_vars));
 
             % if case: random perturbation percentage - optimised vars            
             if randflag
@@ -182,7 +178,6 @@ function params = model_init(varargin)
                 params.perc(params.perturbed_vars,traj) = 1*ones(1,length(params.perturbed_vars)).*noise_std;
             end            
             
-
             % final setup on perc
             params.perc = 1*params.perc;            
             params.X_est(traj).val(:,1) = init;

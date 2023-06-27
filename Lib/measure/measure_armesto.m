@@ -24,6 +24,6 @@ function [y, obs] = measure_armesto(x,params,t,u,obs)
     y = x(params.observed_state,:);    
 
     % add bias
-    y(params.pos_biased_out) = y(params.pos_biased_out) + x(params.pos_bias);
+    y(params.pos_acc_out,:) = y(params.pos_acc_out,:) + x(params.pos_bias,:);
     
 end

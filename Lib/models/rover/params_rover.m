@@ -53,13 +53,13 @@ function params = params_rover(varargin)
 
     % anchor stuff
     % pos anchors Mesh 1
-    AM1 = params.out.AM1(1:2,:);
-    % pos anchors Mesh 1
-    AM2 = [7 6 -7 -6; 2.5 -3.5 -2.5 3.5];    
+    % AM1 = params.out.AM1(1:2,:);
+    AM1 = [7 6 -7 -6; 2.5 -3.5 -2.5 3.5];    
     % square box
     an_dp = max(max(abs(AM1)));
     % height
-    an_dz = mean(params.out.AM1(3,:));
+    % an_dz = mean(params.out.AM1(3,:));
+    an_dz = 3;
     Nhillmax = 4;
 
     %%% gaussian stuff %%%
