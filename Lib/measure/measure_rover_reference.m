@@ -26,6 +26,8 @@ function [y, obs] = measure_rover_reference(x,params,t,u,obs)
     %%% get the output mismatch terms    
     V_true = reshape(x(params.pos_v,:),numel(params.pos_v),size(x,2));
     P_true = reshape(x(params.pos_p,:),numel(params.pos_p),size(x,2));
+    Quat_true = reshape(x(params.pos_quat,:),numel(params.pos_quat),size(x,2));
+    W_true = reshape(x(params.pos_w,:),numel(params.pos_w),size(x,2));
 
     % different sampling times
     if mod(pos(end),params.UWB_samp) == 0
@@ -55,11 +57,14 @@ function [y, obs] = measure_rover_reference(x,params,t,u,obs)
 
     %%% add noise
     % noise on UWB + IMU
-    y_true = [D; P_true; V_true; IMU_true];
+    y_true = [D; P_true; V_true; IMU_true; Quat_true; W_true];
     noise = obs.setup.noise*(params.noise_mat(:,1).*randn(obs.setup.dim_out,1));    
 
     % bias IMU
-    noise(params.pos_acc_out) = noise(params.pos_acc_out) + params.bias*x(params.pos_bias);    
+    noise(params.pos_acc_out) = noise(params.pos_acc_out) + params.bias*x(params.pos_bias);  
+
+    % bias Gyro
+    noise(params.pos_w_out) = noise(params.pos_w_out) + params.bias*x(params.pos_bias_w);  
 
     %%% multi rate - UWB
     if mod(pos(end),params.UWB_samp) ~= 0
@@ -76,6 +81,15 @@ function [y, obs] = measure_rover_reference(x,params,t,u,obs)
             noise(params.pos_acc_out) = obs.init.noise_story(traj).val(params.pos_acc_out,pos(1)-1);
         catch
             noise(params.pos_acc_out) = 0;
+        end
+    end
+
+    %%% multi rate - Gyro
+    if mod(pos(end),params.Gyro_samp) ~= 0
+        try
+            noise(params.pos_w_out) = obs.init.noise_story(traj).val(params.pos_w_out,pos(1)-1);
+        catch
+            noise(params.pos_w_out) = 0;
         end
     end
 

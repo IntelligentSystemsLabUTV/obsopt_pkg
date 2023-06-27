@@ -24,7 +24,7 @@ Ts = 1e-2;
 
 % set initial and final time instant
 t0 = 0;
-tend = 200;
+tend = 10;
 % uncomment to test the MHE with a single optimisation step
 % tend = 1*(Nw*Nts-1)*Ts;
 
@@ -145,7 +145,9 @@ for i = 1:obs.setup.Niter
     if (obs.init.ActualTimeIndex > 1) && params.EKF && ~params.hyb
         for traj=1:params.Ntraj
             obs.init.traj = traj;
-            obs = EKF_rover(obs,obs.init.X_est(traj).val(:,startpos),y_meas(traj).val);
+            xtrasl = obs.init.X_est(traj).val(:,startpos);
+            ytrasl = y_meas(traj).val(:);
+            obs = EKF_rover(obs,xtrasl,ytrasl);
         end
         obs.init.params.UWB_samp_EKF_story = [obs.init.params.UWB_samp_EKF_story obs.init.params.UWB_samp_EKF];
         obs.init.params.IMU_samp_EKF_story = [obs.init.params.IMU_samp_EKF_story obs.init.params.IMU_samp_EKF];

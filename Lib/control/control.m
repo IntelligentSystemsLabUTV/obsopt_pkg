@@ -66,8 +66,13 @@ function u = control(t,drive,params,obs)
         % control
         u(3,:) = -params.Kz(1)*-e -params.Kz(2)*zdot_now + params.Kff*[e edot eint]';
 
+        % rotation control
+        u(4) = 0.1;
+        u(5) = 0.1;
+        u(6) = 0;
+
         % ony for testing
-        u(4,:) = z_des;
+        u(7,:) = z_des;
         
     end
 

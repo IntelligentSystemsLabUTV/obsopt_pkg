@@ -11,6 +11,9 @@ function obs = EKF_rover(obs,xhat_kk_1,y_k)
     % get params
     params = obs.init.params;
 
+    % rephrase y
+    % y_k = y_k(params.pos_trasl_out);
+
     % get time instant
     k = obs.init.ActualTimeIndex;
     tspan = obs.setup.time(max(1,k-1):k);
@@ -77,16 +80,16 @@ function obs = EKF_rover(obs,xhat_kk_1,y_k)
         % test
 %         correction([params.pos_p(2:3) params.pos_v(2:3) params.pos_acc(2:3) params.pos_bias(2:3)]) = 0;
 
-        xnew = xhat_k + correction;
+        xnew(1:numel(params.pos_trasl)) = xhat_k(params.pos_trasl) + 1*correction;
         Pnew = Phat_kk_1 - Ks*GHs*Phat_kk_1;
     else
         xnew = xhat_k;
         Pnew = Phat_kk_1;
-        correction = zeros(numel(xnew),1);
+        correction = zeros(numel(xnew(params.pos_trasl)),1);
     end    
 
     % update
-    obs.init.X_est(traj).val(:,k) = xnew;
+    obs.init.X_est(traj).val(params.pos_trasl,k) = xnew;
     obs.init.params.Phat(traj).val(k,:,:) = Pnew;
     obs.init.params.correction_story(:,k) = correction;
 
@@ -108,22 +111,22 @@ function [GFx, GFw, GHx] = G(x,T,y,params)
     %      x1   x2  x3  x4  x5  x6  x7  x8  x9  x10 x11 x12 xothers
     GFx = [...
     %     x dim
-           1    T   0   0   0   0   0   0   0   0   0   0   zeros(1,numel(13:numel(x))); ... x1
-           0    1   0   T   0   0   0   0   0   0   0   0   zeros(1,numel(13:numel(x))); ... x2
-           0    0   1   0   0   0   0   0   0   0   0   0   zeros(1,numel(13:numel(x))); ... x3
-           0    0   0   1   0   0   0   0   0   0   0   0   zeros(1,numel(13:numel(x))); ... x4           
+           1    T   0   0   0   0   0   0   0   0   0   0   zeros(1,numel(13:numel(x(params.pos_trasl)))); ... x1
+           0    1   0   T   0   0   0   0   0   0   0   0   zeros(1,numel(13:numel(x(params.pos_trasl)))); ... x2
+           0    0   1   0   0   0   0   0   0   0   0   0   zeros(1,numel(13:numel(x(params.pos_trasl)))); ... x3
+           0    0   0   1   0   0   0   0   0   0   0   0   zeros(1,numel(13:numel(x(params.pos_trasl)))); ... x4           
     %     y dim
-           0    0   0   0   1   T   0   0   0   0   0   0   zeros(1,numel(13:numel(x))); ... x5
-           0    0   0   0   0   1   0   T   0   0   0   0   zeros(1,numel(13:numel(x))); ... x6
-           0    0   0   0   0   0   1   0   0   0   0   0   zeros(1,numel(13:numel(x))); ... x7
-           0    0   0   0   0   0   0   1   0   0   0   0   zeros(1,numel(13:numel(x))); ... x8           
+           0    0   0   0   1   T   0   0   0   0   0   0   zeros(1,numel(13:numel(x(params.pos_trasl)))); ... x5
+           0    0   0   0   0   1   0   T   0   0   0   0   zeros(1,numel(13:numel(x(params.pos_trasl)))); ... x6
+           0    0   0   0   0   0   1   0   0   0   0   0   zeros(1,numel(13:numel(x(params.pos_trasl)))); ... x7
+           0    0   0   0   0   0   0   1   0   0   0   0   zeros(1,numel(13:numel(x(params.pos_trasl)))); ... x8           
     %     z dim
-           0    0   0   0   0   0   0   0   1   T   0   0   zeros(1,numel(13:numel(x))); ... x9
-           0    0   0   0   0   0   0   0   0   1   0   T   zeros(1,numel(13:numel(x))); ... x10
-           0    0   0   0   0   0   0   0   0   0   1   0   zeros(1,numel(13:numel(x))); ... x11
-           0    0   0   0   0   0   0   0   0   0   0   1   zeros(1,numel(13:numel(x))); ... x12           
+           0    0   0   0   0   0   0   0   1   T   0   0   zeros(1,numel(13:numel(x(params.pos_trasl)))); ... x9
+           0    0   0   0   0   0   0   0   0   1   0   T   zeros(1,numel(13:numel(x(params.pos_trasl)))); ... x10
+           0    0   0   0   0   0   0   0   0   0   1   0   zeros(1,numel(13:numel(x(params.pos_trasl)))); ... x11
+           0    0   0   0   0   0   0   0   0   0   0   1   zeros(1,numel(13:numel(x(params.pos_trasl)))); ... x12           
     %      remaining
-           zeros(numel(13:numel(x)),numel(x));                                   ... x13-xend
+           zeros(numel(13:numel(x(params.pos_trasl))),numel(x(params.pos_trasl)));                                   ... x13-xend
            ];
 
     % df/dw
@@ -140,7 +143,7 @@ function [GFx, GFw, GHx] = G(x,T,y,params)
            0    0   0   0   0   0;              ... x10
            0    0   0   0   0   B;              ... x11
            0    0   a   0   0   0;              ... x12           
-           zeros(numel(13:numel(x)),6);         ... x13-xend
+           zeros(numel(13:numel(x(params.pos_trasl))),6);         ... x13-xend
            ];
 
     % dh/dx    
@@ -150,19 +153,19 @@ function [GFx, GFw, GHx] = G(x,T,y,params)
     end
     % get distances
     D = get_dist(x(params.pos_p),Pa);
-    GHx = zeros(numel(y),numel(x));
+    GHx = zeros(numel(y(params.pos_trasl_out)),numel(x(params.pos_trasl)));
     %      x1               x2  x3  x4  x5              x6  x7  x8  x9              x10 x11 x12 A1x A1y A1z A2x A2y A2z A3x A3y A3z A4x A4y A4z             
     tmp = [dder(x,1,1,D)    0   0   0   dder(x,2,1,D)   0   0   0   dder(x,3,1,D)   0   0   0   0   0   0   0   0   0   0   0   0   0   0   0;  ... d1
            dder(x,1,2,D)    0   0   0   dder(x,2,2,D)   0   0   0   dder(x,3,2,D)   0   0   0   0   0   0   0   0   0   0   0   0   0   0   0;  ... d2
            dder(x,1,3,D)    0   0   0   dder(x,2,3,D)   0   0   0   dder(x,3,3,D)   0   0   0   0   0   0   0   0   0   0   0   0   0   0   0;  ... d3
            dder(x,1,4,D)    0   0   0   dder(x,2,4,D)   0   0   0   dder(x,3,4,D)   0   0   0   0   0   0   0   0   0   0   0   0   0   0   0;  ... d4
-           zeros(6,numel(1:params.pos_anchor(end)));                                                                                            ... P,V
+           zeros(6,numel(1:params.pos_anchor(end) - (3*params.rotation_dim+1)));                                                                 ... P,V
            0                0   1   b   0               0   0   0   0               0   0   0   0   0   0   0   0   0   0   0   0   0   0   0;  ... a1
            0                0   0   0   0               0   1   b   0               0   0   0   0   0   0   0   0   0   0   0   0   0   0   0;  ... a2
            0                0   0   0   0               0   0   0   0               0   1   b   0   0   0   0   0   0   0   0   0   0   0   0;  ... a3
 
         ];
-    GHx(:,1:params.pos_anchor(end)) = tmp;
+    GHx(:,1:numel(params.pos_trasl)) = tmp;
 
 
 end
@@ -171,7 +174,7 @@ end
 function dd = dder(x,i,j,D)
 
     pos_p = [1 5 9];
-    pos_anchor = [13:24];
+    pos_anchor = [23:34];
 
     % get position coordinate
     xp = x(pos_p(i));

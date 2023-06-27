@@ -42,6 +42,8 @@ function y = measure_rover(x,params,tspan,u,obs)
         %%% get the output mismatch terms        
         V_true = reshape(x(params.pos_v,k),numel(params.pos_v),1);
         P_true = reshape(x(params.pos_p,k),numel(params.pos_p),1);
+        Quat_true = reshape(x(params.pos_quat,k),numel(params.pos_quat),1);
+        W_true = reshape(x(params.pos_w,k),numel(params.pos_w),1);
     
         %%% get distances        
         if mod(pos(k)+offset_UWBsamp,params.UWB_samp) == 0                                    
@@ -65,6 +67,6 @@ function y = measure_rover(x,params,tspan,u,obs)
         end
 
         % final measure
-        y(:,k) = [D; P_true; V_true; IMU_true];                     
+        y(:,k) = [D; P_true; V_true; IMU_true; Quat_true; W_true];                     
     end
 end

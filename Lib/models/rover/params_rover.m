@@ -23,9 +23,9 @@ function params = params_rover(varargin)
     
     % control parameters
     % vines
-    params.freq_u = 96*2;    
-    params.amp_ux = -5/(6*2);
-    params.amp_uy = -5/(6*2);
+    params.freq_u = 100;    
+    params.amp_ux = -0.35;
+    params.amp_uy = -0.35;
     params.Ku = 1e2*[1 1];    
     params.Kdu = [0 0];      
     params.Kz = 1*[9000 190];
@@ -49,12 +49,13 @@ function params = params_rover(varargin)
     
     
     % state dimension
-    params.space_dim = 3;   % 2D or 3D space for the rover 
+    params.space_dim = 3;    % 2D or 3D space for the rover
+    params.rotation_dim = 3; % orientation in 3D
 
     % anchor stuff
     % pos anchors Mesh 1
     % AM1 = params.out.AM1(1:2,:);
-    AM1 = [7 6 -7 -6; 2.5 -3.5 -2.5 3.5];    
+    AM1 = [4 -4 4 -4; 4 4 -4 -4];    
     % square box
     an_dp = max(max(abs(AM1)));
     % height
@@ -68,7 +69,7 @@ function params = params_rover(varargin)
     [params.X_gauss, params.Y_gauss] = meshgrid(-an_dp:ds:an_dp, -an_dp:ds:an_dp);
     for traj = 1:params.Ntraj
 
-        params.A_gauss(traj) = 0*rand();
+        params.A_gauss(traj) = 1*rand();
         params.sigma_gauss(traj) = 3 + (5-3)*rand();
         ds = 1;
         ranges = [-an_dp*ds an_dp*ds; -an_dp*ds an_dp*ds];
@@ -112,36 +113,48 @@ function params = params_rover(varargin)
     params.dim_Gamma = length(params.theta) + length(params.alpha);
 
     % model parameters
-    params.dim_state = 4*params.space_dim + params.Nanchor*params.space_dim + params.dim_Gamma;    % done on the observer model (easier to compare)
+    params.dim_state = 4*params.space_dim + (3*params.rotation_dim + 1) + params.Nanchor*params.space_dim + params.dim_Gamma;    % done on the observer model (easier to compare)
 
     % shared position (hyb and EKF)
-    params.pos_p = [1 5 9];   % see mode_rover.m
-    params.pos_v = [2 6 10];   % see mode_rover.m  
-    params.pos_bias = [3 7 11];   % IMU bias
-    params.pos_acc = [4 8 12];       
+    params.pos_p = [1 5 9];         % see mode_rover.m
+    params.pos_v = [2 6 10];        % see mode_rover.m  
+    params.pos_bias = [3 7 11];     % IMU bias
+    params.pos_acc = [4 8 12];      % acc
+    params.pos_quat = [13 14 15 16];% quat
+    params.pos_w = [17 18 19];      % omega
+    params.pos_bias_w = [20 21 22]; % bias omega
+
     % rest of stuff
-    params.pos_anchor = [4*params.space_dim+1:params.dim_state-params.dim_Gamma];    % after all the double integrators come the anchors   
+    params.pos_anchor = [4*params.space_dim + (3*params.rotation_dim + 1) + 1:params.dim_state-params.dim_Gamma];    % after all the double integrators come the anchors   
     params.pos_Gamma = [params.pos_anchor(end)+1:params.dim_state];
-    params.pos_fc = [params.pos_p params.pos_v];
+    params.pos_fc = [params.pos_p params.pos_v params.pos_quat params.pos_w];
     params.dim_state_est = numel(params.pos_fc);
 
+    % only translation for EKF
+    params.pos_trasl = [params.pos_p params.pos_v params.pos_bias params.pos_acc params.pos_anchor];
+
     % input dim
-    params.dim_input = params.space_dim;   % input on each dimension
+    params.dim_input = params.space_dim*2;   % input on each dimension for translation and rotation
 
     % output dim
-    % distances + accelerations + velocity (only for learning) + position
-    % (only for learning)
-    params.OutDim = params.Nanchor + 3*params.space_dim;  
+    % distances + accelerations + velocity (only for learning) + position (only for learning) +
+    % quaternion (only for learning) + omega
+    params.OutDim = params.Nanchor + 3*params.space_dim + (2*params.rotation_dim + 1);  
     params.observed_state = [];   % not reading the state    
     params.pos_dist_out = 1:params.Nanchor;
-
-    params.pos_acc_out = [params.Nanchor + 2*params.space_dim + 1:params.OutDim];
+    params.pos_acc_out = [params.Nanchor + 2*params.space_dim + 1:params.Nanchor + 3*params.space_dim];
     params.pos_v_out = [params.Nanchor + params.space_dim + 1:params.Nanchor + 2*params.space_dim];
     params.pos_p_out = [params.Nanchor + 1:params.Nanchor + params.space_dim];
-    params.OutDim_compare = [params.pos_p_out params.pos_v_out];   % distances
+    params.pos_quat_out = [params.Nanchor + 3*params.space_dim + 1:params.Nanchor + 3*params.space_dim + params.rotation_dim + 1];
+    params.pos_w_out = [params.Nanchor + 3*params.space_dim + params.rotation_dim + 2:params.OutDim];
+    params.OutDim_compare = [params.pos_p_out params.pos_v_out params.pos_quat_out params.pos_w_out]; 
+
+    % only translation for EKF
+    params.pos_trasl_out = [params.pos_dist_out params.pos_p_out params.pos_v_out params.pos_acc_out];
     
     % sampling
     params.IMU_samp = 1;
+    params.Gyro_samp = 1;
     params.UWB_samp = 20;
     params.UWB_pos = []; 
 
@@ -153,6 +166,9 @@ function params = params_rover(varargin)
     params.last_IMU_acc = zeros(params.Ntraj,numel(params.pos_acc_out));
     params.last_IMU_acc_meas = zeros(params.Ntraj,numel(params.pos_acc_out));
     params.last_IMU_acc_ref = zeros(params.Ntraj,numel(params.pos_acc_out));
+    params.last_W_acc = zeros(params.Ntraj,numel(params.pos_w_out));
+    params.last_W_acc_meas = zeros(params.Ntraj,numel(params.pos_w_out));
+    params.last_W_acc_ref = zeros(params.Ntraj,numel(params.pos_w_out));
 
     % derivative of the pjump
     params.wlen = 4;
@@ -171,6 +187,7 @@ function params = params_rover(varargin)
     params.noise_mat = 0*ones(params.OutDim,2);    
     % sigma
     params.noise_mat_original(params.pos_acc_out,1) = 1*5e-2;   % noise on IMU - sigma
+    params.noise_mat_original(params.pos_w_out,1) = 1*1e-2;     % noise on W - sigma
     params.noise_mat_original(params.pos_dist_out,1) = 1*2e-1;  % noise on UWB - sigma    
     params.mean = params.noise_mat_original(:,1);
     params.noise_mat(:,1) = 1*params.noise_mat_original(:,1);    
@@ -184,8 +201,8 @@ function params = params_rover(varargin)
 
     %%%%%% EKF %%%%%
     % enable noise
-    params.EKF = 0;        
-    params.hyb = 1;
+    params.EKF = 1;        
+    params.hyb = 0;
     params.dryrun = 0;
     params.sferlazza = 0;
 
@@ -202,7 +219,7 @@ function params = params_rover(varargin)
 
     % EKF covariance matrix
     for traj=1:params.Ntraj
-        params.Phat(traj).val(1,:,:) = 1e0*eye(params.dim_state);
+        params.Phat(traj).val(1,:,:) = 1e0*eye(numel(params.pos_trasl));
     end
     %%%%%%%%%%%%%%%%
 
@@ -215,12 +232,15 @@ function params = params_rover(varargin)
     %%%%%%%%%%%%%%%%%%%%%%%%        
 
     % initial condition - anchors diamond
-    params.X(1).val(:,1) = 1*[0;0;0;0; ...                % x pos + IMU bias
-                              0;0;0;0; ...                % y pos + IMU bias
-                              1.46;0;0;0; ...                % z pos + IMU bias
+    params.X(1).val(:,1) = 1*[3;0;0.1;0; ...                % x pos + IMU bias
+                              3;0;0.1;0; ...                % y pos + IMU bias
+                              1.46;0;0.1;0; ...             % z pos + IMU bias
+                              1; 0; 0; 0; ...             % quaternion
+                              0; 0; 0; ...                % omega
+                              0; 0; 0; ...                % gyro bias
                               AM1(1,1);AM1(2,1);1*an_dz;  ...           % anchors Mesh 1
-                              AM1(1,2);AM1(2,2);1*an_dz;   ...
-                              AM1(1,3);AM1(2,3);1*an_dz;    ...
+                              AM1(1,2);AM1(2,2);1*an_dz;  ...
+                              AM1(1,3);AM1(2,3);1*an_dz;  ...
                               AM1(1,4);AM1(2,4);1*an_dz;
                               params.theta'; ...                              
                               params.alpha'];      
@@ -268,10 +288,8 @@ function params = params_rover(varargin)
         params.X(traj).val(params.multi_traj_var,1) = params.X(1).val(params.multi_traj_var,1).*(1 + 1*1e-1*randn(length(params.multi_traj_var),1));
 
         % from starting positions
-%         params.X(traj).val(params.pos_p,1) = pos_init(traj,:);
+        params.X(traj).val(params.pos_p,1) = pos_init(traj,:);
     end   
-
-
 
     % hills on z - correct initialization
     for traj = 1:params.Ntraj

@@ -57,7 +57,7 @@ function plot_3Dobject(obj,varargin)
         fig_count = fig_count -1;
     end
 
-    %%% plot position estimation
+    %%% plot velocity estimation
     try
         fig_count = fig_count+1;
         figure(fig_count)            
@@ -195,19 +195,19 @@ function plot_3Dobject(obj,varargin)
         figure(fig_count)            
         sgtitle('Omega estimation')
         ax = zeros(1,3);
-        for i=1:length(params.pos_omega)
-            subplot(length(params.pos_omega),1,i);
+        for i=1:length(params.pos_w)
+            subplot(length(params.pos_w),1,i);
             hold on
             grid on
             box on
     
             % indicize axes        
-            ax(i)=subplot(length(params.pos_omega),1,i);     
+            ax(i)=subplot(length(params.pos_w),1,i);     
             
             for traj=1:obj.setup.Ntraj            
-                plot(obj.setup.time,obj.init.X(traj).val(params.pos_omega(i),:),'LineWidth',2);
+                plot(obj.setup.time,obj.init.X(traj).val(params.pos_w(i),:),'LineWidth',2);
                 set(gca,'ColorOrderIndex',traj)
-                plot(obj.setup.time,obj.init.X_est(traj).val(params.pos_omega(i),:),'--','LineWidth',1);                                                                                   
+                plot(obj.setup.time,obj.init.X_est(traj).val(params.pos_w(i),:),'--','LineWidth',1);                                                                                   
             end
             
             % labels
@@ -255,58 +255,25 @@ function plot_3Dobject(obj,varargin)
         fig_count = fig_count -1;
     end
 
-    %%% plot alpha estimation
-    try
-        fig_count = fig_count+1;
-        figure(fig_count)            
-        sgtitle('Alpha estimation')
-        ax = zeros(1,3);
-        for i=1:length(params.pos_alpha)
-            subplot(length(params.pos_alpha),1,i);
-            hold on
-            grid on
-            box on
-    
-            % indicize axes        
-            ax(i)=subplot(length(params.pos_alpha),1,i);     
-            
-            for traj=1:obj.setup.Ntraj            
-                plot(obj.setup.time,obj.init.X(traj).val(params.pos_alpha(i),:),'LineWidth',2);
-                set(gca,'ColorOrderIndex',traj)
-                plot(obj.setup.time,obj.init.X_est(traj).val(params.pos_alpha(i),:),'--','LineWidth',1);                                                                                
-            end
-            
-            % labels
-            set(gca,'fontsize', fontsize)         
-            ylabel(['\alpha_',num2str(obj.setup.plot_vars(i))])
-        end
-        legend('True','Est')     
-        xlabel(['time [s]'])
-        %linkaxes(ax);
-    catch
-        close
-        fig_count = fig_count -1;
-    end
-
     %%% plot bias vel estimation
     try
         fig_count = fig_count+1;
         figure(fig_count)            
         sgtitle('Bias vel estimation')
         ax = zeros(1,3);
-        for i=1:length(params.pos_bias_vel)
-            subplot(length(params.pos_bias_vel),1,i);
+        for i=1:length(params.pos_bias_w)
+            subplot(length(params.pos_bias_w),1,i);
             hold on
             grid on
             box on
     
             % indicize axes        
-            ax(i)=subplot(length(params.pos_bias_vel),1,i);     
+            ax(i)=subplot(length(params.pos_bias_w),1,i);     
             
             for traj=1:obj.setup.Ntraj            
-                plot(obj.setup.time,obj.init.X(traj).val(params.pos_bias_vel(i),:),'LineWidth',2);
+                plot(obj.setup.time,obj.init.X(traj).val(params.pos_bias_w(i),:),'LineWidth',2);
                 set(gca,'ColorOrderIndex',traj)
-                plot(obj.setup.time,obj.init.X_est(traj).val(params.pos_bias_vel(i),:),'--','LineWidth',1);                                                                         
+                plot(obj.setup.time,obj.init.X_est(traj).val(params.pos_bias_w(i),:),'--','LineWidth',1);                                                                         
             end
             
             % labels
@@ -462,27 +429,27 @@ function plot_3Dobject(obj,varargin)
         figure(fig_count)            
         sgtitle('omega measure')
         ax = zeros(1,3);
-        for i=1:length(params.pos_omega_out)
-            subplot(length(params.pos_omega_out),1,i);
+        for i=1:length(params.pos_w_out)
+            subplot(length(params.pos_w_out),1,i);
             hold on
             grid on
             box on
     
             % indicize axes        
-            ax(i)=subplot(length(params.pos_omega_out),1,i);     
+            ax(i)=subplot(length(params.pos_w_out),1,i);     
 
             % down sampling instants
             WindowTime = obj.setup.time(obj.init.temp_time);
             
             for traj=1:obj.setup.Ntraj            
-                plot(obj.setup.time,squeeze(obj.init.Ytrue_full_story(traj).val(1,params.pos_omega_out(i),:)),'LineWidth',2);
+                plot(obj.setup.time,squeeze(obj.init.Ytrue_full_story(traj).val(1,params.pos_w_out(i),:)),'LineWidth',2);
                 set(gca,'ColorOrderIndex',traj)
-                plot(obj.setup.time,squeeze(obj.init.Y_full_story(traj).val(1,params.pos_omega_out(i),:)),'--','LineWidth',1);   
+                plot(obj.setup.time,squeeze(obj.init.Y_full_story(traj).val(1,params.pos_w_out(i),:)),'--','LineWidth',1);   
 
                 set(gca,'ColorOrderIndex',traj)
                 % plot target values    
                 try
-                    data = reshape(obj.init.Y_full_story(traj).val(1,obj.setup.params.pos_omega_out(i),obj.init.temp_time),1,length(WindowTime));
+                    data = reshape(obj.init.Y_full_story(traj).val(1,obj.setup.params.pos_w_out(i),obj.init.temp_time),1,length(WindowTime));
                     plot(WindowTime,data,'o','MarkerSize',5);
                 catch 
                     disp('CHECK T_END OR AYELS CONDITION - LOOKS LIKE NO OPTIMISATION HAS BEEN RUN')
@@ -548,6 +515,15 @@ function plot_3Dobject(obj,varargin)
             set(gca,'ColorOrderIndex',traj)
             plot3(obj.init.X(traj).val(pos_p(1),:),obj.init.X(traj).val(pos_p(2),:),obj.init.X(traj).val(pos_p(3),:),'LineWidth',1.5);    
         end
+        % add point for rotation
+        Prot = 0*obj.init.X_est(traj).val(pos_p,:) + 1*[0.1; 0; 0];
+        for p=1:size(Prot,2)
+            R = quat2rotm(obj.init.X_est(traj).val(params.pos_quat,p)');
+            Prot(:,p) = R*Prot(:,p);
+        end
+        Prot = Prot + obj.init.X_est(traj).val(pos_p,:);
+        plot3(Prot(1,:),Prot(2,:),Prot(3,:),'b--','LineWidth',1.5);    
+        
         xlabel('X')
         ylabel('Y')
         set(gca,'fontsize', fontsize)
