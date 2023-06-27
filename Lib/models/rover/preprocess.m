@@ -30,9 +30,6 @@ function out = preprocess(filename,ID)
     % TRANSFORMATION
     out.PolesTime = test.groundtruth.times - topics{ID(1)}.times(1);
 
-    
-
-
     %%%%% IMU %%%%%
     topid = ID(1);
     % get IMU
@@ -62,7 +59,7 @@ function out = preprocess(filename,ID)
     % get anchor position
     out.AM1(1,:) = double(mean(topics{topid}.data.anchors.position.x,1));
     out.AM1(2,:) = double(mean(topics{topid}.data.anchors.position.y,1));
-    out.AM1(3,:) = double(mean(topics{topid}.data.anchors.position.z,1)) + 2.20;
+    out.AM1(3,:) = double(mean(topics{topid}.data.anchors.position.z,1));
 
     % sampling times - UWB
     UWBt = 0.2;
@@ -104,7 +101,7 @@ function out = preprocess(filename,ID)
     F = tf(B,A);
     F_UWB = c2d(F,UWBt); 
 
-    % filter IMU
+    % filter UWB
     for i=1:size(UWB_resamp,2)
         UWB(:,i) = lsim(F_UWB,UWB_resamp(:,i),UWBtime_resamp,UWB_resamp(1:order,i));
     end
