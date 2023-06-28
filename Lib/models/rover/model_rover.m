@@ -162,6 +162,39 @@ function [x_dot, x] = model_rover(tspan,x,params,obs)
     end
 
     %% model dynamics - quaternion
+
+    % hyb observer
+    if (mod(pos(1),params.UWB_samp) == 0) && (~params.EKF)
+
+        % meas available
+        y = obs.init.Y_full_story(obs.init.traj).val(1,:,pos(1));
+        q = y(params.pos_quat_out);
+
+        % from quaternion to RPY
+        THETA = quat2angle(q);
+        
+        % jump map - angle 1
+        xp(14) = x(14) + params.theta(1)*(THETA(1)-x(14)) + params.theta(4)*(THETA(1)-x(14))^3;
+        xp(17) = x(17) + params.theta(2)*(THETA(1)-x(14)) + params.theta(5)*(THETA(1)-x(14))^3;
+        xp(20) = x(20) + params.theta(3)*(THETA(1)-x(14)) + params.theta(6)*(THETA(1)-x(14))^3;
+
+        % jump map - angle 2
+        xp(15) = x(15) + params.theta(1)*(THETA(2)-x(15)) + params.theta(4)*(THETA(2)-x(15))^3;
+        xp(18) = x(18) + params.theta(2)*(THETA(2)-x(15)) + params.theta(5)*(THETA(2)-x(15))^3;
+        xp(21) = x(21) + params.theta(3)*(THETA(2)-x(15)) + params.theta(6)*(THETA(2)-x(15))^3;
+
+        % jump map - angle 2
+        xp(16) = x(16) + params.theta(1)*(THETA(3)-x(16)) + params.theta(4)*(THETA(3)-x(16))^3;
+        xp(19) = x(19) + params.theta(2)*(THETA(3)-x(16)) + params.theta(5)*(THETA(3)-x(16))^3;
+        xp(22) = x(22) + params.theta(3)*(THETA(3)-x(16)) + params.theta(6)*(THETA(3)-x(16))^3;
+
+        % normalize quaternion
+        xp(params.pos_quat) = quatnormalize(xp(params.pos_quat));
+        
+
+        x = xp;
+    end   
+
     % Skew matrix - eq. 39 Challa
     x(params.pos_quat) = quatnormalize(x(params.pos_quat)');
     q = x(params.pos_quat);

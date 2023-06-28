@@ -138,7 +138,7 @@ function params = params_rover(varargin)
 
     % output dim
     % distances + accelerations + velocity (only for learning) + position (only for learning) +
-    % quaternion (only for learning) + omega
+    % quaternion + omega
     params.OutDim = params.Nanchor + 3*params.space_dim + (2*params.rotation_dim + 1);  
     params.observed_state = [];   % not reading the state    
     params.pos_dist_out = 1:params.Nanchor;
