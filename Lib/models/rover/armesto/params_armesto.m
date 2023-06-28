@@ -76,7 +76,7 @@ function params = params_armesto
     % enable noise
     params.jerk_enable = 0;
     params.alpha_enable = 0;
-    params.bias_v_enable = 1;
+    params.bias_v_enable = 0;
         
     % initial condition
     params.perturbed_vars = [params.pos_p params.pos_v params.pos_quat params.pos_omega];

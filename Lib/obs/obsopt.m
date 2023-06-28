@@ -188,12 +188,12 @@ classdef obsopt < handle
             if any(strcmp(varargin,'AdaptiveParams')) && (obj.setup.AdaptiveSampling)
                 pos = find(strcmp(varargin,'AdaptiveParams'));
                 tmp = varargin{pos+1};                         
-                obj.init.Fnyq = tmp(1);     % integer
-                obj.init.Fbuflen = tmp(2);  % integer < Nw
-                obj.init.Fselect = tmp(3);  % 1 = min 2 = max 
-                obj.init.FNts = tmp(4);
-                obj.init.Fmin = tmp(5);
-                obj.init.wavelet_output_dim = tmp(6:end);
+                obj.init.Fnyq = tmp(1);     % integer: multiplying the Nyqist frequency
+                obj.init.Fbuflen = tmp(2);  % integer < Nw: on how many elements of the buffer mnake the wavelet
+                obj.init.Fselect = tmp(3);  % 1 = min 2 = max: choose the highest or lowes frequency 
+                obj.init.FNts = tmp(4);     % nteger: granularity of the buffer on which making the wavelet
+                obj.init.Fmin = tmp(5);     % minimum freq considered
+                obj.init.wavelet_output_dim = tmp(6:end);   % integer: on which measurement make the wavelet
             else
                 obj.init.FNts = 1;
                 obj.init.Fbuflen = 20;

@@ -14,6 +14,8 @@ function u = control_armesto(t,drive,params,obs)
         u(3) = 0.1;
 
         % rotation
+        u(4) = 0.01;
+        u(5) = -0.01;
         u(6) = 1;
         
     end
