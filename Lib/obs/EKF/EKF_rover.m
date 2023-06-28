@@ -11,9 +11,6 @@ function obs = EKF_rover(obs,xhat_kk_1,y_k)
     % get params
     params = obs.init.params;
 
-    % rephrase y
-    % y_k = y_k(params.pos_trasl_out);
-
     % get time instant
     k = obs.init.ActualTimeIndex;
     tspan = obs.setup.time(max(1,k-1):k);
@@ -80,7 +77,7 @@ function obs = EKF_rover(obs,xhat_kk_1,y_k)
         % test
 %         correction([params.pos_p(2:3) params.pos_v(2:3) params.pos_acc(2:3) params.pos_bias(2:3)]) = 0;
 
-        xnew(1:numel(params.pos_trasl)) = xhat_k(params.pos_trasl) + 1*correction;
+        xnew(1:numel(params.pos_trasl)) = xhat_k(sort(params.pos_trasl)) + 1*correction;
         Pnew = Phat_kk_1 - Ks*GHs*Phat_kk_1;
     else
         xnew = xhat_k;
@@ -89,7 +86,7 @@ function obs = EKF_rover(obs,xhat_kk_1,y_k)
     end    
 
     % update
-    obs.init.X_est(traj).val(params.pos_trasl,k) = xnew;
+    obs.init.X_est(traj).val(sort(params.pos_trasl),k) = xnew;
     obs.init.params.Phat(traj).val(k,:,:) = Pnew;
     obs.init.params.correction_story(:,k) = correction;
 

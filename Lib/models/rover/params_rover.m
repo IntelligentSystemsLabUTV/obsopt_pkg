@@ -196,7 +196,7 @@ function params = params_rover(varargin)
     params.jerk_enable = 0;
     params.sigma_w = 1e-2;
     params.proc_acc = 1;
-    params.proc_bias = 0;
+    params.proc_bias = 1;
     params.bias = 1;
 
     %%%%%% EKF %%%%%
