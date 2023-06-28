@@ -24,7 +24,7 @@ Ts = 1e-2;
 
 % set initial and final time instant
 t0 = 0;
-tend = 5;
+tend = 10;
 % uncomment to test the MHE with a single optimisation step
 % tend = 1*(Nw*Nts-1)*Ts;
 
@@ -132,16 +132,15 @@ for i = 1:obs.setup.Niter
     end
     
     %%%% MHE OBSERVER (SAVE MEAS) %%%%
-    t1 = tic;    
+    % t1 = tic;    
     if 1
         obs = obs.observer(obs.init.X_est,y_meas);
-        obs.init.iter_time(obs.init.ActualTimeIndex) = toc(t1);   
+        % obs.init.iter_time(obs.init.ActualTimeIndex) = toc(t1);   
         if obs.init.break
             break;
         end
     end
-
-    obs.init.iter_time(obs.init.ActualTimeIndex) = toc(t1);                                                
+    % obs.init.iter_time(obs.init.ActualTimeIndex) = toc(t1);                                                
     
     
 

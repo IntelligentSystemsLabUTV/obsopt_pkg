@@ -47,7 +47,7 @@ function params = params_armesto
     params.pos_quat_out = [4:7];
     params.pos_acc_out = [8:10];
     params.pos_omega_out = [11:13];
-    params.OutDim_compare = [params.pos_p_out params.pos_quat_out params.pos_acc_out, params.pos_omega_out];
+    params.OutDim_compare = [params.pos_p_out params.pos_quat_out params.pos_acc_out params.pos_omega_out];
 
     % sampling
     params.IMU_samp = 1;
