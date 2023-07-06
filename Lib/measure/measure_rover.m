@@ -42,24 +42,34 @@ function y = measure_rover(x,params,tspan,u,obs)
         %%% get the output mismatch terms        
         V_true = reshape(x(params.pos_v,k),numel(params.pos_v),1);
         P_true = reshape(x(params.pos_p,k),numel(params.pos_p),1);
-        Quat_true = reshape(x(params.pos_quat,k),numel(params.pos_quat),1);
-        W_true = reshape(x(params.pos_w,k),numel(params.pos_w),1);
     
-        %%% get distances        
-        if mod(pos(k)+offset_UWBsamp,params.UWB_samp) == 0                                    
+        % different sampling times   
+        if mod(pos(k)+offset_UWBsamp,params.UWB_samp) == 0 
+
+            %%% get distances 
             % adjacency matrix
             for dim=1:params.space_dim
                 Pa(dim,:) = x(params.pos_anchor(dim):params.space_dim:params.pos_anchor(end));            
             end
+
             % true distances
             D = get_dist(P_true,Pa);   
             obs.init.params.last_D(traj,:) = D;
+
+            % orientation
+            Quat_true = reshape(x(params.pos_quat,k),numel(params.pos_quat),1);
+            obs.init.params.last_Quat(traj,:) = Quat_true;
+
         else   
             D = reshape(obs.init.params.last_D(traj,:),params.Nanchor,1);
+            Quat_true = reshape(obs.init.params.last_Quat(traj,:),4,1);
         end
     
         %%% get the IMU accelerations              
-        IMU_true = reshape(x(params.pos_acc,k),numel(params.pos_acc),1);    
+        IMU_true = reshape(x(params.pos_acc,k),numel(params.pos_acc),1); 
+
+        %%% get the Gyro velocities              
+        W_true = reshape(x(params.pos_w,k),numel(params.pos_w),1); 
 
         % bias
         if params.EKF || params.sferbias

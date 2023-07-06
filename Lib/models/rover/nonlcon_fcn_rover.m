@@ -23,9 +23,9 @@ function [c, ceq] = nonlcon_fcn_rover(xopt,xnonopt,obs)
 %     gamma(:,2) = x(obs.init.params.pos_Gamma(3))+ x(obs.init.params.pos_Gamma(4))*normy;    
 
 %     % CUBIC TERMS
-    ThetaCubic = x(obs.init.params.pos_Gamma(4:6));
-    ThetaCubic_constr_down = -ThetaCubic;
-    c = [c; ThetaCubic_constr_down];
+    % ThetaCubic = x(obs.init.params.pos_Gamma(4:6));
+    % ThetaCubic_constr_down = -ThetaCubic;
+    % c = [c; ThetaCubic_constr_down];
     
             
     % cons

@@ -191,6 +191,7 @@ function params = model_init(varargin)
             % test - bias starting always from 0
             if params.noise 
                 params.X_est(traj).val(params.pos_bias,1) = 0;
+                params.X_est(traj).val(params.pos_bias_w,1) = 0;
             end
         end
 

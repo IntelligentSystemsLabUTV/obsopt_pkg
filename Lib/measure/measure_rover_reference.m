@@ -26,11 +26,10 @@ function [y, obs] = measure_rover_reference(x,params,t,u,obs)
     %%% get the output mismatch terms    
     V_true = reshape(x(params.pos_v,:),numel(params.pos_v),size(x,2));
     P_true = reshape(x(params.pos_p,:),numel(params.pos_p),size(x,2));
-    Quat_true = reshape(x(params.pos_quat,:),numel(params.pos_quat),size(x,2));
-    W_true = reshape(x(params.pos_w,:),numel(params.pos_w),size(x,2));
 
     % different sampling times
     if mod(pos(end),params.UWB_samp) == 0
+
         %%% get distances        
         % adjacency matrix
         for dim=1:params.space_dim
@@ -42,8 +41,13 @@ function [y, obs] = measure_rover_reference(x,params,t,u,obs)
         % save position buffer
         obs.init.params.UWB_pos(end+1) = pos(end);
         obs.init.params.last_D_ref(traj,:) = D;
+
+        % orientation
+        Quat_true = reshape(x(params.pos_quat,:),numel(params.pos_quat),size(x,2));
+        obs.init.params.last_Quat_ref(traj,:) = Quat_true;
     else
         D = reshape(obs.init.params.last_D_ref(traj,:),params.Nanchor,1);
+        Quat_true = reshape(obs.init.params.last_Quat_ref(traj,:),4,1);
     end    
 
     %%% get the IMU accelerations
@@ -53,6 +57,15 @@ function [y, obs] = measure_rover_reference(x,params,t,u,obs)
         obs.init.params.last_IMU_acc_ref(traj,:) = IMU_true;
     else       
         IMU_true = reshape(obs.init.params.last_IMU_acc_ref(traj,:),params.space_dim,1);
+    end
+
+    %%% get the Gyro velocities
+    if mod(pos(end),params.Gyro_samp) == 0         
+        % meas
+        W_true = reshape(x(params.pos_w,:),numel(params.pos_w),size(x,2));
+        obs.init.params.last_W_ref(traj,:) = W_true;
+    else       
+        W_true = reshape(obs.init.params.last_W_ref(traj,:),params.rotation_dim,1);
     end
 
     %%% add noise

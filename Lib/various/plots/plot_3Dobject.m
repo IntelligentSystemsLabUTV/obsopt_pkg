@@ -162,19 +162,24 @@ function plot_3Dobject(obj,varargin)
         figure(fig_count)            
         sgtitle('Quaternion estimation')
         ax = zeros(1,3);
-        for i=1:length(params.pos_quat)
-            subplot(length(params.pos_quat),1,i);
+        % get rpy
+        THETA = zeros(3,obj.setup.Niter);
+        [THETA(3,:), THETA(2,:), THETA(1,:)] = quat2angle(obj.init.X(traj).val(params.pos_quat,:)');
+        THETAHAT = zeros(3,obj.setup.Niter);
+        [THETAHAT(3,:), THETAHAT(2,:), THETAHAT(1,:)] = quat2angle(obj.init.X_est(traj).val(params.pos_quat,:)');
+        for i=1:length(params.pos_quat)-1
+            subplot(length(params.pos_quat)-1,1,i);
             hold on
             grid on
             box on
     
             % indicize axes        
-            ax(i)=subplot(length(params.pos_quat),1,i);     
+            ax(i)=subplot(length(params.pos_quat)-1,1,i);     
             
             for traj=1:obj.setup.Ntraj            
-                plot(obj.setup.time,obj.init.X(traj).val(params.pos_quat(i),:),'LineWidth',2);
+                plot(obj.setup.time,THETA(i,:),'LineWidth',2);
                 set(gca,'ColorOrderIndex',traj)
-                plot(obj.setup.time,obj.init.X_est(traj).val(params.pos_quat(i),:),'--','LineWidth',1);                                                                         
+                plot(obj.setup.time,THETAHAT(i,:),'--','LineWidth',1);                                                                         
             end
             
             % labels

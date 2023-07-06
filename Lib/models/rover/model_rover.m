@@ -49,21 +49,21 @@ function [x_dot, x] = model_rover(tspan,x,params,obs)
                 p_jump_der = obs.init.params.p_jump_der(obs.init.traj).val(:,pos(1)/params.UWB_samp);            
                 
                 % jump map - x
-                xp(1) = x(1) + params.theta(1)*(p_jump(1)-x(1)) + params.theta(4)*(p_jump(1)-x(1))^3;
-                xp(2) = x(2) + params.theta(2)*(p_jump(1)-x(1)) + params.theta(5)*(p_jump(1)-x(1))^3;
-                xp(3) = x(3) + params.theta(3)*(p_jump(1)-x(1)) + params.theta(6)*(p_jump(1)-x(1))^3;
+                xp(1) = x(1) + params.theta(1)*(p_jump(1)-x(1));
+                xp(2) = x(2) + params.theta(2)*(p_jump(1)-x(1));
+                xp(3) = x(3) + params.theta(3)*(p_jump(1)-x(1));
                 xp(4) = x(4);
                         
                 % jump map - y
-                xp(5) = x(5) + params.theta(1)*(p_jump(2)-x(5)) + params.theta(4)*(p_jump(2)-x(5))^3;
-                xp(6) = x(6) + params.theta(2)*(p_jump(2)-x(5)) + params.theta(5)*(p_jump(2)-x(5))^3;
-                xp(7) = x(7) + params.theta(3)*(p_jump(2)-x(5)) + params.theta(6)*(p_jump(2)-x(5))^3;
+                xp(5) = x(5) + params.theta(1)*(p_jump(2)-x(5));
+                xp(6) = x(6) + params.theta(2)*(p_jump(2)-x(5));
+                xp(7) = x(7) + params.theta(3)*(p_jump(2)-x(5));
                 xp(8) = x(8);               
     
                 % jump map - z
-                xp(9) = x(9) + params.theta(1)*(p_jump(3)-x(9)) + params.theta(4)*(p_jump(3)-x(9))^3;
-                xp(10) = x(10) + params.theta(2)*(p_jump(3)-x(9)) + params.theta(5)*(p_jump(3)-x(9))^3;
-                xp(11) = x(11) + params.theta(3)*(p_jump(3)-x(9)) + params.theta(6)*(p_jump(3)-x(9))^3;
+                xp(9) = x(9) + params.theta(1)*(p_jump(3)-x(9));
+                xp(10) = x(10) + params.theta(2)*(p_jump(3)-x(9));
+                xp(11) = x(11) + params.theta(3)*(p_jump(3)-x(9));
                 xp(12) = x(12);   
 
                 x = xp;
@@ -166,50 +166,51 @@ function [x_dot, x] = model_rover(tspan,x,params,obs)
     % hyb observer
     if (mod(pos(1),params.UWB_samp) == 0) && (~params.EKF)
 
+        xp = x;
+
         % meas available
         y = obs.init.Y_full_story(obs.init.traj).val(1,:,pos(1));
-        q = y(params.pos_quat_out);
 
         % from quaternion to RPY
-        THETA = quat2angle(q);
+        [yaw, pitch, roll]  = quat2angle(y(params.pos_quat_out));
+        [yawhat, pitchhat, rollhat]  = quat2angle(xp(params.pos_quat)');
+        delta = [roll-rollhat, pitch-pitchhat, yaw-yawhat];
         
         % jump map - angle 1
-        xp(14) = x(14) + params.theta(1)*(THETA(1)-x(14)) + params.theta(4)*(THETA(1)-x(14))^3;
-        xp(17) = x(17) + params.theta(2)*(THETA(1)-x(14)) + params.theta(5)*(THETA(1)-x(14))^3;
-        xp(20) = x(20) + params.theta(3)*(THETA(1)-x(14)) + params.theta(6)*(THETA(1)-x(14))^3;
+        rollhatP = rollhat + params.theta(4)*norm(delta);
+        xp(20) = x(20) + params.theta(5)*norm(delta);
 
         % jump map - angle 2
-        xp(15) = x(15) + params.theta(1)*(THETA(2)-x(15)) + params.theta(4)*(THETA(2)-x(15))^3;
-        xp(18) = x(18) + params.theta(2)*(THETA(2)-x(15)) + params.theta(5)*(THETA(2)-x(15))^3;
-        xp(21) = x(21) + params.theta(3)*(THETA(2)-x(15)) + params.theta(6)*(THETA(2)-x(15))^3;
+        pitchhatP = pitchhat + params.theta(4)*norm(delta);
+        xp(21) = x(21) + params.theta(5)*norm(delta);
 
-        % jump map - angle 2
-        xp(16) = x(16) + params.theta(1)*(THETA(3)-x(16)) + params.theta(4)*(THETA(3)-x(16))^3;
-        xp(19) = x(19) + params.theta(2)*(THETA(3)-x(16)) + params.theta(5)*(THETA(3)-x(16))^3;
-        xp(22) = x(22) + params.theta(3)*(THETA(3)-x(16)) + params.theta(6)*(THETA(3)-x(16))^3;
+        % jump map - angle 3
+        yawhatP = yawhat + params.theta(4)*norm(delta);
+        xp(22) = x(22) + params.theta(5)*norm(delta);
 
         % normalize quaternion
-        xp(params.pos_quat) = quatnormalize(xp(params.pos_quat));
+        xp(params.pos_quat) = angle2quat(yawhatP, pitchhatP, rollhatP);
         
-
         x = xp;
     end   
 
     % Skew matrix - eq. 39 Challa
-    x(params.pos_quat) = quatnormalize(x(params.pos_quat)');
     q = x(params.pos_quat);
-    w = x(params.pos_w) - x(params.pos_bias_w);
-    S = [0      -w(3)   +w(2); ...
-         +w(3)  0       -w(1); ...
-         -w(2)  +w(1)   0];
-    OMEGA = [+S     w; ...
-             -w'    0];
+    W = x(params.pos_w) - x(params.pos_bias_w);
+    S = [0      -W(3)   +W(2); ...
+         +W(3)  0       -W(1); ...
+         -W(2)  +W(1)   0];
+    OMEGA = [+S     W; ...
+             -W'    0];
+
+    % measure
+    w = reshape(y(params.pos_w_out),params.rotation_dim,1);
 
     % quaternion dynamics - eq. 40 armesto
     x_dot(params.pos_quat) = 0.5*OMEGA*q;
 
     % model dynamics - angular velocity - eq. 41b armesto continuous
-    x_dot(params.pos_w) = params.u(4:6);
+    x_dot(params.pos_w) = params.Asfer(end,end)*x(params.pos_w) + params.Bsfer(end)*w;
 
 
 
