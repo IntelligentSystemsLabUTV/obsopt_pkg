@@ -5,7 +5,7 @@
 % description: function to setup and use the MHE observer on general model
 % INPUT: none
 % OUTPUT: params,obs
-function [obs,params] = simulation_armesto
+function [obs,params] = simulation_drone
 
 %%%% Init Section %%%%
 % uncomment to close previously opened figures
@@ -29,20 +29,20 @@ tend = 10;
 % tend = 1*(Nw*Nts-1)*Ts;
 
 %%%% params init function %%%%
-params_init = @params_armesto;
+params_init = @params_drone;
 
 %%%% params update function %%%%
-params_update = @params_update_armesto;
+params_update = @params_update_drone;
 
 %%%% model function %%%%
-model = @model_armesto;
+model = @model_drone;
 
 %%%% model reference function %%%%
-model_reference = @model_armesto_reference;
+model_reference = @model_drone_reference;
 
 %%%% measure function %%%%
-measure = @measure_armesto;
-measure_reference = @measure_armesto_reference;
+measure = @measure_drone;
+measure_reference = @measure_drone_reference;
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 %%%% filters %%%%
@@ -52,7 +52,7 @@ measure_reference = @measure_armesto_reference;
 ode = @odeDD;
 
 %%%% input law %%%
-input_law = @control_armesto;
+input_law = @control_drone;
 
 %%%% params init %%%%
 params = model_init('Ts',10*Ts,'T0',[t0, tend],'noise',1, 'params_update', params_update, ...
