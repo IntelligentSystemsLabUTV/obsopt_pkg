@@ -15,17 +15,10 @@ function params_out = params_update_rover(params,x)
 
     if ~params.EKF
 
-        params_out.theta(1:6) = x(params.pos_Gamma(1:6));        
-%         params_out.alpha(1:2) = x(params.pos_Gamma(6:7));  
+        params_out.theta = x(params.pos_Gamma(1:3));        
+        params_out.gamma = x(params.pos_Gamma(4:13));  
 
-        % normal beta
-%         params_out.beta(1) = x(params.pos_Gamma(8));
-%         params_out.beta(2) = x(params.pos_Gamma(9));
 
-        % passband
-%         params_out.C(1:2) = x(params.pos_Gamma(1:2));
-%         params_out.beta(1) = 1;
-%         params_out.beta(2) = -params_out.C(2);        
     end
         
     

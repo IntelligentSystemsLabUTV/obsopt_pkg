@@ -10,22 +10,12 @@ function [c, ceq] = nonlcon_fcn_rover(xopt,xnonopt,obs)
     tol = 1e0*obs.init.myoptioptions.ConstraintTolerance;
 
     % init
-    c = [];    
+    c = [];      
 
-%     tspan_pos = [1, nonzeros(obs.init.Y_space_full_story)'];
-%     tspan = obs.setup.time(tspan_pos(1):tspan_pos(end));
-%     X = obs.setup.ode(@(t,x)obs.setup.model(t, x, obs.init.params, obs), tspan , x, obs.setup.odeset);
-%     X = X.y(:,obs.init.Y_space_full_story(2:end));
-
-%     normx = vecnorm(X(obs.init.params.pos_p(1),:),2,1);
-%     normy = vecnorm(X(obs.init.params.pos_p(2),:),2,1);
-%     gamma(:,1) = x(obs.init.params.pos_Gamma(3))+ x(obs.init.params.pos_Gamma(4))*normx;
-%     gamma(:,2) = x(obs.init.params.pos_Gamma(3))+ x(obs.init.params.pos_Gamma(4))*normy;    
-
-%     % CUBIC TERMS
-    % ThetaCubic = x(obs.init.params.pos_Gamma(4:6));
-    % ThetaCubic_constr_down = -ThetaCubic;
-    % c = [c; ThetaCubic_constr_down];
+    % THETA TERMS
+    % Theta = x(obs.init.params.pos_Gamma(1:3));
+    % Theta_constr_down = -Theta;
+    % c = [c; Theta_constr_down];
     
             
     % cons

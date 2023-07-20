@@ -98,7 +98,8 @@ function params = params_rover(varargin)
     %%% observer params %%%
     % theta
     % params.theta = 1*[1.0000  1.2662  -0.5457   0   0   0];
-    params.theta = 1*[0.4221    0.2888   -0.0281    0   0   0 ];
+    params.theta = 0*[0.4221    0.2888   -0.0281];
+    params.gamma = 0*[0.1   0   0   0.1   0   0.1   0   0   0.1   0];
     % params.theta = 1*[0.3713    0.2401   -0.0264    0.0097    0.0797   -0.0095];
 
     % alpha
@@ -110,7 +111,7 @@ function params = params_rover(varargin)
    
     %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
     % hyb obs parameters
-    params.dim_Gamma = length(params.theta) + length(params.alpha);
+    params.dim_Gamma = length(params.theta) + length(params.gamma) + length(params.alpha);
 
     % model parameters
     params.dim_state = 4*params.space_dim + (3*params.rotation_dim + 1) + params.Nanchor*params.space_dim + params.dim_Gamma;    % done on the observer model (easier to compare)
@@ -147,7 +148,7 @@ function params = params_rover(varargin)
     params.pos_p_out = [params.Nanchor + 1:params.Nanchor + params.space_dim];
     params.pos_quat_out = [params.Nanchor + 3*params.space_dim + 1:params.Nanchor + 3*params.space_dim + params.rotation_dim + 1];
     params.pos_w_out = [params.Nanchor + 3*params.space_dim + params.rotation_dim + 2:params.OutDim];
-    params.OutDim_compare = [params.pos_quat_out]; 
+    params.OutDim_compare = [params.pos_p_out params.pos_quat_out]; 
 
     % only translation for EKF
     params.pos_trasl_out = [params.pos_dist_out params.pos_p_out params.pos_v_out params.pos_acc_out];
@@ -240,20 +241,21 @@ function params = params_rover(varargin)
                               1.46;0;0.1;0; ...             % z pos + IMU bias
                               1; 0; 0; 0; ...             % quaternion
                               0; 0; 0; ...                % omega
-                              0.2; 0; 0; ...                % gyro bias
+                              0.1; 0.1; 0.1; ...                % gyro bias
                               AM1(1,1);AM1(2,1);1*an_dz;  ...           % anchors Mesh 1
                               AM1(1,2);AM1(2,2);1*an_dz;  ...
                               AM1(1,3);AM1(2,3);1*an_dz;  ...
                               AM1(1,4);AM1(2,4);1*an_dz;
-                              params.theta'; ...                              
+                              params.theta'; ... 
+                              params.gamma'; ...
                               params.alpha'];      
     %%%%%%%%%%%%%%%%%%%%%%%
        
     % position in the state vector of the estimated parameters
-    params.estimated_params = params.pos_Gamma(4:end);
+    params.estimated_params = params.pos_Gamma(1:13);
     
     % which vars am I optimising
-    params.opt_vars = [params.pos_Gamma(4:5)];
+    params.opt_vars = [params.pos_Gamma(1:13)];
     
     % set the not optimised vars
     tmp = 1:length(params.X(1).val(:,1));

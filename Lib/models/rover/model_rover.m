@@ -177,16 +177,16 @@ function [x_dot, x] = model_rover(tspan,x,params,obs)
         delta = [roll-rollhat, pitch-pitchhat, yaw-yawhat];
         
         % jump map - angle 1
-        rollhatP = rollhat + params.theta(4)*norm(delta);
-        xp(20) = x(20) + params.theta(5)*norm(delta);
+        rollhatP = rollhat + params.gamma(1)*delta(1);
+        xp(params.pos_bias_w(1)) = x(params.pos_bias_w(1)) + params.gamma(2)*delta(1) + params.gamma(3)*delta(2) + params.gamma(4)*delta(3);
 
         % jump map - angle 2
-        pitchhatP = pitchhat + params.theta(4)*norm(delta);
-        xp(21) = x(21) + params.theta(5)*norm(delta);
+        pitchhatP = pitchhat + params.gamma(1)*delta(2);
+        xp(params.pos_bias_w(2)) = x(params.pos_bias_w(2)) + params.gamma(5)*delta(1) + params.gamma(6)*delta(2) + params.gamma(7)*delta(3);
 
         % jump map - angle 3
-        yawhatP = yawhat + params.theta(4)*norm(delta);
-        xp(22) = x(22) + params.theta(5)*norm(delta);
+        yawhatP = yawhat + params.gamma(1)*delta(3);
+        xp(params.pos_bias_w(3)) = x(params.pos_bias_w(3)) + params.gamma(8)*delta(1) + params.gamma(9)*delta(2) + params.gamma(10)*delta(3);
 
         % normalize quaternion
         xp(params.pos_quat) = angle2quat(yawhatP, pitchhatP, rollhatP);

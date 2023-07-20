@@ -50,7 +50,7 @@ function [x_dot, x] = model_rover_reference(tspan,x,params,obs)
     % Skew matrix - eq. 39 Challa
     x(params.pos_quat) = quatnormalize(x(params.pos_quat)');
     q = x(params.pos_quat);
-    w = x(params.pos_w) - x(params.pos_bias_w);
+    w = x(params.pos_w);
     S = [0      -w(3)   +w(2); ...
          +w(3)  0       -w(1); ...
          -w(2)  +w(1)   0];
