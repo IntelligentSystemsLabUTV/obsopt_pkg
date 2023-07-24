@@ -59,9 +59,9 @@ function [x_dot, x] = model_drone_reference(tspan,x,params,obs)
     else
         x_dot(params.pos_quat) = S*vec;
     end
-    x_dot(params.pos_quat) = quatnormalize(x_dot(params.pos_quat)');
+    x_dot(params.pos_quat) = x(params.pos_quat)'+0*quatnormalize(x_dot(params.pos_quat)');
 
     % model dynamics - angular velocity - eq. 41b armesto
-    x_dot(params.pos_omega) = x(params.pos_omega) + params.Ts*(x(params.pos_alpha) + params.u(4:6));
+    x_dot(params.pos_omega) = x(params.pos_omega) + 0*params.Ts*(x(params.pos_alpha) + params.u(4:6));
     
 end

@@ -737,7 +737,7 @@ classdef obsopt < handle
                                                   'MaxFunEvals',Inf,'OutputFcn',@obj.outfun,'TolFun',obj.init.TolFun,'TolX',obj.init.TolX);   
             elseif strcmp(func2str(obj.setup.fmin),'patternsearch')                              
                 obj.init.myoptioptions = optimoptions(func2str(obj.setup.fmin), 'MaxIter', obj.setup.max_iter, 'display',obj.init.display, ...
-                                                      'Cache', 'on', 'UseParallel', false, 'StepTolerance', 0,'MaxFunEvals',Inf,'Algorithm','nups');            
+                                                      'Cache', 'on', 'UseParallel', false, 'StepTolerance', 0,'MaxFunEvals',Inf);            
             else
                 obj.init.myoptioptions = optimoptions(func2str(obj.setup.fmin), 'MaxIter', obj.setup.max_iter, 'display',obj.init.display, ...
                                                       'OptimalityTolerance', 0, 'StepTolerance', 0,'MaxFunEvals',Inf, 'GradObj', 'off',...
@@ -1482,7 +1482,7 @@ classdef obsopt < handle
                                     obj.init.myoptioptions.MaxMeshSize = 100;
                                     obj.init.myoptioptions.InitialMeshSize = 100;
                                     obj.init.myoptioptions.Display = 'iter';
-                                    obj.init.myoptioptions.Algorithm = 'nups-gps';
+%                                    obj.init.myoptioptions.Algorithm = 'nups-gps';
                                     obj.init.myoptioptions.UseParallel = true;                                    
                                     obj.init.myoptimoptions.UseCompletePoll = true;
                                 elseif strcmp(func2str(obj.setup.fmin),'fminsearchcon')   

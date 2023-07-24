@@ -23,7 +23,5 @@ function [y, obs] = measure_drone(x,params,t,u,obs)
     % get the observed components of the state vector
     y = x(params.observed_state,:);    
 
-    % add bias
-    y(params.pos_acc_out,:) = y(params.pos_acc_out,:) + x(params.pos_bias,:);
     
 end

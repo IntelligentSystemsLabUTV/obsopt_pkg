@@ -24,36 +24,34 @@ function [y, obs] = measure_drone_reference(x,params,t,u,obs)
     traj = obs.init.traj;
 
     % get the observed components of the state vector
-    y_true = x(params.observed_state,:);    
-
-    % noise
-    noise = obs.setup.noise*(params.noise_mat(:,2).*randn(obs.setup.dim_out,1) + params.noise_mat(:,1));
-
-    % add bias
-    noise(params.pos_acc_out,:) = noise(params.pos_acc_out,:) + x(params.pos_bias,:);
-    y = y_true + noise;
-    y(params.pos_quat_out) = quatnormalize(y(params.pos_quat_out)');
-
+    y_true = x(params.observed_state,:);
+    noise = zeros(size(y_true));
+    y = zeros(size(y_true));
+    
     % down sampling - CAM
-    if mod(pos,params.CAM_samp) ~= 0
-        y(params.pos_p_out) = obs.init.params.last_CAM_pos(traj,:);
-        y(params.pos_quat_out) = obs.init.params.last_CAM_quat(traj,:);
-        noise([params.pos_p_out params.pos_quat_out]) = obs.init.params.last_noise(traj,[params.pos_p_out params.pos_quat_out]);
+    if mod(pos(end),params.CAM_samp) ~= 0
+
+        y(params.pos_cam_out) = obs.init.params.last_CAM_pos(traj,:);
+        noise([params.pos_uwb_out params.pos_cam_out]) = obs.init.params.last_noise(traj,[params.pos_uwb_out params.pos_cam_out]);
+    else 
+        y(params.pos_cam_out) = y_true(params.pos_cam_out);
+        noise(params.pos_cam_out) = obs.setup.noise*(params.noise_mat(params.pos_cam_out,2).*randn(3,1) + params.noise_mat(params.pos_cam_out,1));
+        obs.init.params.last_noise(traj,params.pos_cam_out) = noise(params.pos_cam_out);
+        obs.init.params.last_CAM_pos(traj,:) = y(params.pos_cam_out);
     end
 
-    % down sampling - IMU
-    if mod(pos,params.IMU_samp) ~= 0
-        y(params.pos_acc_out) = obs.init.params.last_IMU_acc(traj,:);
-        y(params.pos_omega_out) = obs.init.params.last_IMU_omega(traj,:);
-        noise([params.pos_acc_out params.pos_omega_out]) = obs.init.params.last_noise(traj,[params.pos_acc_out params.pos_omega_out]);
+    % down sampling - UWB
+    if mod(pos(end),params.UWB_samp) ~= 0
+        y(params.pos_uwb_out) = obs.init.params.last_UWB_pos(traj,:);
+        noise([params.pos_uwb_out params.pos_cam_out]) = obs.init.params.last_noise(traj,[params.pos_uwb_out params.pos_cam_out]);
+    else 
+        y(params.pos_uwb_out) = y_true(params.pos_uwb_out);
+        noise(params.pos_uwb_out) = obs.setup.noise*(params.noise_mat(params.pos_uwb_out,2).*randn(3,1) + params.noise_mat(params.pos_uwb_out,1));
+        obs.init.params.last_noise(traj,params.pos_uwb_out) = noise(params.pos_uwb_out);
+        obs.init.params.last_UWB_pos(traj,:) = y(params.pos_uwb_out);
     end
-
-    % store
-    obs.init.params.last_noise(traj,:) = noise;
-    obs.init.params.last_CAM_pos(traj,:) = y(params.pos_p_out);
-    obs.init.params.last_CAM_quat(traj,:) = y(params.pos_quat_out);
-    obs.init.params.last_IMU_acc(traj,:) = y(params.pos_acc_out);
-    obs.init.params.last_IMU_omega(traj,:) = y(params.pos_omega_out);
+    
+    y = y + noise;
 
     % store
     obs.init.Ytrue_full_story(traj).val(1,:,pos(end)) = y_true;    

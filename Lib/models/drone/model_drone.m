@@ -23,20 +23,21 @@ function [x_dot, x] = model_drone(tspan,x,params,obs)
     
     % compute the control
     params.u = obs.init.input_story_ref(obs.init.traj).val(:,max(1,pos(1)));
-    obs.init.input_story(obs.init.traj).val(:,pos(1)) = params.u(:,1);    
+    obs.init.input_story(obs.init.traj).val(:,pos(1)) = params.u(:,1);  
+    y = obs.init.Y_full_story(obs.init.traj).val(1,:,pos(end))';
 
     % noise dynamics
-    x_dot(params.pos_bias_v) = 0*x(params.pos_bias_v) + params.bias_v_enable*params.gamma*ones(3,1)*sin(tspan(1));
+    x_dot(params.pos_bias_v) = 0*x(params.pos_bias_v) + params.bias_v_enable*ones(3,1)*sin(tspan(1));
     
     %%% model dynamics - translation    
     % eq. 38 armesto
-    x_dot(params.pos_p) = x(params.pos_p) + params.Ts*x(params.pos_v) + 0.5*params.Ts^2*x(params.pos_acc) + 1/6*params.Ts^2*x(params.pos_jerk);
-    % eq. 37 armesto
-    x_dot(params.pos_v) = x(params.pos_v) + params.Ts*x(params.pos_acc) + 0.5*params.Ts^2*x(params.pos_jerk);
+    x_dot(params.pos_p) = (1-params.Ts)*x(params.pos_p) + params.Ts*(params.gamma(1)*y(params.pos_uwb_out) + params.gamma(2)*y(params.pos_cam_out)) ;
+    % eq. 37 armesto 
+    x_dot(params.pos_v) = x(params.pos_v) + 0*(params.Ts*x(params.pos_acc) + 0.5*params.Ts^2*x(params.pos_jerk)); %no dynamics, i just want the position
     % eq. 36 armesto
-    x_dot(params.pos_acc) = x(params.pos_acc) + params.Ts*(x(params.pos_jerk) + params.u(1:3) + cross(x(params.pos_alpha),x(params.pos_v)) + cross(x(params.pos_omega),x(params.pos_acc)));
+    x_dot(params.pos_acc) = x(params.pos_acc) + 0*(params.Ts*(x(params.pos_jerk) + params.u(1:3) + cross(x(params.pos_alpha),x(params.pos_v)) + cross(x(params.pos_omega),x(params.pos_acc))));
     % eq. 39 armesto
-    x_dot(params.pos_bias) = x(params.pos_bias) + params.Ts*x(params.pos_bias_v);        
+    x_dot(params.pos_bias) = x(params.pos_bias) + 0*(params.Ts*x(params.pos_bias_v));        
 
     %%% model dynamics - quaternion
 
@@ -57,10 +58,10 @@ function [x_dot, x] = model_drone(tspan,x,params,obs)
     else
         x_dot(params.pos_quat) = S*vec;
     end
-    x_dot(params.pos_quat) = quatnormalize(x_dot(params.pos_quat)');
+    x_dot(params.pos_quat) = x(params.pos_quat)' + 0*quatnormalize(x_dot(params.pos_quat)');
 
     % model dynamics - angular velocity - eq. 41b armesto
-    x_dot(params.pos_omega) = x(params.pos_omega) + params.Ts*(x(params.pos_alpha) + params.u(4:6));
+    x_dot(params.pos_omega) = x(params.pos_omega) + 0*params.Ts*(x(params.pos_alpha) + 0*params.u(4:6));
 
     % parameter dynamics
     x_dot(params.pos_gamma) = params.gamma;
