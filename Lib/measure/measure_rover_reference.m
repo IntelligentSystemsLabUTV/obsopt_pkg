@@ -26,6 +26,13 @@ function [y, obs] = measure_rover_reference(x,params,t,u,obs)
     %%% get the output mismatch terms    
     V_true = reshape(x(params.pos_v,:),numel(params.pos_v),size(x,2));
     P_true = reshape(x(params.pos_p,:),numel(params.pos_p),size(x,2));
+    Quat_true = reshape(x(params.pos_quat,:),numel(params.pos_quat),size(x,2));
+
+    % place the tags
+    R = quat2rotm(Quat_true.');
+    for i=1:3
+        Pt(:,i) = R*params.TagPos(:,i) + P_true;
+    end
 
     % different sampling times
     if mod(pos(end),params.UWB_samp) == 0
@@ -37,17 +44,15 @@ function [y, obs] = measure_rover_reference(x,params,t,u,obs)
         end
         
         % true distances
-        D = get_dist(P_true,Pa);
+        D = get_dist(Pt,Pa);
         % save position buffer
         obs.init.params.UWB_pos(end+1) = pos(end);
         obs.init.params.last_D_ref(traj,:) = D;
 
         % orientation
-        Quat_true = reshape(x(params.pos_quat,:),numel(params.pos_quat),size(x,2));
         obs.init.params.last_Quat_ref(traj,:) = Quat_true;
     else
-        D = reshape(obs.init.params.last_D_ref(traj,:),params.Nanchor,1);
-        Quat_true = reshape(obs.init.params.last_Quat_ref(traj,:),4,1);
+        D = reshape(obs.init.params.last_D_ref(traj,:),3*params.Nanchor,1);
     end    
 
     %%% get the IMU accelerations
@@ -114,7 +119,10 @@ function [y, obs] = measure_rover_reference(x,params,t,u,obs)
 
         % gradient and pseudoderivative
         D_meas = y(params.pos_dist_out);
-        obs.init.params.p_jump(traj).val(:,end+1) = fminunc(@(x)J_dist(x,Pa,D_meas),x(params.pos_p),obs.setup.params.dist_optoptions);        
+        xopt = zeros(9,1);
+        xtmp = fminunc(@(x)J_dist(x,Pa,D_meas),xopt,obs.setup.params.dist_optoptions);    
+        xtmp = reshape(xtmp,3,3);
+        obs.init.params.p_jump(traj).val(:,end+1) = mean(xtmp,2);
         [obs.init.params.p_jump_der(traj).val(:,end+1), obs.init.params.p_jump_der_buffer, obs.init.params.p_jump_der_counter(traj).val] = PseudoDer(params.Ts*params.UWB_samp,...
            obs.init.params.p_jump(traj).val(:,end),params.wlen,...
            params.buflen,params.space_dim,0,0,obs,obs.init.params.p_jump_der_buffer,obs.init.params.p_jump_der_counter(traj).val);
@@ -124,6 +132,14 @@ function [y, obs] = measure_rover_reference(x,params,t,u,obs)
         if traj == 1
             obs.init.params.p_jump_time(end+1) = pos(end);
         end
+
+        % procrust for the orientation
+        W = Pt - obs.init.params.p_jump(traj).val(:,end);
+        O = params.TagPos;
+        [U,S,V] = svd(W*O');
+        Rest = V*U';
+        qjump = quatnormalize(rotm2quat(Rest));
+        obs.init.params.q_jump(traj).val(:,end+1) = qjump;
     end
     
     % store

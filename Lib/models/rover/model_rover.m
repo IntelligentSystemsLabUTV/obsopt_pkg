@@ -23,12 +23,16 @@ function [x_dot, x] = model_rover(tspan,x,params,obs)
     
     % compute the control
     % use input from reference
-    params.u = obs.init.input_story_ref(obs.init.traj).val(:,max(1,pos(1)));
-    obs.init.input_story(obs.init.traj).val(:,pos(1)) = params.u(:,1);   
+    try
+        params.u = obs.init.input_story_ref(obs.init.traj).val(:,max(1,pos(1)));
+        obs.init.input_story(obs.init.traj).val(:,pos(1)) = params.u(:,1);   
+    catch
+        obs.init.input_story(obs.init.traj).val(:,pos(1)) = 0;
+    end
 
     %%%%%%%%%%% HYBRID OBSERVER MODEL %%%%%%%%%%%%%
 
-    if (params.hyb && ~params.EKF) && ~params.dryrun
+    if (params.hyb) && ~params.dryrun
 
         % meas available
         y = obs.init.Y_full_story(obs.init.traj).val(1,:,pos(1));
@@ -37,7 +41,7 @@ function [x_dot, x] = model_rover(tspan,x,params,obs)
     
         if params.sferlazza == 0
             % Jump - only on the UWB
-            if (mod(pos(1),params.UWB_samp) == 0) && (~params.EKF)
+            if (mod(pos(1),params.UWB_samp) == 0)
         
                 % adjacency matrix
                 for dim=1:params.space_dim
@@ -46,7 +50,7 @@ function [x_dot, x] = model_rover(tspan,x,params,obs)
         
                 %%% TEST %%%
                 p_jump = obs.init.params.p_jump(obs.init.traj).val(:,pos(1)/params.UWB_samp);
-                p_jump_der = obs.init.params.p_jump_der(obs.init.traj).val(:,pos(1)/params.UWB_samp);            
+                p_jump_der = obs.init.params.p_jump_der(obs.init.traj).val(:,pos(1)/params.UWB_samp);
                 
                 % jump map - x
                 xp(1) = x(1) + params.theta(1)*(p_jump(1)-x(1));
@@ -72,7 +76,7 @@ function [x_dot, x] = model_rover(tspan,x,params,obs)
         else
 
             % Jump - only on the UWB
-            if (mod(pos(1),params.UWB_samp) == 0) && (~params.EKF)
+            if (mod(pos(1),params.UWB_samp) == 0)
         
                 % adjacency matrix
                 for dim=1:params.space_dim
@@ -118,37 +122,6 @@ function [x_dot, x] = model_rover(tspan,x,params,obs)
         range = params.range_sfer_flow(3,:);
         x_dot(range) = params.Asfer*x(range) + params.Bsfer*a(3);
 
-    %%%%%%%%%%%%% EKF MODEL %%%%%%%%%%%%
-    elseif (params.EKF && ~params.hyb) && ~params.dryrun
-
-        if 1
-            % model dynamics
-            % x axis
-            x_dot(1) = x(2);    
-            x_dot(2) = x(4);            
-            
-            % y axis
-            x_dot(5) = x(6);    
-            x_dot(6) = x(8);               
-    
-            % z axis
-            x_dot(9) = x(10);    
-            x_dot(10) = x(12);               
-        else
-            % perfect realization
-            A = params.ssd_EKF.A;
-            B = params.ssd_EKF.B;
-            C = params.ssd_EKF.C;
-            D = params.ssd_EKF.D;
-
-            for i=1:params.space_dim
-                range = [params.pos_p(i) params.pos_v(i)];
-                evol = A*x(range) + B*x(params.pos_acc(i));                
-                x_dot(range) = (evol - x(range))/params.Ts;
-            end
-            
-        end
-
     elseif params.dryrun
 
     %%%%%%%%%%%%% REFERENCE MODEL %%%%%%%%%
@@ -164,32 +137,49 @@ function [x_dot, x] = model_rover(tspan,x,params,obs)
     %% model dynamics - quaternion
 
     % hyb observer
-    if (mod(pos(1),params.UWB_samp) == 0) && (~params.EKF)
+    if (mod(pos(1),params.UWB_samp) == 0)
 
         xp = x;
 
         % meas available
         y = obs.init.Y_full_story(obs.init.traj).val(1,:,pos(1));
+        q_jump = obs.init.params.q_jump(obs.init.traj).val(:,pos(1)/params.UWB_samp)';
+        % q_jump = y(params.pos_quat_out);
 
         % from quaternion to RPY
-        [yaw, pitch, roll]  = quat2angle(y(params.pos_quat_out));
-        [yawhat, pitchhat, rollhat]  = quat2angle(xp(params.pos_quat)');
-        delta = [roll-rollhat, pitch-pitchhat, yaw-yawhat];
-        
-        % jump map - angle 1
-        rollhatP = rollhat + params.gamma(1)*delta(1);
-        xp(params.pos_bias_w(1)) = x(params.pos_bias_w(1)) + params.gamma(2)*delta(1) + params.gamma(3)*delta(2) + params.gamma(4)*delta(3);
+        % [yaw, pitch, roll]  = quat2angle(q_jump);
+        % [yawhat, pitchhat, rollhat]  = quat2angle(xp(params.pos_quat)');
+        % delta = [roll-rollhat, pitch-pitchhat, yaw-yawhat];
 
-        % jump map - angle 2
-        pitchhatP = pitchhat + params.gamma(1)*delta(2);
-        xp(params.pos_bias_w(2)) = x(params.pos_bias_w(2)) + params.gamma(5)*delta(1) + params.gamma(6)*delta(2) + params.gamma(7)*delta(3);
+        % angle jump map
+        % rollhatP = rollhat + params.gamma(1)*delta(1);
+        % pitchhatP = pitchhat + params.gamma(1)*delta(2);
+        % yawhatP = yawhat + params.gamma(1)*delta(3);
+        % xp(params.pos_quat) = angle2quat(yawhatP, pitchhatP, rollhatP);
 
-        % jump map - angle 3
-        yawhatP = yawhat + params.gamma(1)*delta(3);
-        xp(params.pos_bias_w(3)) = x(params.pos_bias_w(3)) + params.gamma(8)*delta(1) + params.gamma(9)*delta(2) + params.gamma(10)*delta(3);
+        % quat jump
+        err = q_jump - x(params.pos_quat);
+        xp(params.pos_quat(1)) = x(params.pos_quat(1)) + params.gamma(1)*(err(1));
+        xp(params.pos_quat(2)) = x(params.pos_quat(2)) + params.gamma(2)*(err(2));
+        xp(params.pos_quat(3)) = x(params.pos_quat(3)) + params.gamma(3)*(err(3));
+        xp(params.pos_quat(4)) = x(params.pos_quat(4)) + params.gamma(4)*(err(4));
+        % err = quatmultiply(quatinv(q_jump),x(params.pos_quat).');
+        % xp(params.pos_quat(1)) = x(params.pos_quat(1)) + params.gamma(1)*(err(1));
+        % xp(params.pos_quat(2)) = x(params.pos_quat(2)) + params.gamma(1)*(err(2));
+        % xp(params.pos_quat(3)) = x(params.pos_quat(3)) + params.gamma(1)*(err(3));
+        % xp(params.pos_quat(4)) = x(params.pos_quat(4)) + params.gamma(1)*(err(4));
+
+        % bias
+        % xp(params.pos_bias_w(1)) = x(params.pos_bias_w(1)) + params.gamma(2)*delta(1) + params.gamma(3)*delta(2) + params.gamma(4)*delta(3);
+        % xp(params.pos_bias_w(2)) = x(params.pos_bias_w(2)) + params.gamma(5)*delta(1) + params.gamma(6)*delta(2) + params.gamma(7)*delta(3);
+        % xp(params.pos_bias_w(3)) = x(params.pos_bias_w(3)) + params.gamma(8)*delta(1) + params.gamma(9)*delta(2) + params.gamma(10)*delta(3);
+        xp(params.pos_bias_w(1)) = x(params.pos_bias_w(1)) + 0*(params.gamma(2)*err(1) + params.gamma(3)*err(2) + params.gamma(4)*err(3) + params.gamma(5)*err(4));
+        xp(params.pos_bias_w(2)) = x(params.pos_bias_w(2)) + 0*(params.gamma(6)*err(1) + params.gamma(7)*err(2) + params.gamma(8)*err(3) + params.gamma(9)*err(4));
+        xp(params.pos_bias_w(3)) = x(params.pos_bias_w(3)) + 0*(params.gamma(10)*err(1) + params.gamma(11)*err(2) + params.gamma(12)*err(3) + params.gamma(13)*err(4));
 
         % normalize quaternion
-        xp(params.pos_quat) = angle2quat(yawhatP, pitchhatP, rollhatP);
+        xp(params.pos_quat) = quatnormalize(xp(params.pos_quat).');
+        
         
         x = xp;
     end   

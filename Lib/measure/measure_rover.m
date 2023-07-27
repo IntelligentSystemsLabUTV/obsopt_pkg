@@ -42,6 +42,14 @@ function y = measure_rover(x,params,tspan,u,obs)
         %%% get the output mismatch terms        
         V_true = reshape(x(params.pos_v,k),numel(params.pos_v),1);
         P_true = reshape(x(params.pos_p,k),numel(params.pos_p),1);
+        Quat_true = reshape(x(params.pos_quat,k),numel(params.pos_quat),1);
+
+        % place the tags
+        R = quat2rotm(Quat_true.');
+        for i=1:3
+            Pt(:,i) = R*params.TagPos(:,i) + P_true;
+        end
+        Pt(3,:) = Pt(3,:) - params.TagPos(3,:);
     
         % different sampling times   
         if mod(pos(k)+offset_UWBsamp,params.UWB_samp) == 0 
@@ -53,15 +61,14 @@ function y = measure_rover(x,params,tspan,u,obs)
             end
 
             % true distances
-            D = get_dist(P_true,Pa);   
+            D = get_dist(Pt,Pa);   
             obs.init.params.last_D(traj,:) = D;
 
-            % orientation
-            Quat_true = reshape(x(params.pos_quat,k),numel(params.pos_quat),1);
+            % orientation          
             obs.init.params.last_Quat(traj,:) = Quat_true;
 
         else   
-            D = reshape(obs.init.params.last_D(traj,:),params.Nanchor,1);
+            D = reshape(obs.init.params.last_D(traj,:),3*params.Nanchor,1);
             Quat_true = reshape(obs.init.params.last_Quat(traj,:),4,1);
         end
     
@@ -72,7 +79,7 @@ function y = measure_rover(x,params,tspan,u,obs)
         W_true = reshape(x(params.pos_w,k),numel(params.pos_w),1); 
 
         % bias
-        if params.EKF || params.sferbias
+        if params.sferbias
             IMU_true = IMU_true + params.bias*(x(params.pos_bias));
         end
 

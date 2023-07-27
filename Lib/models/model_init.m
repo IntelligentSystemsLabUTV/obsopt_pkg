@@ -16,12 +16,12 @@ function params = model_init(varargin)
         pos = find(strcmp(varargin,'params_init'));
         params_init = varargin{pos+1};
 
-        if any(strcmp(varargin,'out'))
-            pos = find(strcmp(varargin,'out'));
-            out = varargin{pos+1};
-            params = params_init(out);
+        if any(strcmp(varargin,'Ntraj'))
+            pos = find(strcmp(varargin,'Ntraj'));
+            Ntraj = varargin{pos+1};
+            params = params_init(Ntraj);
         else
-            params = params_init();
+            params = params_init;
         end
         
     else

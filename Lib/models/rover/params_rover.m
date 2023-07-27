@@ -11,7 +11,9 @@ function params = params_rover(varargin)
 
     % get varargin
     if numel(varargin) > 0
-        params.out = varargin{1};
+        Ntraj = varargin{1};
+    else
+        Ntraj = 1;
     end
 
     % system parameters
@@ -32,7 +34,7 @@ function params = params_rover(varargin)
     params.Kff = [0 0 0];
 
     % number of reference trajectories (under development)
-    params.Ntraj = 1;
+    params.Ntraj = Ntraj;
 
     % control error derivative
     params.wlen_err = 4;
@@ -55,12 +57,13 @@ function params = params_rover(varargin)
     % anchor stuff
     % pos anchors Mesh 1
     % AM1 = params.out.AM1(1:2,:);
-    AM1 = [4 -4 4 -4; 4 4 -4 -4];    
+    % AM1 = [4 -4 4 -4; 4 4 -4 -4];    
+    AM1 = [-0.40 -0.40 +2.48 +2.80; +4.20 -1.80 -2.20 +4.20];    
     % square box
     an_dp = max(max(abs(AM1)));
     % height
     % an_dz = mean(params.out.AM1(3,:));
-    an_dz = 3;
+    an_dz = 2;
     Nhillmax = 4;
 
     %%% gaussian stuff %%%
@@ -90,16 +93,21 @@ function params = params_rover(varargin)
         end
 
     end
-    
 
+    % tags
+    params.TagPos = [-0.19  +0.0   +1*0.184;
+                     +0.095 -0.164 +1*0.184;
+                     +0.095 +0.164 +1*0.184]';
+    
     % multistart
     params.multistart = 0;
 
     %%% observer params %%%
     % theta
-    % params.theta = 1*[1.0000  1.2662  -0.5457   0   0   0];
     params.theta = 0*[0.4221    0.2888   -0.0281];
-    params.gamma = 0*[0.1   0   0   0.1   0   0.1   0   0   0.1   0];
+    % params.gamma = 1*[0.1   0   0   0.1   0   0.1   0   0   0.1   0];
+    % params.gamma = 0*[0.2   0   0   0   0   0   0   0   0   0];
+    params.gamma = 0*ones(1,13);
     % params.theta = 1*[0.3713    0.2401   -0.0264    0.0097    0.0797   -0.0095];
 
     % alpha
@@ -108,7 +116,6 @@ function params = params_rover(varargin)
     % filter
     params.lowpass = 100;
     
-   
     %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
     % hyb obs parameters
     params.dim_Gamma = length(params.theta) + length(params.gamma) + length(params.alpha);
@@ -131,27 +138,21 @@ function params = params_rover(varargin)
     params.pos_fc = [params.pos_p params.pos_v params.pos_quat params.pos_w];
     params.dim_state_est = numel(params.pos_fc);
 
-    % only translation for EKF
-    params.pos_trasl = [params.pos_p params.pos_v params.pos_bias params.pos_acc params.pos_anchor];
-
     % input dim
     params.dim_input = params.space_dim*2;   % input on each dimension for translation and rotation
 
     % output dim
     % distances + accelerations + velocity (only for learning) + position (only for learning) +
     % quaternion + omega
-    params.OutDim = params.Nanchor + 3*params.space_dim + (2*params.rotation_dim + 1);  
+    params.OutDim = 3*params.Nanchor + 3*params.space_dim + (2*params.rotation_dim + 1);  
     params.observed_state = [];   % not reading the state    
-    params.pos_dist_out = 1:params.Nanchor;
-    params.pos_acc_out = [params.Nanchor + 2*params.space_dim + 1:params.Nanchor + 3*params.space_dim];
-    params.pos_v_out = [params.Nanchor + params.space_dim + 1:params.Nanchor + 2*params.space_dim];
-    params.pos_p_out = [params.Nanchor + 1:params.Nanchor + params.space_dim];
-    params.pos_quat_out = [params.Nanchor + 3*params.space_dim + 1:params.Nanchor + 3*params.space_dim + params.rotation_dim + 1];
-    params.pos_w_out = [params.Nanchor + 3*params.space_dim + params.rotation_dim + 2:params.OutDim];
+    params.pos_dist_out = 1:3*params.Nanchor;
+    params.pos_acc_out = [3*params.Nanchor + 2*params.space_dim + 1:3*params.Nanchor + 3*params.space_dim];
+    params.pos_v_out = [3*params.Nanchor + params.space_dim + 1:3*params.Nanchor + 2*params.space_dim];
+    params.pos_p_out = [3*params.Nanchor + 1:3*params.Nanchor + params.space_dim];
+    params.pos_quat_out = [3*params.Nanchor + 3*params.space_dim + 1:3*params.Nanchor + 3*params.space_dim + params.rotation_dim + 1];
+    params.pos_w_out = [3*params.Nanchor + 3*params.space_dim + params.rotation_dim + 2:params.OutDim];
     params.OutDim_compare = [params.pos_p_out params.pos_quat_out]; 
-
-    % only translation for EKF
-    params.pos_trasl_out = [params.pos_dist_out params.pos_p_out params.pos_v_out params.pos_acc_out];
     
     % sampling
     params.IMU_samp = 1;
@@ -161,9 +162,9 @@ function params = params_rover(varargin)
 
     % memory
     params.last_noise = zeros(params.Ntraj,params.OutDim);
-    params.last_D = zeros(params.Ntraj,params.Nanchor);
-    params.last_D_meas = zeros(params.Ntraj,params.Nanchor);
-    params.last_D_ref = zeros(params.Ntraj,params.Nanchor);
+    params.last_D = zeros(params.Ntraj,3*params.Nanchor);
+    params.last_D_meas = zeros(params.Ntraj,3*params.Nanchor);
+    params.last_D_ref = zeros(params.Ntraj,3*params.Nanchor);
     params.last_Quat = zeros(params.Ntraj,4);
     params.last_Quat_meas = zeros(params.Ntraj,4);
     params.last_Quat_ref = zeros(params.Ntraj,4);
@@ -184,6 +185,8 @@ function params = params_rover(varargin)
         params.p_jump_der(traj).val = [];
         params.p_jump_der_buffer(traj).val = zeros(params.dim_pjump,params.buflen);
         params.p_jump_der_counter(traj).val = 0;
+
+        params.q_jump(traj).val = [];
     end    
     
 
@@ -203,29 +206,10 @@ function params = params_rover(varargin)
     params.proc_bias = 1;
     params.bias = 1;
 
-    %%%%%% EKF %%%%%
-    % enable noise
-    params.EKF = 0;        
+    % enable noise      
     params.hyb = 1;
     params.dryrun = 0;
     params.sferlazza = 0;
-
-    %%% noise matrices
-    % measurement noise
-    params.R = diag([params.noise_mat_original(params.pos_dist_out,1).^2.*ones(params.Nanchor,1);     ...  % UWB         
-                     zeros(numel([params.pos_p params.pos_v]),1);                                     ...  % P,V
-                     params.noise_mat_original(params.pos_acc_out,1).^2.*ones(params.space_dim,1);    ... % IMU ACC                     
-        ]);      
-    
-    % process noise - model
-    %params.Q = params.sigma_w^2*1e0*diag([1e0*ones(1,3) params.bias*1e0*ones(1,3)]);
-    params.Q = 1*diag([params.proc_acc*1e1*ones(1,3) params.proc_bias*1e-2*ones(1,3)]);
-
-    % EKF covariance matrix
-    for traj=1:params.Ntraj
-        params.Phat(traj).val(1,:,:) = 1e0*eye(numel(params.pos_trasl));
-    end
-    %%%%%%%%%%%%%%%%
 
     %%%%%% GENERAL OBS %%%%%
     % observer stuff
@@ -241,7 +225,7 @@ function params = params_rover(varargin)
                               1.46;0;0.1;0; ...             % z pos + IMU bias
                               1; 0; 0; 0; ...             % quaternion
                               0; 0; 0; ...                % omega
-                              0.1; 0.1; 0.1; ...                % gyro bias
+                              0; 0; 0; ...                % gyro bias
                               AM1(1,1);AM1(2,1);1*an_dz;  ...           % anchors Mesh 1
                               AM1(1,2);AM1(2,2);1*an_dz;  ...
                               AM1(1,3);AM1(2,3);1*an_dz;  ...
@@ -252,10 +236,10 @@ function params = params_rover(varargin)
     %%%%%%%%%%%%%%%%%%%%%%%
        
     % position in the state vector of the estimated parameters
-    params.estimated_params = params.pos_Gamma(1:13);
+    params.estimated_params = params.pos_Gamma(1:4);
     
     % which vars am I optimising
-    params.opt_vars = [params.pos_Gamma(1:13)];
+    params.opt_vars = [params.pos_Gamma(1:7)];
     
     % set the not optimised vars
     tmp = 1:length(params.X(1).val(:,1));
@@ -293,7 +277,7 @@ function params = params_rover(varargin)
         params.X(traj).val(params.multi_traj_var,1) = params.X(1).val(params.multi_traj_var,1).*(1 + 1*1e-1*randn(length(params.multi_traj_var),1));
 
         % from starting positions
-        params.X(traj).val(params.pos_p,1) = pos_init(traj,:);
+        % params.X(traj).val(params.pos_p,1) = pos_init(traj,:);
     end   
 
     % hills on z - correct initialization
@@ -317,15 +301,7 @@ function params = params_rover(varargin)
     params.dim_out_plot = [params.pos_p_out params.pos_v_out];       
 
     % fminunc
-    params.dist_optoptions = optimoptions('fminunc', 'MaxIter', 10, 'display','off');
-
-    %%% exponential of matrix - EKF model %%%
-    params.A_EKF = [0 1; ...
-                    0 0];
-    params.B_EKF = [0 1]';
-    params.C_EKF = [0 0];
-    params.ss_EKF = ss(params.A_EKF,params.B_EKF,params.C_EKF,0);
-    params.ssd_EKF = c2d(params.ss_EKF,1e-2);
+    params.dist_optoptions = optimoptions('fminunc', 'MaxIter', 50, 'display','off');
 
     %%% matrices for sferlazza method %%%    
     dyn = 1;

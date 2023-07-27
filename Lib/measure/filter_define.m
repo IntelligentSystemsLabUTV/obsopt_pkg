@@ -20,7 +20,7 @@ function [filter, filterScale, reference] = filter_define(Ts,Nts)
     filter = [];
     
     %%% derivative filter %%%
-    fil1 = 0;
+    fil1 = 1;
     if fil1
     i = i+1;   
     eps1 = 1e-0;    
@@ -34,7 +34,7 @@ function [filter, filterScale, reference] = filter_define(Ts,Nts)
     filter(i).D = D.D;
     filter(i).G = G;
     filter(i).dim = size(D.B,1);
-    filterScale(i+1)= 1;
+    filterScale(i+1)= 1e0;
     end
 
     %%%% integral filter %%%%
@@ -59,12 +59,11 @@ function [filter, filterScale, reference] = filter_define(Ts,Nts)
     fil3 = 0;
     if fil3
     i = i+1; 
-    eps0 = 0*1e-4;
-    eps1 = 1e2;
+    eps0 = 1e0;
+    eps1 = 1e-2;
     K = 1;
-    eps2 = 1e4;
-    G1 = tf(K*[eps0 1],[eps1 1]);
-    G2 = tf([1],[eps2 1]);
+    G2 = tf(K*[1 0],[eps0 1]);
+    G1 = tf(1,[eps1 1]);   
     G = G1*G2;
     SS = ss(G1);
     D = c2d(SS,Ts);

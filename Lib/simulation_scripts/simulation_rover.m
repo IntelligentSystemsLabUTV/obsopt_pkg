@@ -66,7 +66,7 @@ terminal_weights = 1e0*ones(size(terminal_states));
 
 % create observer class instance. For more information on the setup
 % options check directly the class constructor in obsopt.m
-obs = obsopt('DataType', 'simulated', 'optimise', 1 , 'MultiStart', params.multistart, 'J_normalise', 1, 'MaxOptTime', Inf, ... 
+obs = obsopt('DataType', 'simulated', 'optimise', 0 , 'MultiStart', params.multistart, 'J_normalise', 1, 'MaxOptTime', Inf, ... 
           'Nw', Nw, 'Nts', Nts, 'ode', ode, 'PE_ma0iter', 0, 'WaitAllBuffer', 1, 'params',params, 'filters', filterScale,'filterTF', filter, ...
           'model_reference',model_reference, 'measure_reference',measure_reference, ...
           'Jdot_thresh',0.95,'MaxIter', 2, 'Jterm_store', 1, 'AlwaysOpt', 1 , 'print', 1 , 'SafetyDensity', Inf, 'AdaptiveParams', [10 160 1 1 0.5 params.pos_acc_out(1:2)], ...
@@ -128,7 +128,7 @@ for i = 1:obs.setup.Niter
     
     %%%% MHE OBSERVER (SAVE MEAS) %%%%
     t1 = tic;    
-    if ~params.EKF && params.hyb || 0
+    if params.hyb
         obs = obs.observer(obs.init.X_est,y_meas);
         obs.init.iter_time(obs.init.ActualTimeIndex) = toc(t1);   
         if obs.init.break
@@ -138,24 +138,7 @@ for i = 1:obs.setup.Niter
 
     %%% test %%%
     obs.init.params.UWB_samp_EKF = obs.init.params.UWB_samp;
-    obs.init.params.IMU_samp_EKF = obs.init.params.IMU_samp;    
-
-    %%%% EKF OBSERVER %%%%    
-    t1 = tic;  
-    if (obs.init.ActualTimeIndex > 1) && params.EKF && ~params.hyb
-        for traj=1:params.Ntraj
-            obs.init.traj = traj;
-            xtrasl = obs.init.X_est(traj).val(:,startpos);
-            ytrasl = y_meas(traj).val(:);
-            obs = EKF_rover(obs,xtrasl,ytrasl);
-        end
-        obs.init.params.UWB_samp_EKF_story = [obs.init.params.UWB_samp_EKF_story obs.init.params.UWB_samp_EKF];
-        obs.init.params.IMU_samp_EKF_story = [obs.init.params.IMU_samp_EKF_story obs.init.params.IMU_samp_EKF];
-    else
-        obs.init.params.UWB_samp_EKF_story = [];
-        obs.init.params.IMU_samp_EKF_story = [];
-    end
-    obs.init.iter_time(obs.init.ActualTimeIndex) = toc(t1);                                                
+    obs.init.params.IMU_samp_EKF = obs.init.params.IMU_samp;                                        
     
     
 

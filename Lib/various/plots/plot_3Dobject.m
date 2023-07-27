@@ -18,6 +18,12 @@ function plot_3Dobject(obj,varargin)
     else
         params = obj.init.params;
     end
+
+    if length(varargin) == 2
+        realdata = varargin{2};
+    else
+        realdata = 0;
+    end
     
     %%%% plot position estimation %%%
     try
@@ -34,14 +40,18 @@ function plot_3Dobject(obj,varargin)
             % indicize axes        
             ax(i)=subplot(length(params.pos_p),1,i);     
             
-            for traj=1:obj.setup.Ntraj            
-                plot(obj.setup.time,obj.init.X(traj).val(params.pos_p(i),:),'LineWidth',2);
+            for traj=1:obj.setup.Ntraj     
+                if ~realdata
+                    plot(obj.setup.time,obj.init.X(traj).val(params.pos_p(i),:),'LineWidth',2);
+                else
+                    plot(obj.setup.time,squeeze(obj.init.Y_full_story(traj).val(1,params.pos_p_out(i),:)),'LineWidth',2);
+                end
                 set(gca,'ColorOrderIndex',traj)
                 plot(obj.setup.time,obj.init.X_est(traj).val(params.pos_p(i),:),'--','LineWidth',1);                                                                                                  
             end
 
             % test
-            if i==3
+            if i==3 && ~realdata
                 plot(obj.setup.time(2:end),obj.init.reference_story(1).val(1,:),'k','LineWidth',1.5);
             end
             
@@ -72,8 +82,12 @@ function plot_3Dobject(obj,varargin)
             % indicize axes        
             ax(i)=subplot(length(params.pos_v),1,i);     
             
-            for traj=1:obj.setup.Ntraj            
-                plot(obj.setup.time,obj.init.X(traj).val(params.pos_v(i),:),'LineWidth',2);
+            for traj=1:obj.setup.Ntraj   
+                if ~realdata
+                    plot(obj.setup.time,obj.init.X(traj).val(params.pos_v(i),:),'LineWidth',2);
+                else
+                    plot(obj.setup.time,squeeze(obj.init.Y_full_story(traj).val(1,params.pos_v_out(i),:)),'LineWidth',2);
+                end
                 set(gca,'ColorOrderIndex',traj)
                 plot(obj.setup.time,obj.init.X_est(traj).val(params.pos_v(i),:),'--','LineWidth',1);                                                                                    
             end
@@ -105,8 +119,12 @@ function plot_3Dobject(obj,varargin)
             % indicize axes        
             ax(i)=subplot(length(params.pos_acc),1,i);     
             
-            for traj=1:obj.setup.Ntraj            
-                plot(obj.setup.time,obj.init.X(traj).val(params.pos_acc(i),:),'LineWidth',2);
+            for traj=1:obj.setup.Ntraj       
+                if ~realdata
+                    plot(obj.setup.time,obj.init.X(traj).val(params.pos_acc(i),:),'LineWidth',2);
+                else
+                    plot(obj.setup.time,squeeze(obj.init.Y_full_story(traj).val(1,params.pos_acc_out(i),:)),'LineWidth',2);
+                end
                 set(gca,'ColorOrderIndex',traj)
                 plot(obj.setup.time,obj.init.X_est(traj).val(params.pos_acc(i),:),'--','LineWidth',1);                                                                                  
             end
@@ -138,8 +156,10 @@ function plot_3Dobject(obj,varargin)
             % indicize axes        
             ax(i)=subplot(length(params.pos_bias),1,i);     
             
-            for traj=1:obj.setup.Ntraj            
-                plot(obj.setup.time,obj.init.X(traj).val(params.pos_bias(i),:),'LineWidth',2);
+            for traj=1:obj.setup.Ntraj      
+                if ~realdata
+                    plot(obj.setup.time,obj.init.X(traj).val(params.pos_bias(i),:),'LineWidth',2);
+                end
                 set(gca,'ColorOrderIndex',traj)
                 plot(obj.setup.time,obj.init.X_est(traj).val(params.pos_bias(i),:),'--','LineWidth',1);                                                                                   
             end
@@ -162,11 +182,7 @@ function plot_3Dobject(obj,varargin)
         figure(fig_count)            
         sgtitle('Quaternion estimation')
         ax = zeros(1,3);
-        % get rpy
-        THETA = zeros(3,obj.setup.Niter);
-        [THETA(3,:), THETA(2,:), THETA(1,:)] = quat2angle(obj.init.X(traj).val(params.pos_quat,:)');
-        THETAHAT = zeros(3,obj.setup.Niter);
-        [THETAHAT(3,:), THETAHAT(2,:), THETAHAT(1,:)] = quat2angle(obj.init.X_est(traj).val(params.pos_quat,:)');
+    
         for i=1:length(params.pos_quat)-1
             subplot(length(params.pos_quat)-1,1,i);
             hold on
@@ -176,7 +192,19 @@ function plot_3Dobject(obj,varargin)
             % indicize axes        
             ax(i)=subplot(length(params.pos_quat)-1,1,i);     
             
-            for traj=1:obj.setup.Ntraj            
+            for traj=1:obj.setup.Ntraj   
+
+                % get rpy
+                if ~realdata
+                    THETA = zeros(3,obj.setup.Niter);
+                    [THETA(3,:), THETA(2,:), THETA(1,:)] = quat2angle(obj.init.X(traj).val(params.pos_quat,:)');
+                else
+                    THETA = zeros(3,obj.setup.Niter);
+                    [THETA(3,:), THETA(2,:), THETA(1,:)] = quat2angle(squeeze(obj.init.Y_full_story(traj).val(1,params.pos_quat_out,:)).');
+                end
+                THETAHAT = zeros(3,obj.setup.Niter);
+                [THETAHAT(3,:), THETAHAT(2,:), THETAHAT(1,:)] = quat2angle(obj.init.X_est(traj).val(params.pos_quat,:)');
+
                 plot(obj.setup.time,THETA(i,:),'LineWidth',2);
                 set(gca,'ColorOrderIndex',traj)
                 plot(obj.setup.time,THETAHAT(i,:),'--','LineWidth',1);                                                                         
@@ -209,8 +237,12 @@ function plot_3Dobject(obj,varargin)
             % indicize axes        
             ax(i)=subplot(length(params.pos_w),1,i);     
             
-            for traj=1:obj.setup.Ntraj            
-                plot(obj.setup.time,obj.init.X(traj).val(params.pos_w(i),:),'LineWidth',2);
+            for traj=1:obj.setup.Ntraj   
+                if ~realdata
+                    plot(obj.setup.time,obj.init.X(traj).val(params.pos_w(i),:),'LineWidth',2);
+                else
+                    plot(obj.setup.time,squeeze(obj.init.Y_full_story(traj).val(1,params.pos_w_out(i),:)),'LineWidth',2);
+                end
                 set(gca,'ColorOrderIndex',traj)
                 plot(obj.setup.time,obj.init.X_est(traj).val(params.pos_w(i),:),'--','LineWidth',1);                                                                                   
             end
@@ -220,39 +252,6 @@ function plot_3Dobject(obj,varargin)
             ylabel(['\omega_',num2str(obj.setup.plot_vars(i))])
         end
         legend('True','Est') 
-        xlabel(['time [s]'])
-        %linkaxes(ax);
-    catch
-        close
-        fig_count = fig_count -1;
-    end
-
-    %%% plot jerk estimation
-    try
-        fig_count = fig_count+1;
-        figure(fig_count)            
-        sgtitle('Jerk estimation')
-        ax = zeros(1,3);
-        for i=1:length(params.pos_jerk)
-            subplot(length(params.pos_jerk),1,i);
-            hold on
-            grid on
-            box on
-    
-            % indicize axes        
-            ax(i)=subplot(length(params.pos_jerk),1,i);     
-            
-            for traj=1:obj.setup.Ntraj            
-                plot(obj.setup.time,obj.init.X(traj).val(params.pos_jerk(i),:),'LineWidth',2);
-                set(gca,'ColorOrderIndex',traj)
-                plot(obj.setup.time,obj.init.X_est(traj).val(params.pos_jerk(i),:),'--','LineWidth',1);                                                                                  
-            end
-            
-            % labels
-            set(gca,'fontsize', fontsize)         
-            ylabel(['j_',num2str(obj.setup.plot_vars(i))])
-        end
-        legend('True','Est')  
         xlabel(['time [s]'])
         %linkaxes(ax);
     catch
@@ -275,8 +274,10 @@ function plot_3Dobject(obj,varargin)
             % indicize axes        
             ax(i)=subplot(length(params.pos_bias_w),1,i);     
             
-            for traj=1:obj.setup.Ntraj            
-                plot(obj.setup.time,obj.init.X(traj).val(params.pos_bias_w(i),:),'LineWidth',2);
+            for traj=1:obj.setup.Ntraj  
+                if ~realdata
+                    plot(obj.setup.time,obj.init.X(traj).val(params.pos_bias_w(i),:),'LineWidth',2);
+                end
                 set(gca,'ColorOrderIndex',traj)
                 plot(obj.setup.time,obj.init.X_est(traj).val(params.pos_bias_w(i),:),'--','LineWidth',1);                                                                         
             end
@@ -311,8 +312,10 @@ function plot_3Dobject(obj,varargin)
             % down sampling instants
             WindowTime = obj.setup.time(obj.init.temp_time);
             
-            for traj=1:obj.setup.Ntraj            
-                plot(obj.setup.time,squeeze(obj.init.Ytrue_full_story(traj).val(1,params.pos_p_out(i),:)),'LineWidth',2);
+            for traj=1:obj.setup.Ntraj   
+                if ~realdata
+                    plot(obj.setup.time,squeeze(obj.init.Ytrue_full_story(traj).val(1,params.pos_p_out(i),:)),'LineWidth',2);
+                end
                 set(gca,'ColorOrderIndex',traj)
                 plot(obj.setup.time,squeeze(obj.init.Y_full_story(traj).val(1,params.pos_p_out(i),:)),'--','LineWidth',1);          
 
@@ -356,8 +359,10 @@ function plot_3Dobject(obj,varargin)
             % down sampling instants
             WindowTime = obj.setup.time(obj.init.temp_time);
             
-            for traj=1:obj.setup.Ntraj            
-                plot(obj.setup.time,squeeze(obj.init.Ytrue_full_story(traj).val(1,params.pos_quat_out(i),:)),'LineWidth',2);
+            for traj=1:obj.setup.Ntraj    
+                if ~realdata
+                    plot(obj.setup.time,squeeze(obj.init.Ytrue_full_story(traj).val(1,params.pos_quat_out(i),:)),'LineWidth',2);
+                end
                 set(gca,'ColorOrderIndex',traj)
                 plot(obj.setup.time,squeeze(obj.init.Y_full_story(traj).val(1,params.pos_quat_out(i),:)),'--','LineWidth',1);     
 
@@ -401,8 +406,10 @@ function plot_3Dobject(obj,varargin)
             % down sampling instants
             WindowTime = obj.setup.time(obj.init.temp_time);
             
-            for traj=1:obj.setup.Ntraj            
-                plot(obj.setup.time,squeeze(obj.init.Ytrue_full_story(traj).val(1,params.pos_acc_out(i),:)),'LineWidth',2);
+            for traj=1:obj.setup.Ntraj    
+                if ~realdata
+                    plot(obj.setup.time,squeeze(obj.init.Ytrue_full_story(traj).val(1,params.pos_acc_out(i),:)),'LineWidth',2);
+                end
                 set(gca,'ColorOrderIndex',traj)
                 plot(obj.setup.time,squeeze(obj.init.Y_full_story(traj).val(1,params.pos_acc_out(i),:)),'--','LineWidth',1);    
 
@@ -446,8 +453,10 @@ function plot_3Dobject(obj,varargin)
             % down sampling instants
             WindowTime = obj.setup.time(obj.init.temp_time);
             
-            for traj=1:obj.setup.Ntraj            
-                plot(obj.setup.time,squeeze(obj.init.Ytrue_full_story(traj).val(1,params.pos_w_out(i),:)),'LineWidth',2);
+            for traj=1:obj.setup.Ntraj     
+                if ~realdata
+                    plot(obj.setup.time,squeeze(obj.init.Ytrue_full_story(traj).val(1,params.pos_w_out(i),:)),'LineWidth',2);
+                end
                 set(gca,'ColorOrderIndex',traj)
                 plot(obj.setup.time,squeeze(obj.init.Y_full_story(traj).val(1,params.pos_w_out(i),:)),'--','LineWidth',1);   
 
@@ -480,13 +489,17 @@ function plot_3Dobject(obj,varargin)
             ax(n) = subplot(obj.init.params.Nanchor,1,n);
             hold on
             grid on  
-            for traj=1:obj.setup.Ntraj
-                plot(obj.setup.time(obj.init.params.UWB_pos),squeeze(obj.init.Y_full_story(traj).val(1,obj.init.params.pos_dist_out(n),obj.init.params.UWB_pos)),'LineWidth',2);
-                set(gca,'ColorOrderIndex',traj)
-                plot(obj.setup.time(obj.init.params.UWB_pos),squeeze(obj.init.Yhat_full_story(traj).val(1,obj.init.params.pos_dist_out(n),obj.init.params.UWB_pos)),':','LineWidth',2);
-                set(gca,'ColorOrderIndex',traj)
-                plot(obj.setup.time(obj.init.params.UWB_pos),squeeze(obj.init.Ytrue_full_story(traj).val(1,obj.init.params.pos_dist_out(n),obj.init.params.UWB_pos)),'--','LineWidth',2);
-            end        
+            for t=1:3
+                for traj=1:obj.setup.Ntraj
+                    plot(obj.setup.time(obj.init.params.UWB_pos),squeeze(obj.init.Y_full_story(traj).val(1,obj.init.params.pos_dist_out(4*(t-1)+n),obj.init.params.UWB_pos)),'LineWidth',2);
+                    set(gca,'ColorOrderIndex',traj)
+                    plot(obj.setup.time(obj.init.params.UWB_pos),squeeze(obj.init.Yhat_full_story(traj).val(1,obj.init.params.pos_dist_out(4*(t-1)+n),obj.init.params.UWB_pos)),':','LineWidth',2);
+                    set(gca,'ColorOrderIndex',traj)
+                    if ~realdata
+                        plot(obj.setup.time(obj.init.params.UWB_pos),squeeze(obj.init.Ytrue_full_story(traj).val(1,obj.init.params.pos_dist_out(4*(t-1)+n),obj.init.params.UWB_pos)),'--','LineWidth',2);
+                    end
+                end      
+            end
             ylabel(['d_',num2str(n)])        
             set(gca,'fontsize', fontsize)
         end   
@@ -496,45 +509,3 @@ function plot_3Dobject(obj,varargin)
         close
         fig_count = fig_count -1;
     end
-
-    try
-        %%% rover trajectory
-        fig_count = fig_count+1;
-        figure(fig_count)
-        hold on
-        grid on
-        % plot hills
-        pos_p = obj.init.params.pos_p;
-%         surf(params.X_gauss,params.Y_gauss,params.G_gauss,'FaceAlpha',0.5,'EdgeColor','none');
-        plot3(obj.init.X(1).val(pos_p(1),2:end),obj.init.X(1).val(pos_p(2),2:end),obj.init.reference_story(1).val(1,:),'k','LineWidth',2);
-        % plot anchors
-        P_a(1,:) = obj.init.params.pos_anchor(1):3:obj.init.params.pos_anchor(end);
-        P_a(2,:) = obj.init.params.pos_anchor(2):3:obj.init.params.pos_anchor(end); 
-        P_a(3,:) = obj.init.params.pos_anchor(3):3:obj.init.params.pos_anchor(end); 
-        for i=1:obj.setup.params.Nanchor
-            plot3(obj.init.X_est(1).val(P_a(1,i),:),obj.init.X_est(1).val(P_a(2,i),:),obj.init.X_est(1).val(P_a(3,i),:),'ko','MarkerSize',10);
-        end
-        % plot rover        
-        for traj=1:obj.setup.Ntraj 
-            plot3(obj.init.X_est(traj).val(pos_p(1),:),obj.init.X_est(traj).val(pos_p(2),:),obj.init.X_est(traj).val(pos_p(3),:),'--','LineWidth',1.5);
-            set(gca,'ColorOrderIndex',traj)
-            plot3(obj.init.X(traj).val(pos_p(1),:),obj.init.X(traj).val(pos_p(2),:),obj.init.X(traj).val(pos_p(3),:),'LineWidth',1.5);    
-        end
-        % add point for rotation
-        Prot = 0*obj.init.X_est(traj).val(pos_p,:) + 1*[0.1; 0; 0];
-        for p=1:size(Prot,2)
-            R = quat2rotm(obj.init.X_est(traj).val(params.pos_quat,p)');
-            Prot(:,p) = R*Prot(:,p);
-        end
-        Prot = Prot + obj.init.X_est(traj).val(pos_p,:);
-        plot3(Prot(1,:),Prot(2,:),Prot(3,:),'b--','LineWidth',1.5);    
-        
-        xlabel('X')
-        ylabel('Y')
-        set(gca,'fontsize', fontsize)
-
-    catch
-        close
-        fig_count = fig_count -1;
-    end
-end
