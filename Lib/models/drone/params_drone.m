@@ -21,7 +21,7 @@ function params = params_drone
     % observer params        
    
 %     %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-    params.gamma = [0.5002 0.4998];
+    params.gamma = [0.5 0.5 1];
     params.dim_state = 28 + length(params.gamma);        
     params.pos_p = [1:3];           % see mode_rover.m
     params.pos_v = [4:6];           % see mode_rover.m    
@@ -47,9 +47,9 @@ function params = params_drone
     params.pos_cam_out = [4:6];
     params.OutDim_compare = [params.pos_uwb_out params.pos_cam_out];
 
-    % sampling (frequency)
-    params.UWB_samp = 1;
-    params.CAM_samp = 1;
+    % sampling 
+    params.UWB_samp = 5;
+    params.CAM_samp = 5;
 
     % memory
     params.last_noise = zeros(params.Ntraj,params.OutDim);
@@ -64,8 +64,8 @@ function params = params_drone
     params.noise_mat(params.pos_uwb_out,1) = 0*1e-2;            % noise on cam pos - bias 
     params.noise_mat(params.pos_cam_out,1) = 0*1e-2;            % noise on cam quat - bias 
     % sigma
-    params.noise_mat(params.pos_uwb_out,2) = 1e-1;            % noise on cam pos - sigma 
-    params.noise_mat(params.pos_cam_out,2) = 1e-1;            % noise on cam quat - sigma
+    params.noise_mat(params.pos_uwb_out,2) = 5e-1;              % noise on cam pos - sigma 
+    params.noise_mat(params.pos_cam_out,2) = 5e-5;              % noise on cam quat - sigma
 
     % enable noise
     params.jerk_enable = 0;
@@ -91,7 +91,7 @@ function params = params_drone
     params.estimated_params = [params.pos_gamma];
     
     % which vars am I optimising
-    params.opt_vars = [params.pos_gamma(1:2)];
+    params.opt_vars = [params.pos_gamma(1:3)];
     
     % set the not optimised vars
     tmp = 1:length(params.X(1).val(:,1));

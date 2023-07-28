@@ -31,7 +31,7 @@ function [x_dot, x] = model_drone(tspan,x,params,obs)
     
     %%% model dynamics - translation    
     % eq. 38 armesto
-    x_dot(params.pos_p) = (1-params.Ts)*x(params.pos_p) + params.Ts*(params.gamma(1)*y(params.pos_uwb_out) + params.gamma(2)*y(params.pos_cam_out)) ;
+    x_dot(params.pos_p) = (1-(params.Ts*params.gamma(3)))*x(params.pos_p) + params.Ts*(params.gamma(1)*y(params.pos_uwb_out) + params.gamma(2)*y(params.pos_cam_out));
     % eq. 37 armesto 
     x_dot(params.pos_v) = x(params.pos_v) + 0*(params.Ts*x(params.pos_acc) + 0.5*params.Ts^2*x(params.pos_jerk)); %no dynamics, i just want the position
     % eq. 36 armesto

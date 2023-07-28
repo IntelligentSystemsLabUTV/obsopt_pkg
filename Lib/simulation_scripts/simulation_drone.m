@@ -16,7 +16,7 @@ rng('default');
 % rng(2);
     
 % init observer buffer (see https://doi.org/10.48550/arXiv.2204.09359)
-Nw = 300;
+Nw = 400;
 Nts = 5;
 
 % set sampling time
@@ -66,17 +66,17 @@ terminal_weights = 1e0*ones(size(terminal_states));
 
 % create observer class instance. For more information on the setup
 % options check directly the class constructor in obsopt.m
-obs = obsopt('DataType', 'simulated', 'optimise', 0 , 'print', 1, ... 
+obs = obsopt('DataType', 'simulated', 'optimise', 1, 'print', 1, ... 
           'Nw', Nw, 'Nts', Nts, 'ode', ode, ...
           'PE_maxiter', 0, 'WaitAllBuffer', 1, 'params',params, 'filters', filterScale,'filterTF', filter, ...
           'model_reference',model_reference, 'measure_reference',measure_reference, ...
-          'AdaptiveSampling',0, 'AdaptiveParams', [10 20 1 1 0.01 params.pos_uwb_out], ...
+          'AdaptiveSampling',0, 'AdaptiveParams', [10 20 1 1 0.01 params.pos_uwb_out], ... %?
           'FlushBuffer', 1, ...
           'opt', @fminsearchcon, ...
-          'Jdot_thresh',0.95, 'MaxIter', 50, 'Jterm_store', 1, 'AlwaysOpt', 1 , 'SafetyDensity', Inf, ...
+          'Jdot_thresh',0.95, 'MaxIter', 150, 'Jterm_store', 1, 'AlwaysOpt', 1 , 'SafetyDensity', Inf, ...
           'MultiStart', params.multistart, 'J_normalise', 1, 'MaxOptTime', Inf, ...
           'terminal', 0, 'terminal_states', terminal_states, 'terminal_weights', terminal_weights, 'terminal_normalise', 1, ...
-          'ConPos', [], 'LBcon', [], 'UBcon', [],'Bounds', 0, 'NONCOLcon',@nonlcon_fcn_rover);
+          'ConPos', [], 'LBcon', [], 'UBcon', [],'Bounds', 0 ,'NONCOLcon',@nonlcon_fcn_rover);
 
 %% %%%% SIMULATION %%%%
 % obs.init.X.val(params.pos_other,1) = 0;
@@ -155,6 +155,9 @@ end
 
 % overall computation time
 obs.init.total_time = toc(t0);
+fprintf("Overall computation time: %f s\n", toc(t0))
+fprintf("\nGamma: \n")
+disp(obs.init.params.gamma)
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 %% %%%%%%%%%%%%%%%%%%%%%%%%%%%% PLOTS %%%%%%%%%%%%%%%%%%%%%

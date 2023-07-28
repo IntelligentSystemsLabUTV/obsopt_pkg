@@ -11,7 +11,7 @@
 % x_dot: dynamics equations
 function [x_dot, x] = model_drone_reference(tspan,x,params,obs)
 
-    % init the dynamics 
+    % init the dynamics
     x_dot = zeros(length(x),1);
 
     % compute the time index
@@ -30,13 +30,13 @@ function [x_dot, x] = model_drone_reference(tspan,x,params,obs)
     x_dot(params.pos_alpha) = 0*x(params.pos_alpha) + params.alpha_enable*ones(3,1)*params.Ts*chirp(tspan(1),1,5,100)*1e1*sin(2*tspan(1))^2;  
     x_dot(params.pos_bias_v) = 0*x(params.pos_bias_v) + params.bias_v_enable*params.Ts*ones(3,1)*sin(tspan(1));
     
-    %%% model dynamics - translation    
+    %%% model dynamics - translation
     % eq. 38 armesto
     x_dot(params.pos_p) = x(params.pos_p) + params.Ts*x(params.pos_v) + 0.5*params.Ts^2*x(params.pos_acc) + 1/6*params.Ts^2*x(params.pos_jerk);
     % eq. 37 armesto
-    x_dot(params.pos_v) = x(params.pos_v) + params.Ts*x(params.pos_acc) + 0.5*params.Ts^2*x(params.pos_jerk);
+    x_dot(params.pos_v) = x(params.pos_v) + params.Ts*x(params.pos_acc) + 0.5*params.Ts^2*x(params.pos_jerk) + params.Ts*params.u(1:3);
     % eq. 36 armesto
-    x_dot(params.pos_acc) = x(params.pos_acc) + params.Ts*(x(params.pos_jerk) + params.u(1:3) + cross(x(params.pos_alpha),x(params.pos_v)) + cross(x(params.pos_omega),x(params.pos_acc)));
+    x_dot(params.pos_acc) = x(params.pos_acc) + params.Ts*(x(params.pos_jerk)  + cross(x(params.pos_alpha),x(params.pos_v)) + cross(x(params.pos_omega),x(params.pos_acc)));
     % eq. 39 armesto
     x_dot(params.pos_bias) = x(params.pos_bias) + params.Ts*x(params.pos_bias_v);        
 

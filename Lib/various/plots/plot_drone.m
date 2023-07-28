@@ -289,8 +289,9 @@ function plot_drone(obj,varargin)
     %%%% plot uwb measure data %%%%   
     try
         fig_count = fig_count+1;
-        figure(fig_count)            
-        sgtitle('uwb measure')
+        figure(fig_count) 
+        txt = "uwb measure " + num2str((1/params.UWB_samp)*100) + "Hz - Noise: " + num2str(params.noise_mat(params.pos_uwb_out(1),2)) + " m";
+        sgtitle(txt)
         ax = zeros(1,3);
         for i=1:length(params.pos_uwb_out)
             subplot(length(params.pos_uwb_out),1,i);
@@ -334,8 +335,9 @@ function plot_drone(obj,varargin)
    %%%% plot cam measure data %%%%   
     try
         fig_count = fig_count+1;
-        figure(fig_count)            
-        sgtitle('cam measure')
+        figure(fig_count)  
+        txt = "cam measure " + num2str((1/params.CAM_samp)*100) + "Hz - Noise: " + num2str(params.noise_mat(params.pos_cam_out(1),2)) + " m";
+        sgtitle(txt)
         ax = zeros(1,3);
         for i=1:length(params.pos_cam_out)
             subplot(length(params.pos_cam_out),1,i);
