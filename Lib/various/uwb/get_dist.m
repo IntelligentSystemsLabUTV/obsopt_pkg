@@ -6,7 +6,9 @@ function D = get_dist(p,Pa)
     D = zeros(N,1);
 
     % compute distances
-    for n = 1:N
-        D(n) = norm(p-Pa(:,n));
+    for i=1:size(p,2)
+        for n = 1:4
+            D(4*(i-1)+n) = norm(p(:,i)-Pa(:,n));
+        end
     end
 end

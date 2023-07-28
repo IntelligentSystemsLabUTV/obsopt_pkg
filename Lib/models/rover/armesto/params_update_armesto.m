@@ -11,6 +11,9 @@
 function params_out = params_update_armesto(params,x)
 
     % assign params
-    params_out = params;         
+    params_out = params;   
+
+    % update
+    params_out.gamma = x(params_out.pos_gamma);
     
 end

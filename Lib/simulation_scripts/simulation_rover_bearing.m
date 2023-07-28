@@ -5,44 +5,44 @@
 % description: function to setup and use the MHE observer on general model
 % INPUT: none
 % OUTPUT: params,obs
-function [obs,params] = simulation_rover
+function [obs,params] = simulation_rover_bearing
 
 %%%% Init Section %%%%
 % uncomment to close previously opened figures
 % close all
 % rng('default');
 % rng(42);
-% rng(23);
-rng(2);
+rng(23);
+% rng(2);
     
 % init observer buffer (see https://doi.org/10.48550/arXiv.2204.09359)
-Nw = 100;
-Nts = 30;
+Nw = 30;
+Nts = 300;
 
 % set sampling time
-Ts = 1e-2;
+Ts = 1e-1;
 
 % set initial and final time instant
 t0 = 0;
-% tend = 60;
+tend = 300;
 % uncomment to test the MHE with a single optimisation step
-tend = 1*(Nw*Nts-1)*Ts;
+% tend = 1*(Nw*Nts-1)*Ts;
 
 %%%% params init function %%%%
-params_init = @params_rover;
+params_init = @params_rover_bearing;
 
 %%%% params update function %%%%
-params_update = @params_update_rover;
+params_update = @params_update_rover_bearing;
 
 %%%% model function %%%%
-model = @model_rover;
+model = @model_rover_bearing;
 
 %%%% model reference function %%%%
-model_reference = @model_rover_reference;
+model_reference = @model_rover_bearing_reference;
 
 %%%% measure function %%%%
-measure = @measure_rover;
-measure_reference = @measure_rover_reference;
+measure = @measure_rover_bearing;
+measure_reference = @measure_rover_bearing_reference;
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 %%%% filters %%%%
@@ -52,7 +52,7 @@ measure_reference = @measure_rover_reference;
 ode = @odeEuler;
 
 %%%% input law %%%
-input_law = @control;
+input_law = @control_bearing;
 
 %%%% params init %%%%
 params = model_init('Ts',Ts,'T0',[t0, tend],'noise',1, 'params_update', params_update, ...
@@ -67,10 +67,10 @@ terminal_weights = 1e0*ones(size(terminal_states));
 % create observer class instance. For more information on the setup
 % options check directly the class constructor in obsopt.m
 obs = obsopt('DataType', 'simulated', 'optimise', 0 , 'MultiStart', params.multistart, 'J_normalise', 1, 'MaxOptTime', Inf, ... 
-          'Nw', Nw, 'Nts', Nts, 'ode', ode, 'PE_ma0iter', 0, 'WaitAllBuffer', 1, 'params',params, 'filters', filterScale,'filterTF', filter, ...
+          'Nw', Nw, 'Nts', Nts, 'ode', ode, 'PE_ma0iter', 0, 'WaitAllBuffer', 0, 'params',params, 'filters', filterScale,'filterTF', filter, ...
           'model_reference',model_reference, 'measure_reference',measure_reference, ...
-          'Jdot_thresh',0.95,'MaxIter', 2, 'Jterm_store', 1, 'AlwaysOpt', 1 , 'print', 1 , 'SafetyDensity', Inf, 'AdaptiveParams', [10 160 1 1 0.5 params.pos_acc_out(1:2)], ...
-          'AdaptiveSampling',0, 'FlushBuffer', 1, 'opt', @patternsearch, 'terminal', 0, 'terminal_states', terminal_states, 'terminal_weights', terminal_weights, 'terminal_normalise', 1, ...
+          'Jdot_thresh',0.95,'MaxIter', 3, 'Jterm_store', 1, 'AlwaysOpt', 1 , 'print', 0 , 'SafetyDensity', Inf, 'AdaptiveParams', [10 160 1 1 0.5 params.pos_acc_out(1:2)], ...
+          'AdaptiveSampling',0, 'FlushBuffer', 1, 'opt', @fminunc, 'terminal', 0, 'terminal_states', terminal_states, 'terminal_weights', terminal_weights, 'terminal_normalise', 1, ...
           'ConPos', [], 'LBcon', [], 'UBcon', [],'Bounds', 0,'NONCOLcon',@nonlcon_fcn_rover);
 
 %% %%%% SIMULATION %%%%
@@ -111,7 +111,7 @@ for i = 1:obs.setup.Niter
             
             % true system - correct initial condition and no noise
             % considered                 
-            X = obs.setup.ode(@(t,x)obs.setup.model_reference(t, x, obs.setup.params, obs), tspan, obs.init.X(traj).val(:,startpos),params.odeset); 
+            X = obs.setup.ode(@(t,x)obs.setup.model_reference(t, x, obs.init.params, obs), tspan, obs.init.X(traj).val(:,startpos),params.odeset); 
             obs.init.X(traj).val(:,startpos:stoppos) = [X.y(:,1),X.y(:,end)];
     
             % real system - initial condition perturbed             
@@ -128,7 +128,7 @@ for i = 1:obs.setup.Niter
     
     %%%% MHE OBSERVER (SAVE MEAS) %%%%
     t1 = tic;    
-    if params.hyb
+    if ~params.EKF && params.hyb || 0
         obs = obs.observer(obs.init.X_est,y_meas);
         obs.init.iter_time(obs.init.ActualTimeIndex) = toc(t1);   
         if obs.init.break
@@ -138,7 +138,22 @@ for i = 1:obs.setup.Niter
 
     %%% test %%%
     obs.init.params.UWB_samp_EKF = obs.init.params.UWB_samp;
-    obs.init.params.IMU_samp_EKF = obs.init.params.IMU_samp;                                        
+    obs.init.params.IMU_samp_EKF = obs.init.params.IMU_samp;    
+
+    %%%% EKF OBSERVER %%%%    
+    t1 = tic;  
+    if (obs.init.ActualTimeIndex > 1) && params.EKF && ~params.hyb
+        for traj=1:params.Ntraj
+            obs.init.traj = traj;
+            obs = EKF_rover(obs,obs.init.X_est(traj).val(:,startpos),y_meas(traj).val);
+        end
+        obs.init.params.UWB_samp_EKF_story = [obs.init.params.UWB_samp_EKF_story obs.init.params.UWB_samp_EKF];
+        obs.init.params.IMU_samp_EKF_story = [obs.init.params.IMU_samp_EKF_story obs.init.params.IMU_samp_EKF];
+    else
+        obs.init.params.UWB_samp_EKF_story = [];
+        obs.init.params.IMU_samp_EKF_story = [];
+    end
+    obs.init.iter_time(obs.init.ActualTimeIndex) = toc(t1);                                                
     
     
 

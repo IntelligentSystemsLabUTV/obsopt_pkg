@@ -10,7 +10,7 @@
 % t: time instant (may be not used)
 % OUTPUT:
 % y: output measurement
-function [y, obs] = measure_rover_reference(x,params,t,u,obs)        
+function [y, obs] = measure_rover_bearing_reference(x,params,t,u,obs)        
 
     % compute the time index
     pos = zeros(1,length(t));
@@ -23,20 +23,19 @@ function [y, obs] = measure_rover_reference(x,params,t,u,obs)
     % get traj
     traj = obs.init.traj;
 
-    %%% get the output mismatch terms    
-    V_true = reshape(x(params.pos_v,:),numel(params.pos_v),size(x,2));
+    %%% get the output mismatch terms - position  
     P_true = reshape(x(params.pos_p,:),numel(params.pos_p),size(x,2));
-    Quat_true = reshape(x(params.pos_quat,:),numel(params.pos_quat),size(x,2));
-
-    % place the tags
-    R = quat2rotm(Quat_true.');
-    for i=1:3
-        Pt(:,i) = R*params.TagPos(:,i) + P_true;
-    end
+    
+    %%% get the output mismatch terms - velocity
+    [obs.init.params.xd(traj).val(:,end+1), obs.init.params.xdbuf, obs.init.params.xdcount(traj).val] = PseudoDer( ...
+    params.Ts,P_true,params.cder,params.dder,3,0,0,obs,obs.init.params.xdbuf,obs.init.params.xdcount(traj).val); 
+    V_true = obs.init.params.xd(traj).val(:,end);
+    
+    % get bearing - possibly mismatch term, no actual measurement
+    Theta_true = x(params.pos_theta);
 
     % different sampling times
     if mod(pos(end),params.UWB_samp) == 0
-
         %%% get distances        
         % adjacency matrix
         for dim=1:params.space_dim
@@ -44,45 +43,35 @@ function [y, obs] = measure_rover_reference(x,params,t,u,obs)
         end
         
         % true distances
-        D = get_dist(Pt,Pa);
+        theta = x(params.pos_theta);
+        delta = params.dist_tag*[sin(theta); -cos(theta); 0];
+        DT1 = get_dist(P_true+delta,Pa(:,params.TagAnchorIndex(1,:)));
+        DT2 = get_dist(P_true-delta,Pa(:,params.TagAnchorIndex(2,:)));
+        D = [DT1; DT2];
         % save position buffer
         obs.init.params.UWB_pos(end+1) = pos(end);
-        obs.init.params.last_D_ref(traj,:) = D;
-
-        % orientation
-        obs.init.params.last_Quat_ref(traj,:) = Quat_true;
+        obs.init.params.last_D_ref(traj,:) = D;        
     else
-        D = reshape(obs.init.params.last_D_ref(traj,:),3*params.Nanchor,1);
+        D = reshape(obs.init.params.last_D_ref(traj,:),params.Nanchor,1);
     end    
 
     %%% get the IMU accelerations
-    if mod(pos(end),params.IMU_samp) == 0         
-        % meas
-        IMU_true = reshape(obs.init.input_story_ref(traj).val(1:3,pos(1)),numel(params.pos_acc),size(x,2));
-        obs.init.params.last_IMU_acc_ref(traj,:) = IMU_true;
+    if mod(pos(end),params.IMU_samp) == 0
+        % meas        
+        [obs.init.params.xdd(traj).val(:,end+1), obs.init.params.xddbuf, obs.init.params.xddcount(traj).val] = PseudoDer( ...
+        params.Ts,V_true,params.cder,params.dder,3,0,0,obs,obs.init.params.xddbuf,obs.init.params.xddcount(traj).val);  
+        IMU_true = obs.init.params.xdd(traj).val(:,end);
     else       
         IMU_true = reshape(obs.init.params.last_IMU_acc_ref(traj,:),params.space_dim,1);
-    end
-
-    %%% get the Gyro velocities
-    if mod(pos(end),params.Gyro_samp) == 0         
-        % meas
-        W_true = reshape(x(params.pos_w,:),numel(params.pos_w),size(x,2));
-        obs.init.params.last_W_ref(traj,:) = W_true;
-    else       
-        W_true = reshape(obs.init.params.last_W_ref(traj,:),params.rotation_dim,1);
-    end
+    end        
 
     %%% add noise
     % noise on UWB + IMU
-    y_true = [D; P_true; V_true; IMU_true; Quat_true; W_true];
+    y_true = [D; P_true; V_true; IMU_true; Theta_true];
     noise = obs.setup.noise*(params.noise_mat(:,1).*randn(obs.setup.dim_out,1));    
 
     % bias IMU
-    noise(params.pos_acc_out) = noise(params.pos_acc_out) + params.bias*x(params.pos_bias);  
-
-    % bias Gyro
-    noise(params.pos_w_out) = noise(params.pos_w_out) + params.bias*x(params.pos_bias_w);  
+    noise(params.pos_acc_out) = noise(params.pos_acc_out) + params.bias*x(params.pos_bias);    
 
     %%% multi rate - UWB
     if mod(pos(end),params.UWB_samp) ~= 0
@@ -102,15 +91,6 @@ function [y, obs] = measure_rover_reference(x,params,t,u,obs)
         end
     end
 
-    %%% multi rate - Gyro
-    if mod(pos(end),params.Gyro_samp) ~= 0
-        try
-            noise(params.pos_w_out) = obs.init.noise_story(traj).val(params.pos_w_out,pos(1)-1);
-        catch
-            noise(params.pos_w_out) = 0;
-        end
-    end
-
     %%% add noise
     y = y_true + noise;    
 
@@ -119,27 +99,25 @@ function [y, obs] = measure_rover_reference(x,params,t,u,obs)
 
         % gradient and pseudoderivative
         D_meas = y(params.pos_dist_out);
-        xopt = zeros(9,1);
-        xtmp = fminunc(@(x)J_dist(x,Pa,D_meas),xopt,obs.setup.params.dist_optoptions);    
-        xtmp = reshape(xtmp,3,3);
-        obs.init.params.p_jump(traj).val(:,end+1) = mean(xtmp,2);
+        pjumpT1 = fminunc(@(x)J_dist(x,Pa(:,params.TagAnchorIndex(1,:)),D_meas(params.TagAnchorIndex(1,:))),x(params.pos_p),obs.setup.params.dist_optoptions);
+        pjumpT2 = fminunc(@(x)J_dist(x,Pa(:,params.TagAnchorIndex(2,:)),D_meas(params.TagAnchorIndex(2,:))),x(params.pos_p),obs.setup.params.dist_optoptions);
+        obs.init.params.p_jump(traj).val(:,end+1) = (pjumpT1+pjumpT2)/2;
         [obs.init.params.p_jump_der(traj).val(:,end+1), obs.init.params.p_jump_der_buffer, obs.init.params.p_jump_der_counter(traj).val] = PseudoDer(params.Ts*params.UWB_samp,...
            obs.init.params.p_jump(traj).val(:,end),params.wlen,...
            params.buflen,params.space_dim,0,0,obs,obs.init.params.p_jump_der_buffer,obs.init.params.p_jump_der_counter(traj).val);
-        % dry measure
-%         obs.init.params.p_jump(traj).val(:,end+1) = x(params.pos_p);
-%         obs.init.params.p_jump_der(traj).val(:,end+1) = x(params.pos_v);
+       
+        %%%%% dry measure - only for testing %%%%%
+        %obs.init.params.p_jump(traj).val(:,end+1) = x(params.pos_p);
+        %obs.init.params.p_jump_der(traj).val(:,end+1) = x(params.pos_v);
+        %%%%%
+        
+        % get the bearing        
+        y(params.pos_theta_out) = atan2((pjumpT1(2)-pjumpT2(2)),(pjumpT1(1)-pjumpT2(1))) + pi/2;
+        
+        % general stuff
         if traj == 1
             obs.init.params.p_jump_time(end+1) = pos(end);
-        end
-
-        % procrust for the orientation
-        W = Pt - obs.init.params.p_jump(traj).val(:,end);
-        O = params.TagPos;
-        [U,S,V] = svd(W*O');
-        Rest = V*U';
-        qjump = quatnormalize(rotm2quat(Rest));
-        obs.init.params.q_jump(traj).val(:,end+1) = qjump;
+        end                
     end
     
     % store

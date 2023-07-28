@@ -53,6 +53,9 @@ for i = 1:M-1
     
 end
 
+% any angles? - wrap them
+% X(13,:) = wrapToPi(X(13,:));
+
 % store
 out.y = X;
 end

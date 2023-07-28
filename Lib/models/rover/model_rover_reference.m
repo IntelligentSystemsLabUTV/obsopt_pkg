@@ -23,8 +23,8 @@ function [x_dot, x] = model_rover_reference(tspan,x,params,obs)
     
     % compute the control
     params.u = params.input(tspan,x,params,obs);    
-    obs.init.input_story_ref(obs.init.traj).val(:,pos(end)) = params.u(1:3,1);
-    obs.init.reference_story(obs.init.traj).val(:,pos(end)) = params.u(4,1);
+    obs.init.input_story_ref(obs.init.traj).val(:,pos(end)) = params.u(1:6,1);
+    obs.init.reference_story(obs.init.traj).val(:,pos(end)) = params.u(7,1);
 
     % process noise
     w = params.jerk_enable*params.sigma_w*randn(2*params.space_dim,1);
@@ -45,6 +45,23 @@ function [x_dot, x] = model_rover_reference(tspan,x,params,obs)
     x_dot(9) = x(10);
     x_dot(10) = params.u(3,1) + params.proc_acc*w(3);
     x_dot(11) = params.proc_bias*w(6);
+
+    %%% model dynamics - quaternion
+    % Skew matrix - eq. 39 Challa
+    x(params.pos_quat) = quatnormalize(x(params.pos_quat)');
+    q = x(params.pos_quat);
+    w = x(params.pos_w);
+    S = [0      -w(3)   +w(2); ...
+         +w(3)  0       -w(1); ...
+         -w(2)  +w(1)   0];
+    OMEGA = [+S     w; ...
+             -w'    0];
+
+    % quaternion dynamics - eq. 40 armesto
+    x_dot(params.pos_quat) = 0.5*OMEGA*q;
+
+    % model dynamics - angular velocity - eq. 41b armesto continuous
+    x_dot(params.pos_w) = params.u(4:6);
 
     % all the remaining are the anchors
     

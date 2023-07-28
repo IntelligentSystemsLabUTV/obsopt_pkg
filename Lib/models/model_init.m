@@ -15,7 +15,15 @@ function params = model_init(varargin)
     if any(strcmp(varargin,'params_init'))
         pos = find(strcmp(varargin,'params_init'));
         params_init = varargin{pos+1};
-        params = params_init();
+
+        if any(strcmp(varargin,'Ntraj'))
+            pos = find(strcmp(varargin,'Ntraj'));
+            Ntraj = varargin{pos+1};
+            params = params_init(Ntraj);
+        else
+            params = params_init;
+        end
+        
     else
         params.X = 5;
     end
@@ -161,11 +169,7 @@ function params = model_init(varargin)
             
             % randomly define the percentage (bool flag, see below)
             randflag = 1; 
-            noise_std = 1*ones(1,numel(params.perturbed_vars));
-            noise_std(1:2) = 5e-1;
-            noise_std(3) = 5e-1;
-%             noise_std(4:6) = 2e-1;
-%             noise_std(7:9) = 2e-1;
+            noise_std = 1e-1*ones(1,numel(params.perturbed_vars));
 
             % if case: random perturbation percentage - optimised vars            
             if randflag
@@ -174,7 +178,6 @@ function params = model_init(varargin)
                 params.perc(params.perturbed_vars,traj) = 1*ones(1,length(params.perturbed_vars)).*noise_std;
             end            
             
-
             % final setup on perc
             params.perc = 1*params.perc;            
             params.X_est(traj).val(:,1) = init;
@@ -188,6 +191,7 @@ function params = model_init(varargin)
             % test - bias starting always from 0
             if params.noise 
                 params.X_est(traj).val(params.pos_bias,1) = 0;
+                params.X_est(traj).val(params.pos_bias_w,1) = 0;
             end
         end
 

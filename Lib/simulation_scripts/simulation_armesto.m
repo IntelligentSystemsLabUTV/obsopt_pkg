@@ -5,54 +5,54 @@
 % description: function to setup and use the MHE observer on general model
 % INPUT: none
 % OUTPUT: params,obs
-function [obs,params] = simulation_rover
+function [obs,params] = simulation_armesto
 
 %%%% Init Section %%%%
 % uncomment to close previously opened figures
 % close all
-% rng('default');
+rng('default');
 % rng(42);
 % rng(23);
-rng(2);
+% rng(2);
     
 % init observer buffer (see https://doi.org/10.48550/arXiv.2204.09359)
-Nw = 100;
-Nts = 30;
+Nw = 30;
+Nts = 10;
 
 % set sampling time
 Ts = 1e-2;
 
 % set initial and final time instant
 t0 = 0;
-% tend = 60;
+tend = 5;
 % uncomment to test the MHE with a single optimisation step
-tend = 1*(Nw*Nts-1)*Ts;
+% tend = 1*(Nw*Nts-1)*Ts;
 
 %%%% params init function %%%%
-params_init = @params_rover;
+params_init = @params_armesto;
 
 %%%% params update function %%%%
-params_update = @params_update_rover;
+params_update = @params_update_armesto;
 
 %%%% model function %%%%
-model = @model_rover;
+model = @model_armesto;
 
 %%%% model reference function %%%%
-model_reference = @model_rover_reference;
+model_reference = @model_armesto_reference;
 
 %%%% measure function %%%%
-measure = @measure_rover;
-measure_reference = @measure_rover_reference;
+measure = @measure_armesto;
+measure_reference = @measure_armesto_reference;
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 %%%% filters %%%%
 [filter, filterScale] = filter_define(Ts,1);
 
 %%%% integration method %%%%
-ode = @odeEuler;
+ode = @odeDD;
 
 %%%% input law %%%
-input_law = @control;
+input_law = @control_armesto;
 
 %%%% params init %%%%
 params = model_init('Ts',Ts,'T0',[t0, tend],'noise',1, 'params_update', params_update, ...
@@ -66,12 +66,17 @@ terminal_weights = 1e0*ones(size(terminal_states));
 
 % create observer class instance. For more information on the setup
 % options check directly the class constructor in obsopt.m
-obs = obsopt('DataType', 'simulated', 'optimise', 0 , 'MultiStart', params.multistart, 'J_normalise', 1, 'MaxOptTime', Inf, ... 
-          'Nw', Nw, 'Nts', Nts, 'ode', ode, 'PE_ma0iter', 0, 'WaitAllBuffer', 1, 'params',params, 'filters', filterScale,'filterTF', filter, ...
+obs = obsopt('DataType', 'simulated', 'optimise', 1 , 'print', 0, ... 
+          'Nw', Nw, 'Nts', Nts, 'ode', ode, ...
+          'PE_maxiter', 0, 'WaitAllBuffer', 1, 'params',params, 'filters', filterScale,'filterTF', filter, ...
           'model_reference',model_reference, 'measure_reference',measure_reference, ...
-          'Jdot_thresh',0.95,'MaxIter', 2, 'Jterm_store', 1, 'AlwaysOpt', 1 , 'print', 1 , 'SafetyDensity', Inf, 'AdaptiveParams', [10 160 1 1 0.5 params.pos_acc_out(1:2)], ...
-          'AdaptiveSampling',0, 'FlushBuffer', 1, 'opt', @patternsearch, 'terminal', 0, 'terminal_states', terminal_states, 'terminal_weights', terminal_weights, 'terminal_normalise', 1, ...
-          'ConPos', [], 'LBcon', [], 'UBcon', [],'Bounds', 0,'NONCOLcon',@nonlcon_fcn_rover);
+          'AdaptiveSampling',0, 'AdaptiveParams', [10 160 1 1 0.5 params.pos_acc_out(1:2)], ...
+          'FlushBuffer', 1, ...
+          'opt', @fminsearchcon, ...
+          'Jdot_thresh',0.95, 'MaxIter', 500, 'Jterm_store', 1, 'AlwaysOpt', 1 , 'SafetyDensity', Inf, ...
+          'MultiStart', params.multistart, 'J_normalise', 1, 'MaxOptTime', Inf, ...
+          'terminal', 0, 'terminal_states', terminal_states, 'terminal_weights', terminal_weights, 'terminal_normalise', 1, ...
+          'ConPos', [], 'LBcon', [], 'UBcon', [],'Bounds', 0);
 
 %% %%%% SIMULATION %%%%
 % obs.init.X.val(params.pos_other,1) = 0;
@@ -128,7 +133,7 @@ for i = 1:obs.setup.Niter
     
     %%%% MHE OBSERVER (SAVE MEAS) %%%%
     t1 = tic;    
-    if params.hyb
+    if 1
         obs = obs.observer(obs.init.X_est,y_meas);
         obs.init.iter_time(obs.init.ActualTimeIndex) = toc(t1);   
         if obs.init.break
@@ -136,9 +141,7 @@ for i = 1:obs.setup.Niter
         end
     end
 
-    %%% test %%%
-    obs.init.params.UWB_samp_EKF = obs.init.params.UWB_samp;
-    obs.init.params.IMU_samp_EKF = obs.init.params.IMU_samp;                                        
+    obs.init.iter_time(obs.init.ActualTimeIndex) = toc(t1);                                                
     
     
 
