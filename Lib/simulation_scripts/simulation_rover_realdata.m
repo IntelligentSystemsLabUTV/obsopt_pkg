@@ -17,13 +17,23 @@ rng(2);
 
 % create measurements
 for i=1:length(data)
+    % distances
     D = data(i).val.UWB.';
+    % position 
     p = data(i).val.p.';
+    % velocity
     v = zeros(size(p));
+    % IMU
     IMU = data(i).val.IMU.';
+    % quaternion
     Q = data(i).val.q.';
+    % RPY
+    [YA, PI, RO]  = quat2angle(Q.');
+    EUL = [RO, PI, YA].';
+    % angular velocity
     W = data(i).val.W.';
-    Y(i).val = [D; p; v; IMU; Q; W];
+    % stack Y
+    Y(i).val = [D; p; v; IMU; EUL; W];
     Len(i) = size(Y(i).val,2);
 end
 
@@ -79,6 +89,9 @@ params = model_init('Ts',Ts,'T0',[t0, tend],'noise',0, 'Ntraj', length(data),'pa
 % defien arrival cost
 terminal_states = params.opt_vars;
 terminal_weights = 1e0*ones(size(terminal_states));
+% define Yweights
+Yweights = ones(params.OutDim,1);
+% Yweights(params.pos_quat_out) = 0.1;
 
 % create observer class instance. For more information on the setup
 % options check directly the class constructor in obsopt.m
@@ -86,7 +99,7 @@ obs = obsopt('DataType', 'simulated', 'optimise', 1 , 'MultiStart', params.multi
           'Nw', Nw, 'Nts', Nts, 'ode', ode, 'PE_ma0iter', 0, 'WaitAllBuffer', 2, 'params',params, 'filters', filterScale,'filterTF', filter, ...
           'model_reference',model_reference, 'measure_reference',measure_reference, ...
           'Jdot_thresh',0.95,'MaxIter', 6, 'Jterm_store', 1, 'AlwaysOpt', 1 , 'print', 1 , 'SafetyDensity', Inf, 'AdaptiveParams', [10 160 1 1 0.5 params.pos_acc_out(1:2)], ...
-          'AdaptiveSampling',0, 'FlushBuffer', 1, 'opt', @patternsearch, 'terminal', 0, 'terminal_states', terminal_states, 'terminal_weights', terminal_weights, 'terminal_normalise', 1, ...
+          'AdaptiveSampling',0, 'FlushBuffer', 1, 'opt', @patternsearch, 'terminal', 0, 'terminal_states', terminal_states, 'terminal_weights', terminal_weights, 'terminal_normalise', 1, 'Yweights', Yweights, ...
           'ConPos', [], 'LBcon', [], 'UBcon', [],'Bounds', 0,'NONCOLcon',@nonlcon_fcn_rover);
 
 %% %%%% SIMULATION %%%%

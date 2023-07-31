@@ -43,6 +43,8 @@ function y = measure_rover(x,params,tspan,u,obs)
         V_true = reshape(x(params.pos_v,k),numel(params.pos_v),1);
         P_true = reshape(x(params.pos_p,k),numel(params.pos_p),1);
         Quat_true = reshape(x(params.pos_quat,k),numel(params.pos_quat),1);
+        [yaw, pitch, roll]  = quat2angle(Quat_true.');
+        Eul_true = [roll; pitch; yaw];
 
         % place the tags
         R = quat2rotm(Quat_true.');
@@ -70,6 +72,8 @@ function y = measure_rover(x,params,tspan,u,obs)
         else   
             D = reshape(obs.init.params.last_D(traj,:),3*params.Nanchor,1);
             Quat_true = reshape(obs.init.params.last_Quat(traj,:),4,1);
+            [yaw, pitch, roll]  = quat2angle(Quat_true.');
+            Eul_true = [roll; pitch; yaw];
         end
     
         %%% get the IMU accelerations              
@@ -84,6 +88,6 @@ function y = measure_rover(x,params,tspan,u,obs)
         end
 
         % final measure
-        y(:,k) = [D; P_true; V_true; IMU_true; Quat_true; W_true];                     
+        y(:,k) = [D; P_true; V_true; IMU_true; Eul_true; W_true];                     
     end
 end

@@ -500,6 +500,14 @@ classdef obsopt < handle
             else
                 temp_scale = [1];
             end
+
+            % set different weights for different Y quantities
+            if any(strcmp(varargin,'Yweights'))
+                pos = find(strcmp(varargin,'Yweights'));
+                obj.setup.Y_weights = varargin{pos+1};
+            else
+                obj.setup.Y_weights = ones(obj.setup.dim_out,1);
+            end
             
             
             % filters
@@ -758,7 +766,7 @@ classdef obsopt < handle
         % accordingly to the selected filters (see setup.temp_scale).
         function obj = scale_factor(obj)
             for dim=1:obj.setup.dim_out
-                obj.init.scale_factor(dim,:) = obj.setup.J_temp_scale.*ones(1,obj.setup.J_nterm_total);
+                obj.init.scale_factor(dim,:) = obj.setup.Y_weights(dim).*obj.setup.J_temp_scale.*ones(1,obj.setup.J_nterm_total);
             end
         end
         

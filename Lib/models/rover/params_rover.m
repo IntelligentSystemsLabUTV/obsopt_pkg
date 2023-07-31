@@ -104,7 +104,7 @@ function params = params_rover(varargin)
 
     %%% observer params %%%
     % theta
-    params.theta = 0*[0.4221    0.2888   -0.0281];
+    params.theta = 1*[0.4221    0.2888   -0.0281];
     % params.gamma = 1*[0.1   0   0   0.1   0   0.1   0   0   0.1   0];
     % params.gamma = 0*[0.2   0   0   0   0   0   0   0   0   0];
     params.gamma = 0*ones(1,13);
@@ -144,15 +144,16 @@ function params = params_rover(varargin)
     % output dim
     % distances + accelerations + velocity (only for learning) + position (only for learning) +
     % quaternion + omega
-    params.OutDim = 3*params.Nanchor + 3*params.space_dim + (2*params.rotation_dim + 1);  
+    params.OutDim = 3*params.Nanchor + 3*params.space_dim + (2*params.rotation_dim);  
     params.observed_state = [];   % not reading the state    
     params.pos_dist_out = 1:3*params.Nanchor;
     params.pos_acc_out = [3*params.Nanchor + 2*params.space_dim + 1:3*params.Nanchor + 3*params.space_dim];
     params.pos_v_out = [3*params.Nanchor + params.space_dim + 1:3*params.Nanchor + 2*params.space_dim];
     params.pos_p_out = [3*params.Nanchor + 1:3*params.Nanchor + params.space_dim];
-    params.pos_quat_out = [3*params.Nanchor + 3*params.space_dim + 1:3*params.Nanchor + 3*params.space_dim + params.rotation_dim + 1];
-    params.pos_w_out = [3*params.Nanchor + 3*params.space_dim + params.rotation_dim + 2:params.OutDim];
-    params.OutDim_compare = [params.pos_p_out params.pos_quat_out]; 
+%     params.pos_quat_out = [3*params.Nanchor + 3*params.space_dim + 1:3*params.Nanchor + 3*params.space_dim + params.rotation_dim + 1];
+    params.pos_eul_out = [3*params.Nanchor + 3*params.space_dim + 1:3*params.Nanchor + 3*params.space_dim + params.rotation_dim];
+    params.pos_w_out = [3*params.Nanchor + 3*params.space_dim + params.rotation_dim + 1:params.OutDim];
+    params.OutDim_compare = [params.pos_eul_out]; 
     
     % sampling
     params.IMU_samp = 1;
@@ -239,7 +240,7 @@ function params = params_rover(varargin)
     params.estimated_params = params.pos_Gamma(1:4);
     
     % which vars am I optimising
-    params.opt_vars = [params.pos_Gamma(1:7)];
+    params.opt_vars = [params.pos_Gamma(1:6)];
     
     % set the not optimised vars
     tmp = 1:length(params.X(1).val(:,1));

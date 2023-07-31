@@ -20,10 +20,10 @@ function [filter, filterScale, reference] = filter_define(Ts,Nts)
     filter = [];
     
     %%% derivative filter %%%
-    fil1 = 1;
+    fil1 = 0;
     if fil1
     i = i+1;   
-    eps1 = 1e-0;    
+    eps1 = 1e0;    
     G = tf([1 0],[eps1 1]);    
     SS = ss(G);
     D = c2d(SS,Nts*Ts);
