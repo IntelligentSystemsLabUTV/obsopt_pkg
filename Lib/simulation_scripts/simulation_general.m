@@ -134,7 +134,7 @@ noise_mat = 0*ones(5,2);
 % directly the model_init.m file.
 params = model_init('Ts',Ts,'T0',[t0, tend],'noise',0, 'noise_spec', noise_mat, 'params_update', params_update, ...
             'model',model,'measure',measure,'ode',ode, 'odeset', [1e-3 1e-6], ...
-            'input_enable',1,'input_law',input_law,'params_init',params_init);
+            'input_enable',1,'input_law',input_law,'params_init',c);
              
 %%%% observer init %%%%
 % defien arrival cost

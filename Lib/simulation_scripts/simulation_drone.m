@@ -5,7 +5,7 @@
 % description: function to setup and use the MHE observer on general model
 % INPUT: none
 % OUTPUT: params,obs
-function [obs,params] = simulation_armesto
+function [obs,params] = simulation_drone
 
 %%%% Init Section %%%%
 % uncomment to close previously opened figures
@@ -16,7 +16,7 @@ rng('default');
 % rng(2);
     
 % init observer buffer (see https://doi.org/10.48550/arXiv.2204.09359)
-Nw = 30;
+Nw = 300;
 Nts = 5;
 
 % set sampling time
@@ -24,25 +24,25 @@ Ts = 1e-2;
 
 % set initial and final time instant
 t0 = 0;
-tend = 10;
+%tend = 10;
 % uncomment to test the MHE with a single optimisation step
-% tend = 1*(Nw*Nts-1)*Ts;
+tend = 1*(Nw*Nts-1)*Ts;
 
 %%%% params init function %%%%
-params_init = @params_armesto;
+params_init = @params_drone;
 
 %%%% params update function %%%%
-params_update = @params_update_armesto;
+params_update = @params_update_drone;
 
 %%%% model function %%%%
-model = @model_armesto;
+model = @model_drone;
 
 %%%% model reference function %%%%
-model_reference = @model_armesto_reference;
+model_reference = @model_drone_reference;
 
 %%%% measure function %%%%
-measure = @measure_armesto;
-measure_reference = @measure_armesto_reference;
+measure = @measure_drone;
+measure_reference = @measure_drone_reference;
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 %%%% filters %%%%
@@ -52,10 +52,10 @@ measure_reference = @measure_armesto_reference;
 ode = @odeDD;
 
 %%%% input law %%%
-input_law = @control_armesto;
+input_law = @control_drone;
 
 %%%% params init %%%%
-params = model_init('Ts',10*Ts,'T0',[t0, tend],'noise',1, 'params_update', params_update, ...
+params = model_init('Ts',Ts,'T0',[t0, tend],'noise',0, 'params_update', params_update, ...
             'model',model,'measure',measure,'ode',ode, 'odeset', [1e-3 1e-6], ...
             'input_enable',1,'input_law',input_law,'params_init',params_init);
              
@@ -66,17 +66,17 @@ terminal_weights = 1e0*ones(size(terminal_states));
 
 % create observer class instance. For more information on the setup
 % options check directly the class constructor in obsopt.m
-obs = obsopt('DataType', 'simulated', 'optimise', 0 , 'print', 0, ... 
-          'Nw', Nw, 'Nts', Nts/10, 'ode', ode, ...
+obs = obsopt('DataType', 'simulated', 'optimise', 0 , 'print', 1, ... 
+          'Nw', Nw, 'Nts', Nts, 'ode', ode, ...
           'PE_maxiter', 0, 'WaitAllBuffer', 1, 'params',params, 'filters', filterScale,'filterTF', filter, ...
           'model_reference',model_reference, 'measure_reference',measure_reference, ...
-          'AdaptiveSampling',0, 'AdaptiveParams', [10 20 1 1 0.01 params.pos_quat_out(2:4)], ...
+          'AdaptiveSampling',0, 'AdaptiveParams', [10 20 1 1 0.01 params.pos_uwb_out], ...
           'FlushBuffer', 1, ...
           'opt', @fminsearchcon, ...
           'Jdot_thresh',0.95, 'MaxIter', 50, 'Jterm_store', 1, 'AlwaysOpt', 1 , 'SafetyDensity', Inf, ...
           'MultiStart', params.multistart, 'J_normalise', 1, 'MaxOptTime', Inf, ...
           'terminal', 0, 'terminal_states', terminal_states, 'terminal_weights', terminal_weights, 'terminal_normalise', 1, ...
-          'ConPos', [], 'LBcon', [], 'UBcon', [],'Bounds', 0);
+          'ConPos', [], 'LBcon', [], 'UBcon', [],'Bounds', 0, 'NONCOLcon',@nonlcon_fcn_rover);
 
 %% %%%% SIMULATION %%%%
 % obs.init.X.val(params.pos_other,1) = 0;

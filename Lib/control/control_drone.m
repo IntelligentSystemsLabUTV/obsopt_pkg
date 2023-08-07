@@ -1,4 +1,4 @@
-function u = control_armesto(t,drive,params,obs)
+function u = control_drone(t,drive,params,obs)
 
     % init input
     u = zeros(params.dim_input,length(t));
@@ -14,9 +14,9 @@ function u = control_armesto(t,drive,params,obs)
         u(3) = 0.1;
 
         % rotation
-        u(4) = 0.01;
-        u(5) = -0.01;
-        u(6) = 1;
+        u(4) = 0.0;
+        u(5) = 0.0;
+        u(6) = 0.0;
         
     end
 
