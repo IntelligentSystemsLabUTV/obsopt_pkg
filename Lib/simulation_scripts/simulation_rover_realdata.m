@@ -61,13 +61,15 @@ params_init = @params_rover;
 params_update = @params_update_rover;
 
 %%%% model function %%%%
-model = @model_rover;
+% model = @model_rover;
+model = @model_rover_EKF;
 
 %%%% model reference function %%%%
 model_reference = @model_rover_reference;
 
 %%%% measure function %%%%
-measure = @measure_rover;
+% measure = @measure_rover;
+measure = @measure_rover_EKF;
 measure_reference = @measure_rover_reference;
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
@@ -95,10 +97,10 @@ Yweights = ones(params.OutDim,1);
 
 % create observer class instance. For more information on the setup
 % options check directly the class constructor in obsopt.m
-obs = obsopt('DataType', 'simulated', 'optimise', 1 , 'MultiStart', params.multistart, 'J_normalise', 1, 'MaxOptTime', Inf, ... 
+obs = obsopt('DataType', 'simulated', 'optimise', 0 , 'MultiStart', params.multistart, 'J_normalise', 1, 'MaxOptTime', Inf, ... 
           'Nw', Nw, 'Nts', Nts, 'ode', ode, 'PE_ma0iter', 0, 'WaitAllBuffer', 2, 'params',params, 'filters', filterScale,'filterTF', filter, ...
           'model_reference',model_reference, 'measure_reference',measure_reference, ...
-          'Jdot_thresh',0.95,'MaxIter', 6, 'Jterm_store', 1, 'AlwaysOpt', 1 , 'print', 1 , 'SafetyDensity', Inf, 'AdaptiveParams', [10 160 1 1 0.5 params.pos_acc_out(1:2)], ...
+          'Jdot_thresh',0.95,'MaxIter', 3, 'Jterm_store', 1, 'AlwaysOpt', 1 , 'print', 1 , 'SafetyDensity', Inf, 'AdaptiveParams', [10 160 1 1 0.5 params.pos_acc_out(1:2)], ...
           'AdaptiveSampling',0, 'FlushBuffer', 1, 'opt', @patternsearch, 'terminal', 0, 'terminal_states', terminal_states, 'terminal_weights', terminal_weights, 'terminal_normalise', 1, 'Yweights', Yweights, ...
           'ConPos', [], 'LBcon', [], 'UBcon', [],'Bounds', 0,'NONCOLcon',@nonlcon_fcn_rover);
 
@@ -150,6 +152,7 @@ for i = 1:obs.setup.Niter
         obs.init.Y_full_story(traj).val(1,:,obs.init.ActualTimeIndex) = y_meas(traj).val;
         obs.init.Ytrue_full_story(traj).val(1,:,obs.init.ActualTimeIndex) = 0;
         obs.init.noise_story(traj).val(1,:,obs.init.ActualTimeIndex) = 0;
+        obs.init.input_story_ref(traj).val(:,obs.init.ActualTimeIndex) = zeros(params.dim_input,1);
         if mod(obs.init.ActualTimeIndex-1,params.UWB_samp) == 0 
             obs.init.params.p_jump(obs.init.traj).val(:,end+1) = data(traj).val.pjump(max(1,obs.init.ActualTimeIndex),:);
             obs.init.params.p_jump_der(obs.init.traj).val(:,end+1) = 0;
@@ -160,12 +163,19 @@ for i = 1:obs.setup.Niter
     end
     
     %%%% MHE OBSERVER (SAVE MEAS) %%%%
-    if params.hyb && 1
+    if params.hyb
         t1 = tic;
         obs = obs.observer(obs.init.X_est,y_meas);
         obs.init.iter_time(obs.init.ActualTimeIndex) = toc(t1);   
         if obs.init.break
             break;
+        end
+    end
+
+    if params.ekf
+        for traj=1:params.Ntraj
+            obs.init.traj = traj;
+            obs = EKF_rover(obs,obs.init.X_est(traj).val(:,startpos),y_meas(traj).val);
         end
     end
 

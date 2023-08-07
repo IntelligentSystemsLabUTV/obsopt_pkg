@@ -24,9 +24,9 @@ Ts = 1e-2;
 
 % set initial and final time instant
 t0 = 0;
-% tend = 60;
+tend = 40;
 % uncomment to test the MHE with a single optimisation step
-tend = 1*(Nw*Nts-1)*Ts;
+% tend = 1*(Nw*Nts-1)*Ts;
 
 %%%% params init function %%%%
 params_init = @params_rover;
@@ -35,13 +35,15 @@ params_init = @params_rover;
 params_update = @params_update_rover;
 
 %%%% model function %%%%
-model = @model_rover;
+% model = @model_rover;
+model = @model_rover_EKF;
 
 %%%% model reference function %%%%
 model_reference = @model_rover_reference;
 
 %%%% measure function %%%%
-measure = @measure_rover;
+% measure = @measure_rover;
+measure = @measure_rover_EKF;
 measure_reference = @measure_rover_reference;
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
@@ -133,6 +135,13 @@ for i = 1:obs.setup.Niter
         obs.init.iter_time(obs.init.ActualTimeIndex) = toc(t1);   
         if obs.init.break
             break;
+        end
+    end
+
+    if params.ekf
+        for traj=1:params.Ntraj
+            obs.init.traj = traj;
+            obs = EKF_rover(obs,obs.init.X_est(traj).val(:,startpos),y_meas(traj).val);
         end
     end
 

@@ -57,13 +57,13 @@ function params = params_rover(varargin)
     % anchor stuff
     % pos anchors Mesh 1
     % AM1 = params.out.AM1(1:2,:);
-    % AM1 = [4 -4 4 -4; 4 4 -4 -4];    
-    AM1 = [-0.40 -0.40 +2.48 +2.80; +4.20 -1.80 -2.20 +4.20];    
+    AM1 = 4*[1 -1 1 -1; 1 1 -1 -1];    
+    % AM1 = [-0.40 -0.40 +2.48 +2.80; +4.20 -1.80 -2.20 +4.20];    
     % square box
     an_dp = max(max(abs(AM1)));
     % height
     % an_dz = mean(params.out.AM1(3,:));
-    an_dz = 2;
+    an_dz = 20;
     Nhillmax = 4;
 
     %%% gaussian stuff %%%
@@ -94,10 +94,13 @@ function params = params_rover(varargin)
 
     end
 
-    % tags
-    params.TagPos = [-0.19  +0.0   +1*0.184;
-                     +0.095 -0.164 +1*0.184;
-                     +0.095 +0.164 +1*0.184]';
+    % tags    
+    L = 1;
+    Z = 0.184;
+    params.TagPos = [-L             +0.0            +1*Z;
+                     +L*cos(pi/3)   -L*sin(pi/3)    +1*Z;
+                     +L*cos(pi/3)   +L*sin(pi/3)    +1*Z]';
+    params.Ntags = size(params.TagPos,1);
     
     % multistart
     params.multistart = 0;
@@ -107,7 +110,8 @@ function params = params_rover(varargin)
     params.theta = 1*[0.4221    0.2888   -0.0281];
     % params.gamma = 1*[0.1   0   0   0.1   0   0.1   0   0   0.1   0];
     % params.gamma = 0*[0.2   0   0   0   0   0   0   0   0   0];
-    params.gamma = 0*ones(1,13);
+    params.gamma = 0*ones(1,16);
+    params.gamma(1:3) = [1.13 0.18 -0.025];
     % params.theta = 1*[0.3713    0.2401   -0.0264    0.0097    0.0797   -0.0095];
 
     % alpha
@@ -167,8 +171,11 @@ function params = params_rover(varargin)
     params.last_D_meas = zeros(params.Ntraj,3*params.Nanchor);
     params.last_D_ref = zeros(params.Ntraj,3*params.Nanchor);
     params.last_Quat = zeros(params.Ntraj,4);
+    params.last_Quat(:,1) = 1;
     params.last_Quat_meas = zeros(params.Ntraj,4);
+    params.last_Quat_meas(:,1) = 1;
     params.last_Quat_ref = zeros(params.Ntraj,4);
+    params.last_Quat_ref(:,1) = 1;
     params.last_IMU_acc = zeros(params.Ntraj,numel(params.pos_acc_out));
     params.last_IMU_acc_meas = zeros(params.Ntraj,numel(params.pos_acc_out));
     params.last_IMU_acc_ref = zeros(params.Ntraj,numel(params.pos_acc_out));
@@ -194,21 +201,15 @@ function params = params_rover(varargin)
     % noise (on distances + acceleration)
     params.noise_mat = 0*ones(params.OutDim,2);    
     % sigma
-    params.noise_mat_original(params.pos_acc_out,1) = 0*5e-2;   % noise on IMU - sigma
-    params.noise_mat_original(params.pos_w_out,1) = 0*1e-2;     % noise on W - sigma
-    params.noise_mat_original(params.pos_dist_out,1) = 0*2e-1;  % noise on UWB - sigma    
+    params.noise_mat_original(params.pos_acc_out,1) = 1*5e-2;   % noise on IMU - sigma
+    params.noise_mat_original(params.pos_w_out,1) = 1*1e-2;     % noise on W - sigma
+    params.noise_mat_original(params.pos_dist_out,1) = 1*2e-1;  % noise on UWB - sigma    
     params.mean = params.noise_mat_original(:,1);
-    params.noise_mat(:,1) = 1*params.noise_mat_original(:,1);    
+    params.noise_mat(:,1) = 0*params.noise_mat_original(:,1);    
 
-    %%% process noise %%%
-    params.jerk_enable = 0;
-    params.sigma_w = 1e-2;
-    params.proc_acc = 1;
-    params.proc_bias = 1;
-    params.bias = 1;
 
     % enable noise      
-    params.hyb = 1;
+    params.hyb = 0;
     params.dryrun = 0;
     params.sferlazza = 0;
 
@@ -225,7 +226,7 @@ function params = params_rover(varargin)
                               3;0;0.1;0; ...                % y pos + IMU bias
                               1.46;0;0.1;0; ...             % z pos + IMU bias
                               1; 0; 0; 0; ...             % quaternion
-                              0; 0; 0; ...                % omega
+                              0.2; 0.2; 0.2; ...                % omega
                               0; 0; 0; ...                % gyro bias
                               AM1(1,1);AM1(2,1);1*an_dz;  ...           % anchors Mesh 1
                               AM1(1,2);AM1(2,2);1*an_dz;  ...
@@ -237,10 +238,10 @@ function params = params_rover(varargin)
     %%%%%%%%%%%%%%%%%%%%%%%
        
     % position in the state vector of the estimated parameters
-    params.estimated_params = params.pos_Gamma(1:4);
+    params.estimated_params = params.pos_Gamma(1:3);
     
     % which vars am I optimising
-    params.opt_vars = [params.pos_Gamma(1:6)];
+    params.opt_vars = [params.pos_Gamma(4:19)];
     
     % set the not optimised vars
     tmp = 1:length(params.X(1).val(:,1));
@@ -334,6 +335,30 @@ function params = params_rover(varargin)
         params.range_sfer_jump = [1:3; 5:7; 9:11];
     
     end
+
+    %% EKF stuff
+    % enable
+    params.ekf = 1;
+    %%% noise matrices
+    % measurement noise
+    params.R = diag([params.noise_mat_original(params.pos_dist_out,1).^2.*ones(params.Ntags*params.Nanchor,1);  ...  % UWB         
+                     zeros(numel([params.pos_p_out params.pos_v_out]),1);                                       ...  % P,V
+                     params.noise_mat_original(params.pos_acc_out,1).^2.*ones(params.space_dim,1);              ... % IMU ACC     
+                     zeros(numel([params.pos_eul_out]),1);                                                      ... % EUL  
+                     params.noise_mat_original(params.pos_w_out,1).^2.*ones(params.space_dim,1);              ... % IMU GYRO
+        ]);      
+    
+    % process noise - model: bias - acc - gyro
+    params.Q = 1*diag([0*ones(1,3) 1e2*ones(1,3) 1e0*ones(1,3)]);
+
+    % EKF covariance matrix
+    for traj=1:params.Ntraj
+        params.Phat(traj).val(1,:,:) = 1e-2*eye(params.dim_state);
+        params.PhatZero = params.Phat(traj).val(1,:,:);
+        params.PhatReset = Inf;
+    end
+    %%%%%%%%%%%%%%%%
+
     
 
     

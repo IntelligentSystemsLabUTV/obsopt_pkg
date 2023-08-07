@@ -143,30 +143,30 @@ function [x_dot, x] = model_rover(tspan,x,params,obs)
 
         % meas available
         y = obs.init.Y_full_story(obs.init.traj).val(1,:,pos(1));
-%         q_jump = obs.init.params.q_jump(obs.init.traj).val(:,pos(1)/params.UWB_samp)';
+        q_jump = obs.init.params.q_jump(obs.init.traj).val(:,pos(1)/params.UWB_samp)';
         % q_jump = y(params.pos_quat_out);
 
         % from quaternion to RPY
-%         [yaw, pitch, roll]  = quat2angle(q_jump);
+        [yaw, pitch, roll]  = quat2angle(q_jump);
         roll =  y(params.pos_eul_out(1));
         pitch = y(params.pos_eul_out(2));
         yaw =   y(params.pos_eul_out(3));
         [yawhat, pitchhat, rollhat]  = quat2angle(xp(params.pos_quat)');
-        delta = [roll-rollhat, pitch-pitchhat, yaw-yawhat];
+        err = [roll-rollhat, pitch-pitchhat, yaw-yawhat];
 
         % angle jump map
-        rollhatP = rollhat + params.gamma(1)*delta(1);
-        pitchhatP = pitchhat + params.gamma(2)*delta(2);
-        yawhatP = yawhat + params.gamma(3)*delta(3);
+        rollhatP = rollhat + params.gamma(1)*err(1);
+        pitchhatP = pitchhat + params.gamma(2)*err(2);
+        yawhatP = yawhat + params.gamma(3)*err(3);
         xp(params.pos_quat) = angle2quat(yawhatP, pitchhatP, rollhatP);
 
         % quat jump
-        % err = quatmultiply(q_jump,x(params.pos_quat).');
-        % xp(params.pos_quat(1)) = x(params.pos_quat(1)) + params.gamma(1)*(err(1));
-        % xp(params.pos_quat(2)) = x(params.pos_quat(2)) + params.gamma(2)*(err(2));
-        % xp(params.pos_quat(3)) = x(params.pos_quat(3)) + params.gamma(3)*(err(3));
-        % xp(params.pos_quat(4)) = x(params.pos_quat(4)) + params.gamma(4)*(err(4));
         % err = quatmultiply(quatinv(q_jump),x(params.pos_quat).');
+        % err = q_jump - x(params.pos_quat).';
+        % xp(params.pos_quat(1)) = x(params.pos_quat(1)) + params.gamma(1)*(err(1)) + params.gamma(5)*(err(2)) + params.gamma(9)*(err(3)) + params.gamma(13)*(err(4));
+        % xp(params.pos_quat(2)) = x(params.pos_quat(2)) + params.gamma(2)*(err(1)) + params.gamma(6)*(err(2)) + params.gamma(10)*(err(3))+ params.gamma(14)*(err(4));
+        % xp(params.pos_quat(3)) = x(params.pos_quat(3)) + params.gamma(3)*(err(1)) + params.gamma(7)*(err(2)) + params.gamma(11)*(err(3))+ params.gamma(15)*(err(4));
+        % xp(params.pos_quat(4)) = x(params.pos_quat(4)) + params.gamma(4)*(err(1)) + params.gamma(8)*(err(2)) + params.gamma(12)*(err(3))+ params.gamma(16)*(err(4));
         % xp(params.pos_quat(1)) = x(params.pos_quat(1)) + params.gamma(1)*(err(1));
         % xp(params.pos_quat(2)) = x(params.pos_quat(2)) + params.gamma(1)*(err(2));
         % xp(params.pos_quat(3)) = x(params.pos_quat(3)) + params.gamma(1)*(err(3));

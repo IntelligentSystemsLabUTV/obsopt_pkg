@@ -180,17 +180,18 @@ function plot_3Dobject(obj,varargin)
     try
         fig_count = fig_count+1;
         figure(fig_count)            
-        sgtitle('Quaternion estimation')
+        sgtitle('Attitude estimation')
         ax = zeros(1,3);
     
-        for i=1:length(params.pos_quat)-1
-            subplot(length(params.pos_quat)-1,1,i);
+        Nplots = length(params.pos_quat)-1;
+        for i=1:Nplots
+            subplot(Nplots,1,i);
             hold on
             grid on
             box on
     
             % indicize axes        
-            ax(i)=subplot(length(params.pos_quat)-1,1,i);     
+            ax(i)=subplot(Nplots,1,i);     
             
             for traj=1:obj.setup.Ntraj   
 
@@ -198,16 +199,24 @@ function plot_3Dobject(obj,varargin)
                 if ~realdata
                     THETA = zeros(3,obj.setup.Niter);
                     [THETA(3,:), THETA(2,:), THETA(1,:)] = quat2angle(obj.init.X(traj).val(params.pos_quat,:)');
+                    THETA = obj.init.X(traj).val(params.pos_quat,:)';
                 else
-                    THETA = zeros(3,obj.setup.Niter);
-                    [THETA(3,:), THETA(2,:), THETA(1,:)] = quat2angle(squeeze(obj.init.Y_full_story(traj).val(1,params.pos_quat_out,:)).');
+                    THETA = reshape(obj.init.Y_full_story(traj).val(1,params.pos_eul_out,:),numel(params.pos_eul_out),size(obj.init.Y_full_story(traj).val,3));
+                    THETA = obj.init.X(traj).val(params.pos_quat,:)';
                 end
-                THETAHAT = zeros(3,obj.setup.Niter);
-                [THETAHAT(3,:), THETAHAT(2,:), THETAHAT(1,:)] = quat2angle(obj.init.X_est(traj).val(params.pos_quat,:)');
+                % THETAHAT = zeros(3,obj.setup.Niter);
+                % [THETAHAT(3,:), THETAHAT(2,:), THETAHAT(1,:)] = quat2angle(obj.init.X_est(traj).val(params.pos_quat,:)');
+                THETAHAT = obj.init.X_est(traj).val(params.pos_quat,:)';
 
-                plot(obj.setup.time,THETA(i,:),'LineWidth',2);
+                % plot(obj.setup.time,THETA(i,:),'LineWidth',2);
+                % set(gca,'ColorOrderIndex',traj)
+                % plot(obj.setup.time,THETAHAT(i,:),'--','LineWidth',1);   
+
+                QUATERR = quatmultiply(quatinv(THETA),THETAHAT);
+                [THETAERR(3,:), THETAERR(2,:), THETAERR(1,:)] = quat2angle(QUATERR);
+                % plot(obj.setup.time,QUATERR(:,i),'LineWidth',2);
+                plot(obj.setup.time,rad2deg(THETAERR(i,:)),'LineWidth',2);
                 set(gca,'ColorOrderIndex',traj)
-                plot(obj.setup.time,THETAHAT(i,:),'--','LineWidth',1);                                                                         
             end
             
             % labels
@@ -254,7 +263,7 @@ function plot_3Dobject(obj,varargin)
         legend('True','Est') 
         xlabel(['time [s]'])
         %linkaxes(ax);
-    catch
+    catch ME
         close
         fig_count = fig_count -1;
     end

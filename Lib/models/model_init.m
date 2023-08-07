@@ -21,7 +21,7 @@ function params = model_init(varargin)
             Ntraj = varargin{pos+1};
             params = params_init(Ntraj);
         else
-            params = params_init;
+            params = params_init(1);
         end
         
     else
@@ -184,8 +184,10 @@ function params = model_init(varargin)
             
             if params.noise                                            
                 % around init
-                params.X_est(traj).val(params.perturbed_vars,1) = init(params.perturbed_vars).*(1 + params.noise*params.perc(params.perturbed_vars,traj).*ones(length(params.perturbed_vars),1)) + ...
-                                                                  params.noise*noise_std'.*randn(length(params.perturbed_vars),1);                  
+                params.X_est(traj).val(params.perturbed_vars,1) = 0*init(params.perturbed_vars).*(1 + params.noise*params.perc(params.perturbed_vars,traj).*ones(length(params.perturbed_vars),1)) + ...
+                                                                  params.noise*noise_std'.*randn(length(params.perturbed_vars),1);    
+                params.X_est(traj).val(params.perturbed_vars,1) = 0;
+                params.X_est(traj).val(params.pos_quat(1),1) = 1;
             end
 
             % test - bias starting always from 0

@@ -27,12 +27,15 @@ function [y, obs] = measure_rover_reference(x,params,t,u,obs)
     V_true = reshape(x(params.pos_v,:),numel(params.pos_v),size(x,2));
     P_true = reshape(x(params.pos_p,:),numel(params.pos_p),size(x,2));
     Quat_true = reshape(x(params.pos_quat,:),numel(params.pos_quat),size(x,2));
+    [yaw, pitch, roll]  = quat2angle(Quat_true.');
+    Eul_true = [roll; pitch; yaw];
 
     % place the tags
     R = quat2rotm(Quat_true.');
     for i=1:3
         Pt(:,i) = R*params.TagPos(:,i) + P_true;
     end
+    Pt(3,:) = Pt(3,:) - params.TagPos(3,:);
 
     % different sampling times
     if mod(pos(end),params.UWB_samp) == 0
@@ -53,6 +56,9 @@ function [y, obs] = measure_rover_reference(x,params,t,u,obs)
         obs.init.params.last_Quat_ref(traj,:) = Quat_true;
     else
         D = reshape(obs.init.params.last_D_ref(traj,:),3*params.Nanchor,1);
+        Quat_true = reshape(obs.init.params.last_Quat_ref(traj,:),4,1);
+        [yaw, pitch, roll]  = quat2angle(Quat_true.');
+        Eul_true = [roll; pitch; yaw];
     end    
 
     %%% get the IMU accelerations
@@ -75,14 +81,14 @@ function [y, obs] = measure_rover_reference(x,params,t,u,obs)
 
     %%% add noise
     % noise on UWB + IMU
-    y_true = [D; P_true; V_true; IMU_true; Quat_true; W_true];
+    y_true = [D; P_true; V_true; IMU_true; Eul_true; W_true];
     noise = obs.setup.noise*(params.noise_mat(:,1).*randn(obs.setup.dim_out,1));    
 
     % bias IMU
-    noise(params.pos_acc_out) = noise(params.pos_acc_out) + params.bias*x(params.pos_bias);  
+    noise(params.pos_acc_out) = noise(params.pos_acc_out) + (x(params.pos_bias));  
 
     % bias Gyro
-    noise(params.pos_w_out) = noise(params.pos_w_out) + params.bias*x(params.pos_bias_w);  
+    noise(params.pos_w_out) = noise(params.pos_w_out) + x(params.pos_bias_w);  
 
     %%% multi rate - UWB
     if mod(pos(end),params.UWB_samp) ~= 0

@@ -21,19 +21,49 @@ function [x_dot, x] = model_rover_EKF(tspan,x,params,obs)
         pos(i) = max(1,pos(i));        
     end    
     
-    % compute the control     
-    params.u = obs.init.input_story_ref(obs.init.traj).val(:,max(1,pos(1)));  
-    obs.init.input_story(obs.init.traj).val(:,pos(1)) = params.u(:,1);           
+    % compute the control
+    % use input from reference
+    try
+        params.u = obs.init.input_story_ref(obs.init.traj).val(:,max(1,pos(1)));
+        obs.init.input_story(obs.init.traj).val(:,pos(1)) = params.u(:,1);   
+    catch
+        obs.init.input_story(obs.init.traj).val(:,pos(1)) = 0;
+    end          
     
-    % model dynamics
-    % x axis
-    x_dot(1) = x(2);    
-    x_dot(2) = x(3);
-    x_dot(3) = 0;
+    %% Position model
+
+    % position 
+    x_dot(params.pos_p) = x(params.pos_v);   
+
+    % velocity
+    x_dot(params.pos_v) = x(params.pos_acc);  
+
+    % bias
+    x_dot(params.pos_bias) = 0;  
+
+    % acc
+    x_dot(params.pos_acc) = 0;  
+
+    %% Quaternion dynamics
+
+    % Skew matrix - eq. 39 Challa
+    q = x(params.pos_quat);
+    W = x(params.pos_w) - x(params.pos_bias_w);
+    S = [0      -W(3)   +W(2); ...
+         +W(3)  0       -W(1); ...
+         -W(2)  +W(1)   0];
+    OMEGA = [+S     W; ...
+             -W'    0];
+
+    % quaternion dynamics - eq. 40 armesto
+    x_dot(params.pos_quat) = 0.5*OMEGA*q;
+
+    % omega dynamics
+    x_dot(params.pos_w) = 0;
+
+    % bias
+    x_dot(params.pos_bias_w) = 0; 
+
     
-    % y axis
-    x_dot(5) = x(6);    
-    x_dot(6) = x(7);   
-    x_dot(7) = 0;
     
 end
