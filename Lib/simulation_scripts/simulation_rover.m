@@ -35,7 +35,7 @@ params_init = @params_rover;
 params_update = @params_update_rover;
 
 %%%% model function %%%%
-% model = @model_rover;
+model = @model_rover;
 model = @model_rover_EKF;
 
 %%%% model reference function %%%%

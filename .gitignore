@@ -19,6 +19,8 @@ data/
 *.zip
 *.prj
 *.tmp
+*.bag
+*.e57
 
 # exceptions
 !results/simulations/battery/report
