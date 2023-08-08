@@ -1,13 +1,13 @@
 # gitignore file
-fig/
-Latex/
-results/
-workspace/
-config/
-x86/
-doc/
-slprj/
-data/
+fig/**
+Latex/**
+results/**
+workspace/**
+config/**
+x86/**
+doc/**
+slprj/**
+data/**
 
 # files
 *.asv
