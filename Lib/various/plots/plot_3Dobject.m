@@ -199,23 +199,23 @@ function plot_3Dobject(obj,varargin)
                 if ~realdata
                     THETA = zeros(3,obj.setup.Niter);
                     [THETA(3,:), THETA(2,:), THETA(1,:)] = quat2angle(obj.init.X(traj).val(params.pos_quat,:)');
-                    THETA = obj.init.X(traj).val(params.pos_quat,:)';
+                    % THETA = obj.init.X(traj).val(params.pos_quat,:)';
                 else
                     THETA = reshape(obj.init.Y_full_story(traj).val(1,params.pos_eul_out,:),numel(params.pos_eul_out),size(obj.init.Y_full_story(traj).val,3));
-                    THETA = obj.init.X(traj).val(params.pos_quat,:)';
+                    % THETA = obj.init.X(traj).val(params.pos_quat,:)';
                 end
                 % THETAHAT = zeros(3,obj.setup.Niter);
-                % [THETAHAT(3,:), THETAHAT(2,:), THETAHAT(1,:)] = quat2angle(obj.init.X_est(traj).val(params.pos_quat,:)');
-                THETAHAT = obj.init.X_est(traj).val(params.pos_quat,:)';
+                [THETAHAT(3,:), THETAHAT(2,:), THETAHAT(1,:)] = quat2angle(obj.init.X_est(traj).val(params.pos_quat,:)');
+                % THETAHAT = obj.init.X_est(traj).val(params.pos_quat,:)';
 
-                % plot(obj.setup.time,THETA(i,:),'LineWidth',2);
-                % set(gca,'ColorOrderIndex',traj)
-                % plot(obj.setup.time,THETAHAT(i,:),'--','LineWidth',1);   
+                plot(obj.setup.time,THETA(i,:),'LineWidth',2);
+                set(gca,'ColorOrderIndex',traj)
+                plot(obj.setup.time,THETAHAT(i,:),'--','LineWidth',1);   
 
-                QUATERR = quatmultiply(quatinv(THETA),THETAHAT);
-                [THETAERR(3,:), THETAERR(2,:), THETAERR(1,:)] = quat2angle(QUATERR);
+                % QUATERR = quatmultiply(quatinv(THETA),THETAHAT);
+                % [THETAERR(3,:), THETAERR(2,:), THETAERR(1,:)] = quat2angle(QUATERR);
                 % plot(obj.setup.time,QUATERR(:,i),'LineWidth',2);
-                plot(obj.setup.time,rad2deg(THETAERR(i,:)),'LineWidth',2);
+                % plot(obj.setup.time,rad2deg(THETAERR(i,:)),'LineWidth',2);
                 set(gca,'ColorOrderIndex',traj)
             end
             

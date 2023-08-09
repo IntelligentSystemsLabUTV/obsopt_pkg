@@ -61,15 +61,15 @@ params_init = @params_rover;
 params_update = @params_update_rover;
 
 %%%% model function %%%%
-% model = @model_rover;
-model = @model_rover_EKF;
+model = @model_rover;
+% model = @model_rover_EKF;
 
 %%%% model reference function %%%%
 model_reference = @model_rover_reference;
 
 %%%% measure function %%%%
-% measure = @measure_rover;
-measure = @measure_rover_EKF;
+measure = @measure_rover;
+% measure = @measure_rover_EKF;
 measure_reference = @measure_rover_reference;
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
@@ -83,7 +83,7 @@ ode = @odeEuler;
 input_law = @control;
 
 %%%% params init %%%%
-params = model_init('Ts',Ts,'T0',[t0, tend],'noise',0, 'Ntraj', length(data),'params_update', params_update, ...
+params = model_init('Ts',Ts,'T0',[t0, tend],'noise',1, 'Ntraj', length(data),'params_update', params_update, ...
             'model',model,'measure',measure,'ode',ode, 'odeset', [1e-3 1e-6], ...
             'input_enable',1,'input_law',input_law,'params_init',params_init);
              

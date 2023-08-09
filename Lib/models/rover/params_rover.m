@@ -15,13 +15,16 @@ function params = params_rover(varargin)
     else
         Ntraj = 1;
     end
+    
+    params.hyb = 1;
+    params.ekf = 0;
 
     % system parameters
     params.m = 1;
     params.eps = 5;    
     params.Nanchor = 4;
     params.g = 0*0.1;
-    params.Ts = 1e-2;
+    % params.Ts = 1e-2;
     
     % control parameters
     % vines
@@ -57,13 +60,14 @@ function params = params_rover(varargin)
     % anchor stuff
     % pos anchors Mesh 1
     % AM1 = params.out.AM1(1:2,:);
-    AM1 = 4*[1 -1 1 -1; 1 1 -1 -1];    
+    % AM1 = 4*[1 -1 1 -1; 1 1 -1 -1];    
     % AM1 = [-0.40 -0.40 +2.48 +2.80; +4.20 -1.80 -2.20 +4.20];    
+    AM1 = [0 0 15 15; 0 4.7 4.7 0];    
     % square box
     an_dp = max(max(abs(AM1)));
     % height
     % an_dz = mean(params.out.AM1(3,:));
-    an_dz = 20;
+    an_dz = 3.3;
     Nhillmax = 4;
 
     %%% gaussian stuff %%%
@@ -95,7 +99,7 @@ function params = params_rover(varargin)
     end
 
     % tags    
-    L = 1;
+    L = 0.19;
     Z = 0.184;
     params.TagPos = [-L             +0.0            +1*Z;
                      +L*cos(pi/3)   -L*sin(pi/3)    +1*Z;
@@ -108,11 +112,10 @@ function params = params_rover(varargin)
     %%% observer params %%%
     % theta
     params.theta = 1*[0.4221    0.2888   -0.0281];
-    % params.gamma = 1*[0.1   0   0   0.1   0   0.1   0   0   0.1   0];
-    % params.gamma = 0*[0.2   0   0   0   0   0   0   0   0   0];
+%     params.theta = 0*[0.8    0.2888   -0.1];    
     params.gamma = 0*ones(1,16);
-    params.gamma(1:3) = [1.13 0.18 -0.025];
-    % params.theta = 1*[0.3713    0.2401   -0.0264    0.0097    0.0797   -0.0095];
+%     params.gamma(1:3) = 1*[1.8112, 0.6373, 1.0015];    
+    params.gamma(1:3) = 1*[0.5, 0, 0];    
 
     % alpha
     params.alpha = 0*[0 0];      
@@ -208,8 +211,7 @@ function params = params_rover(varargin)
     params.noise_mat(:,1) = 0*params.noise_mat_original(:,1);    
 
 
-    % enable noise      
-    params.hyb = 0;
+    % enable noise          
     params.dryrun = 0;
     params.sferlazza = 0;
 
@@ -222,11 +224,11 @@ function params = params_rover(varargin)
     %%%%%%%%%%%%%%%%%%%%%%%%        
 
     % initial condition - anchors diamond
-    params.X(1).val(:,1) = 1*[3;0;0.1;0; ...                % x pos + IMU bias
-                              3;0;0.1;0; ...                % y pos + IMU bias
-                              1.46;0;0.1;0; ...             % z pos + IMU bias
+    params.X(1).val(:,1) = 1*[0;0;0;0; ...                % x pos + IMU bias
+                              0;0;0;0; ...                % y pos + IMU bias
+                              0;0;9.8;0; ...                % z pos + IMU bias
                               1; 0; 0; 0; ...             % quaternion
-                              0.2; 0.2; 0.2; ...                % omega
+                              0; 0; 0; ...                % omega
                               0; 0; 0; ...                % gyro bias
                               AM1(1,1);AM1(2,1);1*an_dz;  ...           % anchors Mesh 1
                               AM1(1,2);AM1(2,2);1*an_dz;  ...
@@ -337,8 +339,7 @@ function params = params_rover(varargin)
     end
 
     %% EKF stuff
-    % enable
-    params.ekf = 1;
+    % enable    
     %%% noise matrices
     % measurement noise
     params.R = diag([params.noise_mat_original(params.pos_dist_out,1).^2.*ones(params.Ntags*params.Nanchor,1);  ...  % UWB         

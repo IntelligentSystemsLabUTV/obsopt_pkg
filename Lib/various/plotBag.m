@@ -1,5 +1,5 @@
 %% plot data
-function data = plotBag(out,plotF)
+function data = plotBag(out,plotF,GTF)
 
     % init
     fig_count = 0;
@@ -7,9 +7,15 @@ function data = plotBag(out,plotF)
     % close all
     set(0,'DefaultFigureWindowStyle','docked');
 
-    % define time ofr gorund truth and estimation
-    time = out.vicon.MessageList.Time - out.vicon.StartTime;
-    timehat = out.EKF.MessageList.Time - out.EKF.StartTime;
+    % define time ofr gorund truth and estimation    
+    if GTF
+        time =  out.vicon.MessageList.Time - out.vicon.StartTime;
+    else
+        time =  out.EKF.MessageList.Time - out.EKF.StartTime;
+    end
+    [~, pos] = min(abs(time - 200));  
+    time = time(1:pos);
+    time = time(1):1e-2:time(end);    
     data.time = time;
     startpos = floor(numel(time)/2);
     endpos = numel(time)-1;
@@ -20,22 +26,45 @@ function data = plotBag(out,plotF)
         figure(fig_count)
     end
 
-    x = cellfun(@(m) double(m.Pose.Pose.Position.X),out.viconData);
-    xhat = cellfun(@(m) double(m.Pose.Pose.Position.X),out.EKFData);
+    if GTF
+        x = cellfun(@(m) double(m.Pose.Pose.Position.X),out.viconData);
+        x = resample(x,numel(time),numel(x));
+        x = x(1:pos);
+    else        
+        x = zeros(numel(time),1);
+    end    
     data.p(:,1) = x;
-    xhat = resample(xhat,size(data.p,1),numel(xhat));
+    xhat = cellfun(@(m) double(m.Pose.Pose.Position.X),out.EKFData);       
+    xhat = xhat(1:pos);
+    xhat = resample(xhat,size(data.p,1),numel(xhat));    
     data.phat(:,1) = xhat;
 
-    x = cellfun(@(m) double(m.Pose.Pose.Position.Y),out.viconData);
-    xhat = cellfun(@(m) double(m.Pose.Pose.Position.Y),out.EKFData);
-    xhat = resample(xhat,size(data.p,1),numel(xhat));
+    if GTF
+        x = cellfun(@(m) double(m.Pose.Pose.Position.Y),out.viconData);
+        x = resample(x,numel(time),numel(x));
+        x = x(1:pos);
+    else        
+        x = zeros(numel(time),1);
+    end
     data.p(:,2) = x;
+    xhat = cellfun(@(m) double(m.Pose.Pose.Position.Y),out.EKFData);
+    xhat = xhat(1:pos);
+    xhat = resample(xhat,size(data.p,1),numel(xhat));    
+    data.p(:,2) = zeros(numel(time),1);
     data.phat(:,2) = xhat;
 
-    x = cellfun(@(m) double(m.Pose.Pose.Position.Z),out.viconData);
-    xhat = cellfun(@(m) double(m.Pose.Pose.Position.Z),out.EKFData);
-    xhat = resample(xhat,size(data.p,1),numel(xhat));
+    if GTF
+        x = cellfun(@(m) double(m.Pose.Pose.Position.Z),out.viconData);
+        x = resample(x,numel(time),numel(x));
+        x = x(1:pos);
+    else        
+        x = zeros(numel(time),1);
+    end
     data.p(:,3) = x;
+    xhat = cellfun(@(m) double(m.Pose.Pose.Position.Z),out.EKFData); 
+    xhat = xhat(1:pos);
+    xhat = resample(xhat,size(data.p,1),numel(xhat));    
+    data.p(:,3) = zeros(numel(time),1);
     data.phat(:,3) = xhat;
 
     x = cellfun(@(m) double(m.Pose.Pose.Position.X),out.PJUMPData);
@@ -49,12 +78,15 @@ function data = plotBag(out,plotF)
     data.pjump(:,3) = x;
 
     x = cellfun(@(m) double(m.Pose.Pose.Position.X),out.PHYBData);
+    x = x(1:pos);
     x = resample(x,size(data.p,1),numel(x));
     data.phyb(:,1) = x;
     x = cellfun(@(m) double(m.Pose.Pose.Position.Y),out.PHYBData);
+    x = x(1:pos);
     x = resample(x,size(data.p,1),numel(x));
     data.phyb(:,2) = x;
     x = cellfun(@(m) double(m.Pose.Pose.Position.Z),out.PHYBData);
+    x = x(1:pos);
     x = resample(x,size(data.p,1),numel(x));
     data.phyb(:,3) = x;
 
@@ -66,19 +98,19 @@ function data = plotBag(out,plotF)
             grid on
             plot(time,data.p(:,i),'b','LineWidth',2);
             plot(time,data.phat(:,i),'r','LineWidth',2);
+            plot(time,data.phyb(:,i),'k','LineWidth',2);
             % labels
             set(gca,'fontsize', fontsize)         
             ylabel(['p_',num2str(i)])
-            ylim([-3 3]);
         end
-        %linkaxes(ax);
+        
         legend('Pos')   
         xlabel('time [s]')
         xlim('auto');
     end
 
     %% position estimation error
-    if plotF
+    if plotF && 0
         fig_count = fig_count +1;
         figure(fig_count)
     end
@@ -87,7 +119,7 @@ function data = plotBag(out,plotF)
     data.epMean = mean(data.ep(startpos:endpos,:),1);
     data.epSigma = std(data.ep(startpos:endpos,:),0,1);
 
-    if plotF
+    if plotF && 0
         for i=1:3
             subplot(3,1,i);
             box on
@@ -97,9 +129,8 @@ function data = plotBag(out,plotF)
             % labels
             set(gca,'fontsize', fontsize)         
             ylabel(['e_',num2str(i)])
-            ylim([-3 3]);
         end
-        %linkaxes(ax);
+        
         legend('Err')   
         xlabel('time [s]') 
         xlim('auto');
@@ -111,28 +142,55 @@ function data = plotBag(out,plotF)
         figure(fig_count)
     end
 
-    x = cellfun(@(m) double(m.Pose.Pose.Orientation.X),out.viconData);
-    xhat = cellfun(@(m) double(m.Pose.Pose.Orientation.X),out.EKFData);
-    xhat = resample(xhat,size(data.p,1),numel(xhat));
+    if GTF
+        x = cellfun(@(m) double(m.Pose.Pose.Orientation.X),out.viconData);
+        x = x(1:pos);
+    else        
+        x = zeros(numel(time),1);
+    end
     data.q(:,2) = x;
+    xhat = cellfun(@(m) double(m.Pose.Pose.Orientation.X),out.EKFData);
+    xhat = xhat(1:pos);
+    xhat = resample(xhat,size(data.p,1),numel(xhat));
     data.qhat(:,2) = xhat;
 
-    x = cellfun(@(m) double(m.Pose.Pose.Orientation.Y),out.viconData);
-    xhat = cellfun(@(m) double(m.Pose.Pose.Orientation.Y),out.EKFData);
-    xhat = resample(xhat,size(data.p,1),numel(xhat));
+    if GTF
+        x = cellfun(@(m) double(m.Pose.Pose.Orientation.Y),out.viconData);
+        x = x(1:pos);
+    else        
+        x = zeros(numel(time),1);
+    end
     data.q(:,3) = x;
+    xhat = cellfun(@(m) double(m.Pose.Pose.Orientation.Y),out.EKFData);
+    xhat = xhat(1:pos);
+    xhat = resample(xhat,size(data.p,1),numel(xhat));
+    data.q(:,3) = zeros(numel(time),1);
     data.qhat(:,3) = xhat;
 
-    x = cellfun(@(m) double(m.Pose.Pose.Orientation.Z),out.viconData);
-    xhat = cellfun(@(m) double(m.Pose.Pose.Orientation.Z),out.EKFData);
-    xhat = resample(xhat,size(data.p,1),numel(xhat));
+    if GTF
+        x = cellfun(@(m) double(m.Pose.Pose.Orientation.Z),out.viconData);
+        x = x(1:pos);
+    else        
+        x = zeros(numel(time),1);
+    end
     data.q(:,4) = x;
+    xhat = cellfun(@(m) double(m.Pose.Pose.Orientation.Z),out.EKFData);
+    xhat = xhat(1:pos);
+    xhat = resample(xhat,size(data.p,1),numel(xhat));
+    data.q(:,4) = zeros(numel(time),1);
     data.qhat(:,4) = xhat;
 
-    x = cellfun(@(m) double(m.Pose.Pose.Orientation.W),out.viconData);
-    xhat = cellfun(@(m) double(m.Pose.Pose.Orientation.W),out.EKFData);
-    xhat = resample(xhat,size(data.p,1),numel(xhat));
+    if GTF
+        x = cellfun(@(m) double(m.Pose.Pose.Orientation.W),out.viconData);
+        x = x(1:pos);
+    else        
+        x = zeros(numel(time),1);
+    end
     data.q(:,1) = x;
+    xhat = cellfun(@(m) double(m.Pose.Pose.Orientation.W),out.EKFData);
+    xhat = xhat(1:pos);
+    xhat = resample(xhat,size(data.p,1),numel(xhat));
+    data.q(:,1) = ones(numel(time),1);
     data.qhat(:,1) = xhat;
 
     x = cellfun(@(m) double(m.Pose.Pose.Orientation.X),out.PJUMPData);
@@ -141,23 +199,23 @@ function data = plotBag(out,plotF)
     x = cellfun(@(m) double(m.Pose.Pose.Orientation.Y),out.PJUMPData);
     x = resample(x,size(data.p,1),numel(x));
     data.qjump(:,3) = x;
-    x = cellfun(@(m) double(m.Pose.Pose.Orientation.Z),out.PJUMPData);
+    x = cellfun(@(m) double(m.Pose.Pose.Orientation.Z),out.PJUMPData);    
     x = resample(x,size(data.p,1),numel(x));
     data.qjump(:,4) = x;
-    x = cellfun(@(m) double(m.Pose.Pose.Orientation.W),out.PJUMPData);
+    x = cellfun(@(m) double(m.Pose.Pose.Orientation.W),out.PJUMPData);    
     x = resample(x,size(data.p,1),numel(x));
     data.qjump(:,1) = x;
 
-    x = cellfun(@(m) double(m.Pose.Pose.Orientation.X),out.PHYBData);
+    x = cellfun(@(m) double(m.Pose.Pose.Orientation.X),out.PHYBData);    
     x = resample(x,size(data.p,1),numel(x));
     data.qhyb(:,2) = x;
-    x = cellfun(@(m) double(m.Pose.Pose.Orientation.Y),out.PHYBData);
+    x = cellfun(@(m) double(m.Pose.Pose.Orientation.Y),out.PHYBData);    
     x = resample(x,size(data.p,1),numel(x));
     data.qhyb(:,3) = x;
-    x = cellfun(@(m) double(m.Pose.Pose.Orientation.Z),out.PHYBData);
+    x = cellfun(@(m) double(m.Pose.Pose.Orientation.Z),out.PHYBData);    
     x = resample(x,size(data.p,1),numel(x));
     data.qhyb(:,4) = x;
-    x = cellfun(@(m) double(m.Pose.Pose.Orientation.W),out.PHYBData);
+    x = cellfun(@(m) double(m.Pose.Pose.Orientation.W),out.PHYBData);    
     x = resample(x,size(data.p,1),numel(x));
     data.qhyb(:,1) = x;
 
@@ -198,7 +256,7 @@ function data = plotBag(out,plotF)
             set(gca,'fontsize', fontsize)         
             ylabel(['\theta_',num2str(i)])
         end
-        %linkaxes(ax);
+        
         legend('Ang')   
         xlabel('time [s]') 
     end
@@ -217,13 +275,13 @@ function data = plotBag(out,plotF)
             set(gca,'fontsize', fontsize)         
             ylabel(['e_',num2str(i)])
         end
-        %linkaxes(ax);
+        
         legend('Quat')   
         xlabel('time [s]') 
     end
 
     %% pose estimation error
-    if plotF
+    if plotF && 0
         fig_count = fig_count +1;
         figure(fig_count)
     end
@@ -232,7 +290,7 @@ function data = plotBag(out,plotF)
     data.eangMean = mean(data.eang(startpos:endpos,:),1);
     data.eangSigma = std(data.eang(startpos:endpos,:),0,1);
 
-    if plotF
+    if plotF && 0
         for i=1:3
             subplot(3,1,i);
             box on
@@ -243,13 +301,13 @@ function data = plotBag(out,plotF)
             set(gca,'fontsize', fontsize)         
             ylabel(['e_',num2str(i)])
         end
-        %linkaxes(ax);
+        
         legend('Ang Err')   
         xlabel('time [s]') 
     end
 
     %% quaternion estimation error
-    if plotF
+    if plotF && 0
         fig_count = fig_count +1;
         figure(fig_count)
     end
@@ -258,7 +316,7 @@ function data = plotBag(out,plotF)
     data.eangMean = mean(data.equat(startpos:endpos,:),1);
     data.eangSigma = std(data.equat(startpos:endpos,:),0,1);
 
-    if plotF
+    if plotF && 0
         for i=1:4
             subplot(4,1,i);
             box on
@@ -269,20 +327,19 @@ function data = plotBag(out,plotF)
             set(gca,'fontsize', fontsize)         
             ylabel(['e_',num2str(i)])
         end
-        %linkaxes(ax);
+        
         legend('Quat Err')   
         xlabel('time [s]') 
     end
 
     %% distances
-
     if plotF
         fig_count = fig_count +1;
         figure(fig_count)
     end
 
     xhat = zeros(12,length(out.UWBData));
-    xhat = cell2mat(cellfun(@(m) double(m.DC),out.UWBData,'UniformOutput',false));
+    xhat = cell2mat(cellfun(@(m) double(m.DC),out.UWBData,'UniformOutput',false));        
     xhat = reshape(xhat,12,length(out.UWBData))';
     for i=1:size(xhat,2)
         tmp(:,i) = resample(xhat(:,i),size(data.p,1),size(xhat,1));
@@ -312,7 +369,6 @@ function data = plotBag(out,plotF)
             set(gca,'fontsize', fontsize)         
             ylabel(['DT_',num2str(i)])
         end
-        %linkaxes(ax);
         legend('Meas')   
         xlabel('time [s]') 
     end
@@ -321,6 +377,7 @@ function data = plotBag(out,plotF)
     data.IMU(:,1) = cellfun(@(m) double(m.LinearAcceleration.X),out.IMUData);
     data.IMU(:,2) = cellfun(@(m) double(m.LinearAcceleration.Y),out.IMUData);
     data.IMU(:,3) = cellfun(@(m) double(m.LinearAcceleration.Z),out.IMUData);
+    data.IMU = data.IMU(1:pos,:);
     tmp = [];
     for i = 1:3
         tmp(:,i) = resample(data.IMU(:,i),size(data.p,1),size(data.IMU(:,i),1));
@@ -330,6 +387,7 @@ function data = plotBag(out,plotF)
     data.W(:,1) = cellfun(@(m) double(m.AngularVelocity.X),out.IMUData);
     data.W(:,2) = cellfun(@(m) double(m.AngularVelocity.Y),out.IMUData);
     data.W(:,3) = cellfun(@(m) double(m.AngularVelocity.Z),out.IMUData);
+    data.W = data.W(1:pos,:);
     for i = 1:3
         tmp(:,i) = resample(data.W(:,i),size(data.p,1),size(data.W(:,i),1));
     end
@@ -338,6 +396,7 @@ function data = plotBag(out,plotF)
     data.IMUHYB(:,1) = cellfun(@(m) double(m.LinearAcceleration.X),out.IMUHYBData);
     data.IMUHYB(:,2) = cellfun(@(m) double(m.LinearAcceleration.Y),out.IMUHYBData);
     data.IMUHYB(:,3) = cellfun(@(m) double(m.LinearAcceleration.Z),out.IMUHYBData);
+    data.IMUHYB = data.IMUHYB(1:pos,:);
     tmp = [];
     for i = 1:3
         tmp(:,i) = resample(data.IMUHYB(:,i),size(data.p,1),size(data.IMUHYB(:,i),1));
@@ -347,6 +406,7 @@ function data = plotBag(out,plotF)
     data.WHYB(:,1) = cellfun(@(m) double(m.AngularVelocity.X),out.IMUHYBData);
     data.WHYB(:,2) = cellfun(@(m) double(m.AngularVelocity.Y),out.IMUHYBData);
     data.WHYB(:,3) = cellfun(@(m) double(m.AngularVelocity.Z),out.IMUHYBData);
+    data.WHYB = data.WHYB(1:pos,:);
     for i = 1:3
         tmp(:,i) = resample(data.WHYB(:,i),size(data.p,1),size(data.WHYB(:,i),1));
     end
@@ -355,11 +415,69 @@ function data = plotBag(out,plotF)
     data.BIASHYB(:,1) = cellfun(@(m) double(m.LinearAcceleration.X),out.BiasHYBData);
     data.BIASHYB(:,2) = cellfun(@(m) double(m.LinearAcceleration.Y),out.BiasHYBData);
     data.BIASHYB(:,3) = cellfun(@(m) double(m.LinearAcceleration.Z),out.BiasHYBData);
+    data.BIASHYB = data.BIASHYB(1:pos,:);
     tmp = [];
     for i = 1:3
         tmp(:,i) = resample(data.BIASHYB(:,i),size(data.p,1),size(data.BIASHYB(:,i),1));
     end
     data.BIASHYB = tmp;
+    
+    if plotF
+        fig_count = fig_count +1;
+        figure(fig_count)
+    end
+    
+    if plotF
+        sgtitle('IMU')
+        ax = zeros(1,3);
+        for i=1:3
+            subplot(3,1,i);
+            hold on
+            grid on
+            box on
+    
+            % indicize axes        
+            ax(i)=subplot(3,1,i);     
+            
+            
+            plot(time,data.IMU(:,i),'LineWidth',2,'Color','r');
+            plot(time,data.IMUHYB(:,i),'LineWidth',2,'Color','k');
+            
+                
+            % labels
+            set(gca,'fontsize', fontsize)         
+            ylabel(['a_',num2str(i)])
+        end
+        legend('Meas')   
+        xlabel('time [s]') 
+    end
+    
+    if plotF
+        fig_count = fig_count +1;
+        figure(fig_count)
+        sgtitle('OMEGA')
+        ax = zeros(1,3);
+        for i=1:3
+            subplot(3,1,i);
+            hold on
+            grid on
+            box on
+    
+            % indicize axes        
+            ax(i)=subplot(3,1,i);     
+            
+            
+            plot(time,data.W(:,i),'LineWidth',2,'Color','r');
+            plot(time,data.WHYB(:,i),'LineWidth',2,'Color','k');
+            
+                
+            % labels
+            set(gca,'fontsize', fontsize)         
+            ylabel(['w_',num2str(i)])
+        end
+        legend('Meas')   
+        xlabel('time [s]') 
+    end
    
 
 end
