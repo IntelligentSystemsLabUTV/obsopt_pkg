@@ -115,7 +115,7 @@ function params = params_rover(varargin)
 %     params.theta = 0*[0.8    0.2888   -0.1];    
     params.gamma = 0*ones(1,16);
 %     params.gamma(1:3) = 1*[1.8112, 0.6373, 1.0015];    
-    params.gamma(1:3) = 1*[0.5, 0, 0];    
+%     params.gamma(1:3) = 1*[0.5, 0, 0];    
 
     % alpha
     params.alpha = 0*[0 0];      
@@ -243,7 +243,8 @@ function params = params_rover(varargin)
     params.estimated_params = params.pos_Gamma(1:3);
     
     % which vars am I optimising
-    params.opt_vars = [params.pos_Gamma(4:19)];
+%     params.opt_vars = [params.pos_Gamma(4:19)];
+    params.opt_vars = [params.pos_Gamma(4)];
     
     % set the not optimised vars
     tmp = 1:length(params.X(1).val(:,1));
@@ -359,6 +360,11 @@ function params = params_rover(varargin)
         params.PhatReset = Inf;
     end
     %%%%%%%%%%%%%%%%
+    
+    %% STABILITY analysys
+    testSchurNNL;
+    params.JJUMPq = JJUMPq;
+    params.JAq = JAq;
 
     
 

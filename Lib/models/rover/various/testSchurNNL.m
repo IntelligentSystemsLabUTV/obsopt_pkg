@@ -1,13 +1,14 @@
+
 %% symbolic definition
-clear
-close all
-clc
+% clear
+% close all
+% clc
 
 % symbols
 q = sym('q', [4,1], 'real');
 w = sym('w', [3,1], 'real');
-MEAS = [0.1 0.1 0.1];
-GAMMA = [0.5 0 0]';
+MEAS = sym('M', [3,1], 'real');
+GAMMA = sym('GAMMA', [3,1], 'real');
 syms R P Y real
 
 
@@ -19,6 +20,7 @@ OMEGA = [...
         -w(1)   -w(2)   -w(3)       0
          ];
 fq = symfun(OMEGA*q, [q; w]);
+fq = [fq;diag(w)*zeros(3,1)];
 
 % gradient
 % loop - q
@@ -32,6 +34,7 @@ for i=1:3
 end
 
 JAq = symfun(Gfq, [q;w]);
+
 
 %% function definition - discrete time
 % from angle to quat
@@ -54,15 +57,21 @@ fA2Q = symfun(A2Q,[R P Y]);
 % combine in jump map
 TMP = (GAMMA.*MEAS + (1-GAMMA).*(fQ2A(q(1),q(2),q(3),q(4))));
 JUMPq = fA2Q(TMP(1),TMP(2),TMP(3));
-fJUMPq = symfun(JUMPq,q);
+fJUMPq = symfun(JUMPq,[q; w; MEAS; GAMMA]);
+fJUMPq = [fJUMPq; diag(w)*ones(3,1)];
 
 % gradient
 % loop - q
 for i=1:4
-   GJUMPq(:,i) = simplify(diff(JUMPq,q(i)));
+   GJUMPq(:,i) = simplify(diff(fJUMPq,q(i)));
 end
 
-JJUMPq = symfun(GJUMPq, q);
+% loop - w
+for i=1:3
+   GJUMPq(:,4+i) = diff(fJUMPq,w(i));
+end
+
+JJUMPq = symfun(GJUMPq, [q; w; MEAS; GAMMA]);
 
 
 
