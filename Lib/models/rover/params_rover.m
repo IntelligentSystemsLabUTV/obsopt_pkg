@@ -61,13 +61,14 @@ function params = params_rover(varargin)
     % pos anchors Mesh 1
     % AM1 = params.out.AM1(1:2,:);
     % AM1 = 4*[1 -1 1 -1; 1 1 -1 -1];    
-    % AM1 = [-0.40 -0.40 +2.48 +2.80; +4.20 -1.80 -2.20 +4.20];    
-    AM1 = [0 0 15 15; 0 4.7 4.7 0];    
+    AM1 = [-0.40 -0.40 +2.48 +2.80; +4.20 -1.80 -2.20 +4.20];    
+%     AM1 = [0 0 15 15; 0 4.7 4.7 0];    
     % square box
     an_dp = max(max(abs(AM1)));
     % height
     % an_dz = mean(params.out.AM1(3,:));
-    an_dz = 3.3;
+%     an_dz = 3.3;
+    an_dz = 2;
     Nhillmax = 4;
 
     %%% gaussian stuff %%%
@@ -115,7 +116,7 @@ function params = params_rover(varargin)
 %     params.theta = 0*[0.8    0.2888   -0.1];    
     params.gamma = 0*ones(1,16);
 %     params.gamma(1:3) = 1*[1.8112, 0.6373, 1.0015];    
-%     params.gamma(1:3) = 1*[0.5, 0, 0];    
+    params.gamma(1:3) = 1*[0.5, 0, 0];    
 
     % alpha
     params.alpha = 0*[0 0];      
@@ -362,9 +363,9 @@ function params = params_rover(varargin)
     %%%%%%%%%%%%%%%%
     
     %% STABILITY analysys
-    testSchurNNL;
-    params.JJUMPq = JJUMPq;
-    params.JAq = JAq;
+%     testSchurNNL;
+%     params.JJUMPq = JJUMPq;
+%     params.JAq = JAq;
 
     
 

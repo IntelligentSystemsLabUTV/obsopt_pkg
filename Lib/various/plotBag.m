@@ -13,9 +13,9 @@ function data = plotBag(out,plotF,GTF)
     else
         time =  out.EKF.MessageList.Time - out.EKF.StartTime;
     end
+    time = time(1):1e-2:time(end); 
     [~, pos] = min(abs(time - 200));  
-    time = time(1:pos);
-    time = time(1):1e-2:time(end);    
+    time = time(1:pos);   
     data.time = time;
     startpos = floor(numel(time)/2);
     endpos = numel(time)-1;
@@ -35,8 +35,8 @@ function data = plotBag(out,plotF,GTF)
     end    
     data.p(:,1) = x;
     xhat = cellfun(@(m) double(m.Pose.Pose.Position.X),out.EKFData);       
-    xhat = xhat(1:pos);
     xhat = resample(xhat,size(data.p,1),numel(xhat));    
+    xhat = xhat(1:pos);
     data.phat(:,1) = xhat;
 
     if GTF
@@ -48,8 +48,8 @@ function data = plotBag(out,plotF,GTF)
     end
     data.p(:,2) = x;
     xhat = cellfun(@(m) double(m.Pose.Pose.Position.Y),out.EKFData);
-    xhat = xhat(1:pos);
-    xhat = resample(xhat,size(data.p,1),numel(xhat));    
+    xhat = resample(xhat,size(data.p,1),numel(xhat));   
+    xhat = xhat(1:pos); 
     data.p(:,2) = zeros(numel(time),1);
     data.phat(:,2) = xhat;
 
@@ -62,8 +62,8 @@ function data = plotBag(out,plotF,GTF)
     end
     data.p(:,3) = x;
     xhat = cellfun(@(m) double(m.Pose.Pose.Position.Z),out.EKFData); 
-    xhat = xhat(1:pos);
     xhat = resample(xhat,size(data.p,1),numel(xhat));    
+    xhat = xhat(1:pos);
     data.p(:,3) = zeros(numel(time),1);
     data.phat(:,3) = xhat;
 
@@ -78,16 +78,16 @@ function data = plotBag(out,plotF,GTF)
     data.pjump(:,3) = x;
 
     x = cellfun(@(m) double(m.Pose.Pose.Position.X),out.PHYBData);
-    x = x(1:pos);
     x = resample(x,size(data.p,1),numel(x));
+    x = x(1:pos);
     data.phyb(:,1) = x;
     x = cellfun(@(m) double(m.Pose.Pose.Position.Y),out.PHYBData);
-    x = x(1:pos);
     x = resample(x,size(data.p,1),numel(x));
+    x = x(1:pos);
     data.phyb(:,2) = x;
     x = cellfun(@(m) double(m.Pose.Pose.Position.Z),out.PHYBData);
-    x = x(1:pos);
     x = resample(x,size(data.p,1),numel(x));
+    x = x(1:pos);
     data.phyb(:,3) = x;
 
     if plotF
@@ -150,8 +150,8 @@ function data = plotBag(out,plotF,GTF)
     end
     data.q(:,2) = x;
     xhat = cellfun(@(m) double(m.Pose.Pose.Orientation.X),out.EKFData);
-    xhat = xhat(1:pos);
     xhat = resample(xhat,size(data.p,1),numel(xhat));
+    xhat = xhat(1:pos);
     data.qhat(:,2) = xhat;
 
     if GTF
@@ -162,8 +162,8 @@ function data = plotBag(out,plotF,GTF)
     end
     data.q(:,3) = x;
     xhat = cellfun(@(m) double(m.Pose.Pose.Orientation.Y),out.EKFData);
-    xhat = xhat(1:pos);
     xhat = resample(xhat,size(data.p,1),numel(xhat));
+    xhat = xhat(1:pos);
     data.q(:,3) = zeros(numel(time),1);
     data.qhat(:,3) = xhat;
 
@@ -175,8 +175,8 @@ function data = plotBag(out,plotF,GTF)
     end
     data.q(:,4) = x;
     xhat = cellfun(@(m) double(m.Pose.Pose.Orientation.Z),out.EKFData);
-    xhat = xhat(1:pos);
     xhat = resample(xhat,size(data.p,1),numel(xhat));
+    xhat = xhat(1:pos);
     data.q(:,4) = zeros(numel(time),1);
     data.qhat(:,4) = xhat;
 
@@ -188,8 +188,8 @@ function data = plotBag(out,plotF,GTF)
     end
     data.q(:,1) = x;
     xhat = cellfun(@(m) double(m.Pose.Pose.Orientation.W),out.EKFData);
-    xhat = xhat(1:pos);
     xhat = resample(xhat,size(data.p,1),numel(xhat));
+    xhat = xhat(1:pos);
     data.q(:,1) = ones(numel(time),1);
     data.qhat(:,1) = xhat;
 
@@ -377,6 +377,7 @@ function data = plotBag(out,plotF,GTF)
     data.IMU(:,1) = cellfun(@(m) double(m.LinearAcceleration.X),out.IMUData);
     data.IMU(:,2) = cellfun(@(m) double(m.LinearAcceleration.Y),out.IMUData);
     data.IMU(:,3) = cellfun(@(m) double(m.LinearAcceleration.Z),out.IMUData);
+    data.IMU = resample(data.IMU,size(data.p,1),numel(data.IMU(:,1)));
     data.IMU = data.IMU(1:pos,:);
     tmp = [];
     for i = 1:3
@@ -387,6 +388,7 @@ function data = plotBag(out,plotF,GTF)
     data.W(:,1) = cellfun(@(m) double(m.AngularVelocity.X),out.IMUData);
     data.W(:,2) = cellfun(@(m) double(m.AngularVelocity.Y),out.IMUData);
     data.W(:,3) = cellfun(@(m) double(m.AngularVelocity.Z),out.IMUData);
+    data.W = resample(data.W,size(data.p,1),numel(data.W(:,1)));
     data.W = data.W(1:pos,:);
     for i = 1:3
         tmp(:,i) = resample(data.W(:,i),size(data.p,1),size(data.W(:,i),1));
@@ -396,6 +398,7 @@ function data = plotBag(out,plotF,GTF)
     data.IMUHYB(:,1) = cellfun(@(m) double(m.LinearAcceleration.X),out.IMUHYBData);
     data.IMUHYB(:,2) = cellfun(@(m) double(m.LinearAcceleration.Y),out.IMUHYBData);
     data.IMUHYB(:,3) = cellfun(@(m) double(m.LinearAcceleration.Z),out.IMUHYBData);
+    data.IMUHYB = resample(data.IMUHYB,size(data.p,1),numel(data.IMUHYB(:,1)));
     data.IMUHYB = data.IMUHYB(1:pos,:);
     tmp = [];
     for i = 1:3
@@ -406,6 +409,7 @@ function data = plotBag(out,plotF,GTF)
     data.WHYB(:,1) = cellfun(@(m) double(m.AngularVelocity.X),out.IMUHYBData);
     data.WHYB(:,2) = cellfun(@(m) double(m.AngularVelocity.Y),out.IMUHYBData);
     data.WHYB(:,3) = cellfun(@(m) double(m.AngularVelocity.Z),out.IMUHYBData);
+    data.WHYB = resample(data.WHYB,size(data.p,1),numel(data.WHYB(:,1)));
     data.WHYB = data.WHYB(1:pos,:);
     for i = 1:3
         tmp(:,i) = resample(data.WHYB(:,i),size(data.p,1),size(data.WHYB(:,i),1));
@@ -415,6 +419,7 @@ function data = plotBag(out,plotF,GTF)
     data.BIASHYB(:,1) = cellfun(@(m) double(m.LinearAcceleration.X),out.BiasHYBData);
     data.BIASHYB(:,2) = cellfun(@(m) double(m.LinearAcceleration.Y),out.BiasHYBData);
     data.BIASHYB(:,3) = cellfun(@(m) double(m.LinearAcceleration.Z),out.BiasHYBData);
+    data.BIASHYB = resample(data.BIASHYB,size(data.p,1),numel(data.BIASHYB(:,1)));
     data.BIASHYB = data.BIASHYB(1:pos,:);
     tmp = [];
     for i = 1:3
