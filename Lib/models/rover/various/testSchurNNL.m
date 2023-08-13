@@ -19,7 +19,7 @@ OMEGA = [...
         -w(2)   w(1)    0           w(3); ...
         -w(1)   -w(2)   -w(3)       0
          ];
-fq = symfun(OMEGA*q, [q; w]);
+fq = symfun(0.5*OMEGA*q, [q; w]);
 fq = [fq;diag(w)*zeros(3,1)];
 
 % gradient
@@ -33,7 +33,7 @@ for i=1:3
    Gfq(:,4+i) = diff(fq,w(i));
 end
 
-JAq = symfun(Gfq, [q;w]);
+fAqbar = symfun(Gfq, [q;w]);
 
 
 %% function definition - discrete time
@@ -54,24 +54,18 @@ A2Q = [
     ];
 fA2Q = symfun(A2Q,[R P Y]);
 
-% combine in jump map
-TMP = (GAMMA.*MEAS + (1-GAMMA).*(fQ2A(q(1),q(2),q(3),q(4))));
-JUMPq = fA2Q(TMP(1),TMP(2),TMP(3));
-fJUMPq = symfun(JUMPq,[q; w; MEAS; GAMMA]);
-fJUMPq = [fJUMPq; diag(w)*ones(3,1)];
+% Lnearization of Q2A and A2Q
+% loop on RPY
+A2Qbar(:,1) = simplify(diff(fA2Q,R)); 
+A2Qbar(:,2) = simplify(diff(fA2Q,P)); 
+A2Qbar(:,3) = simplify(diff(fA2Q,Y)); 
+fA2Qbar = symfun(A2Qbar,[R P Y]);
 
-% gradient
 % loop - q
 for i=1:4
-   GJUMPq(:,i) = simplify(diff(fJUMPq,q(i)));
+   Q2Abar(:,i) = simplify(diff(fQ2A,q(i))); 
 end
 
-% loop - w
-for i=1:3
-   GJUMPq(:,4+i) = diff(fJUMPq,w(i));
-end
-
-JJUMPq = symfun(GJUMPq, [q; w; MEAS; GAMMA]);
-
+fQ2Abar = symfun(Q2Abar,q);
 
 

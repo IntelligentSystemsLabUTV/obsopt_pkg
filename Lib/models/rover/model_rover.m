@@ -147,28 +147,31 @@ function [x_dot, x] = model_rover(tspan,x,params,obs)
         % q_jump = y(params.pos_quat_out);
 
         % from quaternion to RPY
-%         [yaw, pitch, roll]  = quat2angle(q_jump);
-%         roll =  y(params.pos_eul_out(1));
-%         pitch = y(params.pos_eul_out(2));
-%         yaw =   y(params.pos_eul_out(3));
-%         [yawhat, pitchhat, rollhat]  = quat2angle(xp(params.pos_quat)');
-%         err = [roll-rollhat, pitch-pitchhat, yaw-yawhat];
+        [yaw, pitch, roll]  = quat2angle(q_jump);
+        roll =  y(params.pos_eul_out(1));
+        pitch = y(params.pos_eul_out(2));
+        yaw =   y(params.pos_eul_out(3));
+        [yawhat, pitchhat, rollhat]  = quat2angle(xp(params.pos_quat)');
+        err = [roll-rollhat, pitch-pitchhat, yaw-yawhat];
         
          % stability analysis
-%         MEAS = [roll pitch yaw]';
-%         GAMMA = [params.gamma(1), params.gamma(2), params.gamma(3)]';
-%         q = xp(params.pos_quat)';
-%         w = xp(params.pos_w)';
-%         Aq = double(params.JAq(q(1),q(2),q(3),q(4),w(1),w(2),w(3)));
-%         AqEXP = expm(Aq*params.Ts);
-%         AJq = double(params.JJUMPq(q(1),q(2),q(3),q(4),w(1),w(2),w(3),MEAS(1),MEAS(2),MEAS(3),GAMMA(1),GAMMA(2),GAMMA(3)));
-%         MONOTROMIC = AJq*AqEXP;
+        qMEAS = q_jump;
+        GAMMA = diag([params.gamma(1), params.gamma(2), params.gamma(3)]);
+        q = xp(params.pos_quat)';
+        w = xp(params.pos_w)';
+        Aq = double(params.fAqbar(q(1),q(2),q(3),q(4),w(1),w(2),w(3)));
+        AqEXP = expm(Aq*params.Ts);
+        A2Q = double(params.fA2Qbar(rollhat,pitchhat,yawhat));
+        Q2A = double(params.fQ2Abar(q(1),q(2),q(3),q(4)));
+        AqJump = (eye(4) + A2Q*GAMMA*Q2A);
+        MONOTROMIC = AqJump*AqEXP(1:4,1:4);
+        obs.init.params.EIG(:,pos(1)) = sort(real(eig(MONOTROMIC)));
 
         % angle jump map
-%         rollhatP = rollhat + params.gamma(1)*err(1);
-%         pitchhatP = pitchhat + params.gamma(2)*err(2);
-%         yawhatP = yawhat + params.gamma(3)*err(3);
-%         xp(params.pos_quat) = angle2quat(yawhatP, pitchhatP, rollhatP);
+        rollhatP = rollhat + params.gamma(1)*err(1);
+        pitchhatP = pitchhat + params.gamma(2)*err(2);
+        yawhatP = yawhat + params.gamma(3)*err(3);
+        xp(params.pos_quat) = angle2quat(yawhatP, pitchhatP, rollhatP);
 
         % quat jump
         % err = quatmultiply(quatinv(q_jump),x(params.pos_quat).');
@@ -181,10 +184,10 @@ function [x_dot, x] = model_rover(tspan,x,params,obs)
         % xp(params.pos_quat(2)) = x(params.pos_quat(2)) + params.gamma(1)*(err(2));
         % xp(params.pos_quat(3)) = x(params.pos_quat(3)) + params.gamma(1)*(err(3));
         % xp(params.pos_quat(4)) = x(params.pos_quat(4)) + params.gamma(1)*(err(4));
-        xp(params.pos_quat(1)) = (1-params.gamma(1))*x(params.pos_quat(1)) + params.gamma(1)*q_jump(1);
-        xp(params.pos_quat(2)) = (1-params.gamma(1))*x(params.pos_quat(2)) + params.gamma(1)*q_jump(2);
-        xp(params.pos_quat(3)) = (1-params.gamma(1))*x(params.pos_quat(3)) + params.gamma(1)*q_jump(3);
-        xp(params.pos_quat(4)) = (1-params.gamma(1))*x(params.pos_quat(4)) + params.gamma(1)*q_jump(4);
+%         xp(params.pos_quat(1)) = (1-params.gamma(1))*x(params.pos_quat(1)) + params.gamma(1)*q_jump(1);
+%         xp(params.pos_quat(2)) = (1-params.gamma(1))*x(params.pos_quat(2)) + params.gamma(1)*q_jump(2);
+%         xp(params.pos_quat(3)) = (1-params.gamma(1))*x(params.pos_quat(3)) + params.gamma(1)*q_jump(3);
+%         xp(params.pos_quat(4)) = (1-params.gamma(1))*x(params.pos_quat(4)) + params.gamma(1)*q_jump(4);
 
         % bias
         % xp(params.pos_bias_w(1)) = x(params.pos_bias_w(1)) + params.gamma(2)*delta(1) + params.gamma(3)*delta(2) + params.gamma(4)*delta(3);
