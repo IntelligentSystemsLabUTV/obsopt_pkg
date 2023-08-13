@@ -116,7 +116,7 @@ function params = params_rover(varargin)
 %     params.theta = 0*[0.8    0.2888   -0.1];    
     params.gamma = 0*ones(1,16);
 %     params.gamma(1:3) = 1*[1.8112, 0.6373, 1.0015];    
-    params.gamma(1:3) = 0*[0.1, -0.2, -0.3];    
+%     params.gamma(1:3) = 0*[0.1, -0.2, -0.3];    
 
     % alpha
     params.alpha = 0*[0 0];      
