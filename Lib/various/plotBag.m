@@ -50,7 +50,6 @@ function data = plotBag(out,plotF,GTF)
     xhat = cellfun(@(m) double(m.Pose.Pose.Position.Y),out.EKFData);
     xhat = resample(xhat,size(data.p,1),numel(xhat));   
     xhat = xhat(1:pos); 
-    data.p(:,2) = zeros(numel(time),1);
     data.phat(:,2) = xhat;
 
     if GTF
@@ -64,7 +63,6 @@ function data = plotBag(out,plotF,GTF)
     xhat = cellfun(@(m) double(m.Pose.Pose.Position.Z),out.EKFData); 
     xhat = resample(xhat,size(data.p,1),numel(xhat));    
     xhat = xhat(1:pos);
-    data.p(:,3) = zeros(numel(time),1);
     data.phat(:,3) = xhat;
 
     x = cellfun(@(m) double(m.Pose.Pose.Position.X),out.PJUMPData);
@@ -164,7 +162,6 @@ function data = plotBag(out,plotF,GTF)
     xhat = cellfun(@(m) double(m.Pose.Pose.Orientation.Y),out.EKFData);
     xhat = resample(xhat,size(data.p,1),numel(xhat));
     xhat = xhat(1:pos);
-    data.q(:,3) = zeros(numel(time),1);
     data.qhat(:,3) = xhat;
 
     if GTF
@@ -177,7 +174,6 @@ function data = plotBag(out,plotF,GTF)
     xhat = cellfun(@(m) double(m.Pose.Pose.Orientation.Z),out.EKFData);
     xhat = resample(xhat,size(data.p,1),numel(xhat));
     xhat = xhat(1:pos);
-    data.q(:,4) = zeros(numel(time),1);
     data.qhat(:,4) = xhat;
 
     if GTF
@@ -190,7 +186,6 @@ function data = plotBag(out,plotF,GTF)
     xhat = cellfun(@(m) double(m.Pose.Pose.Orientation.W),out.EKFData);
     xhat = resample(xhat,size(data.p,1),numel(xhat));
     xhat = xhat(1:pos);
-    data.q(:,1) = ones(numel(time),1);
     data.qhat(:,1) = xhat;
 
     x = cellfun(@(m) double(m.Pose.Pose.Orientation.X),out.PJUMPData);
