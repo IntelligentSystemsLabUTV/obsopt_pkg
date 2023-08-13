@@ -8,6 +8,13 @@ function [c, ceq] = nonlcon_fcn_rover(xopt,xnonopt,obs)
     
     % tolerance
     tol = 1e0*obs.init.myoptioptions.ConstraintTolerance;
+    
+    % eigs
+    for i=1:3
+        EIG(i) = max(abs(obs.init.params.EIG(i,:)));
+    end
+    EIG = max(EIG);
+    
 
     % init
     c = []; 
@@ -15,7 +22,7 @@ function [c, ceq] = nonlcon_fcn_rover(xopt,xnonopt,obs)
 
             
     % cons
-%     temp = sum(x(obs.init.params.pos_gamma))-1;
-%     c = [c;temp];
+    temp = EIG - (1 - tol);
+    c = [c;temp];
 
 end
