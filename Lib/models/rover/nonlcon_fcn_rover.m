@@ -15,7 +15,7 @@ function [c, ceq] = nonlcon_fcn_rover(xopt,xnonopt,obs)
 
             
     % cons
-    temp = sum(x(obs.init.params.pos_gamma))-1;
-    c = [c;temp];
+%     temp = sum(x(obs.init.params.pos_gamma))-1;
+%     c = [c;temp];
 
 end
