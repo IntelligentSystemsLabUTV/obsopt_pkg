@@ -19,6 +19,10 @@ function [y, obs] = measure_rover_reference(x,params,t,u,obs)
         pos(i) = find(abs(tdiff) == min(abs(tdiff)),1,'first');    
         pos(i) = max(1,pos(i));        
     end
+    
+    if numel(pos) == 1
+       pos = [pos pos]; 
+    end
 
     % get traj
     traj = obs.init.traj;
@@ -30,12 +34,15 @@ function [y, obs] = measure_rover_reference(x,params,t,u,obs)
     [yaw, pitch, roll]  = quat2angle(Quat_true.');
     Eul_true = [roll; pitch; yaw];
 
-    % place the tags
-    R = quat2rotm(Quat_true.');
+    % place the tags - no remove tagPos because i am in the gorund truth: z
+    % of the conrol + z of the tag
+    [Y, P, R] = quat2angle(Quat_true','ZYX');
+    R = angle2dcm(Y,P,R);
+    TagTmp = params.TagPos.*([ones(2,3); 0*ones(1,3)]);
     for i=1:3
-        Pt(:,i) = R*params.TagPos(:,i) + P_true;
+        Pt(:,i) = R*TagTmp(:,i) + P_true;
     end
-    Pt(3,:) = Pt(3,:) - params.TagPos(3,:);
+    Pt(3,:) = Pt(3,:) + params.TagPos(3,:);
 
     % different sampling times
     if mod(pos(end),params.UWB_samp) == 0
@@ -44,7 +51,7 @@ function [y, obs] = measure_rover_reference(x,params,t,u,obs)
         % adjacency matrix
         for dim=1:params.space_dim
             Pa(dim,:) = x(params.pos_anchor(dim):params.space_dim:params.pos_anchor(end));            
-        end
+        end        
         
         % true distances
         D = get_dist(Pt,Pa);
@@ -124,24 +131,53 @@ function [y, obs] = measure_rover_reference(x,params,t,u,obs)
     if mod(pos(end),params.UWB_samp) == 0
 
         % gradient and pseudoderivative
-        D_meas = y(params.pos_dist_out);
-        xopt = zeros(9,1);
-        xtmp = fminunc(@(x)J_dist(x,Pa,D_meas),xopt,obs.setup.params.dist_optoptions);    
-        xtmp = reshape(xtmp,3,3);
-        obs.init.params.p_jump(traj).val(:,end+1) = mean(xtmp,2);
-        [obs.init.params.p_jump_der(traj).val(:,end+1), obs.init.params.p_jump_der_buffer, obs.init.params.p_jump_der_counter(traj).val] = PseudoDer(params.Ts*params.UWB_samp,...
-           obs.init.params.p_jump(traj).val(:,end),params.wlen,...
-           params.buflen,params.space_dim,0,0,obs,obs.init.params.p_jump_der_buffer,obs.init.params.p_jump_der_counter(traj).val);
-        % dry measure
-%         obs.init.params.p_jump(traj).val(:,end+1) = x(params.pos_p);
-%         obs.init.params.p_jump_der(traj).val(:,end+1) = x(params.pos_v);
+        if 1
+            D_meas = y(params.pos_dist_out);
+            % 1 opt for all tags            
+            xopt = zeros(9,1);            
+            xtmp = fminunc(@(x)J_dist(x,Pa,D_meas),xopt,obs.setup.params.dist_optoptions);    
+            xtmp = reshape(xtmp,3,3);     
+            xtmp(3,:) = xtmp(3,:) - params.TagPos(3,:);
+            xtmp = mean(xtmp,2);                  
+            obs.init.params.p_jump(traj).val(:,end+1) =xtmp;            
+            [obs.init.params.p_jump_der(traj).val(:,end+1), obs.init.params.p_jump_der_buffer, obs.init.params.p_jump_der_counter(traj).val] = PseudoDer(params.Ts*params.UWB_samp,...
+               obs.init.params.p_jump(traj).val(:,end),params.wlen,...
+               params.buflen,params.space_dim,0,0,obs,obs.init.params.p_jump_der_buffer,obs.init.params.p_jump_der_counter(traj).val);
+        else        
+        % dry measure              
+            xtmp = Pt;                   
+            xtmp(3,:) = xtmp(3,:) - params.TagPos(3,:);
+            xtmp = mean(xtmp,2);                   
+            obs.init.params.p_jump(traj).val(:,end+1) = xtmp;
+            % obs.init.params.p_jump(traj).val(:,end+1) = P_true; 
+            obs.init.params.p_jump_der(traj).val(:,end+1) = x(params.pos_v);
+        end
         if traj == 1
             obs.init.params.p_jump_time(end+1) = pos(end);
         end
 
         % procrust for the orientation
-        W = Pt - obs.init.params.p_jump(traj).val(:,end);
-        O = params.TagPos;
+        % I want to use more than only one set of tags. I use also the
+        % previous values
+        nmemory = 1;      
+        gran = params.UWB_samp;
+        if floor(pos(2)/gran) > nmemory
+            X = obs.init.X(traj).val(:,pos(2) - gran*(nmemory-1):gran:pos(2));
+        else
+            X = x;
+            nmemory = 1;
+        end
+        P_true = reshape(X(params.pos_p,:),numel(params.pos_p),size(X,2));
+        % place the tags - remove last optimized position (I need the odom to do procrust)
+        R = quat2rotm(Quat_true.');
+        for j=1:nmemory
+            delta = obs.init.params.p_jump(traj).val(:,end-nmemory+j);
+            for i=1:3
+                Pt(:,3*(j-1)+i) = R*params.TagPos(:,i) + P_true(:,j) - delta;
+            end
+        end              
+        W = Pt;                
+        O = repmat(params.TagPos,[1 nmemory]);        
         [U,S,V] = svd(W*O');
         Rest = V*U';
         qjump = quatnormalize(rotm2quat(Rest));

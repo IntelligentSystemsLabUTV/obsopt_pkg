@@ -24,16 +24,25 @@ function params = params_rover(varargin)
     params.eps = 5;    
     params.Nanchor = 4;
     params.g = 0*0.1;
-    % params.Ts = 1e-2;
     
     % control parameters
     % vines
     params.freq_u = 100;    
     params.amp_ux = -0.35;
     params.amp_uy = -0.35;
+    % hard control
     params.Ku = 1e2*[1 1];    
     params.Kdu = [0 0];      
     params.Kz = 1*[9000 190];
+    % soft control
+%     params.Ku = 1e0*[1 1];   
+%     params.Kdu = [0 0];      
+%     params.Kz = 1e-2*[9000 190];
+    % very soft control
+%     params.Ku = 1e-2*[1 1];   
+%     params.Kdu = [0 0];      
+%     params.Kz = 1e-4*[9000 190];
+    % feed fowrard
     params.Kff = [0 0 0];
 
     % number of reference trajectories (under development)
@@ -62,13 +71,14 @@ function params = params_rover(varargin)
     % AM1 = params.out.AM1(1:2,:);
     % AM1 = 4*[1 -1 1 -1; 1 1 -1 -1];    
     AM1 = [-0.40 -0.40 +2.48 +2.80; +4.20 -1.80 -2.20 +4.20];    
-%     AM1 = [0 0 15 15; 0 4.7 4.7 0];    
+    % AM1 = [0 0 15 15; 0 4.7 4.7 0];    
     % square box
     an_dp = max(max(abs(AM1)));
     % height
     % an_dz = mean(params.out.AM1(3,:));
-%     an_dz = 3.3;
+    % an_dz = 3.3;
     an_dz = 2;
+    % an_dz = 3.5;
     Nhillmax = 4;
 
     %%% gaussian stuff %%%
@@ -100,11 +110,11 @@ function params = params_rover(varargin)
     end
 
     % tags    
-    L = 0.19;
-    Z = 0.184;
+    L = 1*0.19;
+    Z = 1*0.184;
     params.TagPos = [-L             +0.0            +1*Z;
-                     +L*cos(pi/3)   -L*sin(pi/3)    +1*Z;
-                     +L*cos(pi/3)   +L*sin(pi/3)    +1*Z]';
+                     +L*sin(pi/6)   -L*cos(pi/6)    +1*Z;
+                     +L*sin(pi/6)   +L*cos(pi/6)    +1*Z]';
     params.Ntags = size(params.TagPos,1);
     
     % multistart
@@ -112,11 +122,11 @@ function params = params_rover(varargin)
 
     %%% observer params %%%
     % theta
-    params.theta = 1*[0.4221    0.2888   -0.0281];
-%     params.theta = 0*[0.8    0.2888   -0.1];    
+    % params.theta = 1*[0.4221    0.2888   -0.0281];
+    params.theta = 0*[1 1.2662 -0.5457];    
     params.gamma = 0*ones(1,16);
 %     params.gamma(1:3) = 1*[1.8112, 0.6373, 1.0015];    
-%     params.gamma(1:3) = 0*[0.1, -0.2, -0.3];    
+    params.gamma(1:3) = 0*[1, 1, 1];    
 
     % alpha
     params.alpha = 0*[0 0];      
@@ -161,7 +171,7 @@ function params = params_rover(varargin)
 %     params.pos_quat_out = [3*params.Nanchor + 3*params.space_dim + 1:3*params.Nanchor + 3*params.space_dim + params.rotation_dim + 1];
     params.pos_eul_out = [3*params.Nanchor + 3*params.space_dim + 1:3*params.Nanchor + 3*params.space_dim + params.rotation_dim];
     params.pos_w_out = [3*params.Nanchor + 3*params.space_dim + params.rotation_dim + 1:params.OutDim];
-    params.OutDim_compare = [params.pos_eul_out]; 
+    params.OutDim_compare = [params.pos_p_out params.pos_v_out params.pos_eul_out]; 
     
     % sampling
     params.IMU_samp = 1;
@@ -227,7 +237,7 @@ function params = params_rover(varargin)
     % initial condition - anchors diamond
     params.X(1).val(:,1) = 1*[0;0;0;0; ...                % x pos + IMU bias
                               0;0;0;0; ...                % y pos + IMU bias
-                              0;0;9.8;0; ...                % z pos + IMU bias
+                              0;0;0;0; ...                % z pos + IMU bias
                               1; 0; 0; 0; ...             % quaternion
                               0; 0; 0; ...                % omega
                               0; 0; 0; ...                % gyro bias
@@ -245,7 +255,7 @@ function params = params_rover(varargin)
     
     % which vars am I optimising
 %     params.opt_vars = [params.pos_Gamma(4:19)];
-    params.opt_vars = [params.pos_Gamma(4:6)];
+    params.opt_vars = [params.pos_Gamma(1:6)];
     
     % set the not optimised vars
     tmp = 1:length(params.X(1).val(:,1));
@@ -307,7 +317,9 @@ function params = params_rover(varargin)
     params.dim_out_plot = [params.pos_p_out params.pos_v_out];       
 
     % fminunc
-    params.dist_optoptions = optimoptions('fminunc', 'MaxIter', 50, 'display','off');
+    params.dist_optoptions = optimoptions('fminunc', 'MaxIter', 50, 'display','off', 'TolFun', 1e-8,'TolX',1e-8);
+%     params.dist_optoptions = optimoptions('fmincon', 'MaxIter', 200, 'display','off');
+%     params.dist_optoptions = optimset('MaxIter', 10000,'display','off');  
 
     %%% matrices for sferlazza method %%%    
     dyn = 1;
@@ -367,6 +379,8 @@ function params = params_rover(varargin)
     params.fAqbar = fAqbar;
     params.fA2Qbar = fA2Qbar;
     params.fQ2Abar = fQ2Abar;
+    params.fAe = fAe;
+    params.fAed = fAed;
 
     
 

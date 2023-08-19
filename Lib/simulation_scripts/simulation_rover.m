@@ -20,11 +20,11 @@ Nw = 100;
 Nts = 30;
 
 % set sampling time
-Ts = 2e-2;
+Ts = 1e-2;
 
 % set initial and final time instant
 t0 = 0;
-tend = 40;
+tend = 20;
 % uncomment to test the MHE with a single optimisation step
 % tend = 1*(Nw*Nts-1)*Ts;
 
@@ -57,7 +57,7 @@ ode = @odeEuler;
 input_law = @control;
 
 %%%% params init %%%%
-params = model_init('Ts',Ts,'T0',[t0, tend],'noise',0, 'params_update', params_update, ...
+params = model_init('Ts',Ts,'T0',[t0, tend],'noise',1, 'params_update', params_update, ...
             'model',model,'measure',measure,'ode',ode, 'odeset', [1e-3 1e-6], ...
             'input_enable',1,'input_law',input_law,'params_init',params_init);
              

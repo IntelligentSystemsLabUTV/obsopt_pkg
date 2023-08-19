@@ -51,6 +51,14 @@ function [x_dot, x] = model_rover(tspan,x,params,obs)
                 %%% TEST %%%
                 p_jump = obs.init.params.p_jump(obs.init.traj).val(:,pos(1)/params.UWB_samp);
                 p_jump_der = obs.init.params.p_jump_der(obs.init.traj).val(:,pos(1)/params.UWB_samp);
+
+                % stability analysis - position
+                Ae = params.fAe;
+                AeEXP = expm(Ae*params.Ts*params.UWB_samp);                            
+                Aed = double(simplify(params.fAed(params.theta(1), params.theta(2), params.theta(3))));
+                AeJump = (eye(9) - Aed);
+                MONOTROMIC = AeJump*AeEXP;
+                obs.init.params.EIGPOS(:,pos(1)) = sort(real(eig(MONOTROMIC)));
                 
                 % jump map - x
                 xp(1) = x(1) + params.theta(1)*(p_jump(1)-x(1));
@@ -153,19 +161,18 @@ function [x_dot, x] = model_rover(tspan,x,params,obs)
         yaw =   y(params.pos_eul_out(3));
         [yawhat, pitchhat, rollhat]  = quat2angle(xp(params.pos_quat)');
         err = [roll-rollhat, pitch-pitchhat, yaw-yawhat];
-        
-         % stability analysis
-        qMEAS = q_jump;
+
+         % stability analysis - quaternion
         GAMMA = diag([params.gamma(1), params.gamma(2), params.gamma(3)]);
         q = xp(params.pos_quat)';
         w = xp(params.pos_w)';
         Aq = double(params.fAqbar(q(1),q(2),q(3),q(4),w(1),w(2),w(3)));
-        AqEXP = expm(Aq*params.Ts);
+        AqEXP = expm(Aq*params.Ts*params.UWB_samp);
         A2Q = double(params.fA2Qbar(rollhat,pitchhat,yawhat));
         Q2A = double(params.fQ2Abar(q(1),q(2),q(3),q(4)));
-        AqJump = (eye(4) + A2Q*GAMMA*Q2A);
+        AqJump = (eye(4) - A2Q*GAMMA*Q2A);
         MONOTROMIC = AqJump*AqEXP(1:4,1:4);
-        obs.init.params.EIG(:,pos(1)) = sort(real(eig(MONOTROMIC)));
+        obs.init.params.EIGQUAT(:,pos(1)) = sort(real(eig(MONOTROMIC(2:4,2:4))));
 
         % angle jump map
         rollhatP = rollhat + params.gamma(1)*err(1);

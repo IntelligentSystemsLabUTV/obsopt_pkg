@@ -1,5 +1,5 @@
 %% plot data
-function data = plotBag(out,plotF,GTF)
+function data = plotBag(out,plotF,GTF,tstop,Ts)
 
     % init
     fig_count = 0;
@@ -13,8 +13,14 @@ function data = plotBag(out,plotF,GTF)
     else
         time =  out.EKF.MessageList.Time - out.EKF.StartTime;
     end
-    time = time(1):1e-2:time(end); 
-    [~, pos] = min(abs(time - 200));  
+    time = time(1):Ts:time(end); 
+
+    if isempty(tstop)
+        val = time(end-1);
+    else
+        val = tstop;
+    end
+    [~, pos] = min(abs(time - val));  
     time = time(1:pos);   
     data.time = time;
     startpos = floor(numel(time)/2);
@@ -37,7 +43,7 @@ function data = plotBag(out,plotF,GTF)
     xhat = cellfun(@(m) double(m.Pose.Pose.Position.X),out.EKFData);       
     xhat = resample(xhat,size(data.p,1),numel(xhat));    
     xhat = xhat(1:pos);
-    data.phat(:,1) = xhat;
+    data.phat(:,1) = xhat;    
 
     if GTF
         x = cellfun(@(m) double(m.Pose.Pose.Position.Y),out.viconData);
@@ -88,6 +94,12 @@ function data = plotBag(out,plotF,GTF)
     x = x(1:pos);
     data.phyb(:,3) = x;
 
+    % movmean on EKF
+    win = 200;
+    for i=1:3
+        data.phatfilt(:,i) = movmean(data.phat(:,i),win);
+    end
+
     if plotF
         for i=1:3
             subplot(3,1,i);
@@ -97,6 +109,7 @@ function data = plotBag(out,plotF,GTF)
             plot(time,data.p(:,i),'b','LineWidth',2);
             plot(time,data.phat(:,i),'r','LineWidth',2);
             plot(time,data.phyb(:,i),'k','LineWidth',2);
+            plot(time,data.phatfilt(:,i),'g','LineWidth',2);
             % labels
             set(gca,'fontsize', fontsize)         
             ylabel(['p_',num2str(i)])
@@ -142,6 +155,7 @@ function data = plotBag(out,plotF,GTF)
 
     if GTF
         x = cellfun(@(m) double(m.Pose.Pose.Orientation.X),out.viconData);
+        x = resample(x,numel(time),numel(x));
         x = x(1:pos);
     else        
         x = zeros(numel(time),1);
@@ -154,6 +168,7 @@ function data = plotBag(out,plotF,GTF)
 
     if GTF
         x = cellfun(@(m) double(m.Pose.Pose.Orientation.Y),out.viconData);
+        x = resample(x,numel(time),numel(x));
         x = x(1:pos);
     else        
         x = zeros(numel(time),1);
@@ -166,6 +181,7 @@ function data = plotBag(out,plotF,GTF)
 
     if GTF
         x = cellfun(@(m) double(m.Pose.Pose.Orientation.Z),out.viconData);
+        x = resample(x,numel(time),numel(x));
         x = x(1:pos);
     else        
         x = zeros(numel(time),1);
@@ -178,6 +194,7 @@ function data = plotBag(out,plotF,GTF)
 
     if GTF
         x = cellfun(@(m) double(m.Pose.Pose.Orientation.W),out.viconData);
+        x = resample(x,numel(time),numel(x));
         x = x(1:pos);
     else        
         x = zeros(numel(time),1);
@@ -332,8 +349,7 @@ function data = plotBag(out,plotF,GTF)
         fig_count = fig_count +1;
         figure(fig_count)
     end
-
-    xhat = zeros(12,length(out.UWBData));
+    
     xhat = cell2mat(cellfun(@(m) double(m.DC),out.UWBData,'UniformOutput',false));        
     xhat = reshape(xhat,12,length(out.UWBData))';
     for i=1:size(xhat,2)

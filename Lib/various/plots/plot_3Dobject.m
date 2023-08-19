@@ -57,7 +57,7 @@ function plot_3Dobject(obj,varargin)
             
             % labels
             set(gca,'fontsize', fontsize)         
-            ylabel(['p_',num2str(obj.setup.plot_vars(i))])
+            ylabel(['p_',num2str(i)])
         end
         %linkaxes(ax);
         legend('True','Est')   
@@ -94,7 +94,7 @@ function plot_3Dobject(obj,varargin)
             
             % labels
             set(gca,'fontsize', fontsize)         
-            ylabel(['v_',num2str(obj.setup.plot_vars(i))])
+            ylabel(['v_',num2str(i)])
         end
         legend('True','Est') 
         xlabel(['time [s]'])
@@ -131,7 +131,7 @@ function plot_3Dobject(obj,varargin)
             
             % labels
             set(gca,'fontsize', fontsize)         
-            ylabel(['a_',num2str(obj.setup.plot_vars(i))])
+            ylabel(['a_',num2str(i)])
         end
         legend('True','Est')  
         xlabel(['time [s]'])
@@ -166,7 +166,7 @@ function plot_3Dobject(obj,varargin)
             
             % labels
             set(gca,'fontsize', fontsize)         
-            ylabel(['b_',num2str(obj.setup.plot_vars(i))])
+            ylabel(['b_',num2str(i)])
         end
         legend('True','Est') 
         xlabel(['time [s]'])
@@ -176,11 +176,11 @@ function plot_3Dobject(obj,varargin)
         fig_count = fig_count -1;
     end
 
-    %%% plot Quaternion estimation
+    %%% plot Angle estimation
     try
         fig_count = fig_count+1;
         figure(fig_count)            
-        sgtitle('Attitude estimation')
+        sgtitle('Attitude estimation - angles')
         ax = zeros(1,3);
     
         Nplots = length(params.pos_quat)-1;
@@ -198,14 +198,14 @@ function plot_3Dobject(obj,varargin)
                 % get rpy
                 if ~realdata
                     THETA = zeros(3,obj.setup.Niter);
-                    [THETA(3,:), THETA(2,:), THETA(1,:)] = quat2angle(obj.init.X(traj).val(params.pos_quat,:)');
+                    [THETA(3,:), THETA(2,:), THETA(1,:)] = quat2angle(obj.init.X(traj).val(params.pos_quat,:)','ZYX');
                     % THETA = obj.init.X(traj).val(params.pos_quat,:)';
                 else
                     THETA = reshape(obj.init.Y_full_story(traj).val(1,params.pos_eul_out,:),numel(params.pos_eul_out),size(obj.init.Y_full_story(traj).val,3));
                     % THETA = obj.init.X(traj).val(params.pos_quat,:)';
                 end
                 % THETAHAT = zeros(3,obj.setup.Niter);
-                [THETAHAT(3,:), THETAHAT(2,:), THETAHAT(1,:)] = quat2angle(obj.init.X_est(traj).val(params.pos_quat,:)');
+                [THETAHAT(3,:), THETAHAT(2,:), THETAHAT(1,:)] = quat2angle(obj.init.X_est(traj).val(params.pos_quat,:)','ZYX');
                 % THETAHAT = obj.init.X_est(traj).val(params.pos_quat,:)';
 
                 plot(obj.setup.time,THETA(i,:),'LineWidth',2);
@@ -221,7 +221,52 @@ function plot_3Dobject(obj,varargin)
             
             % labels
             set(gca,'fontsize', fontsize)         
-            ylabel(['q_',num2str(obj.setup.plot_vars(i))])
+            ylabel(['\theta_',num2str(i)])
+        end
+        legend('True','Est')            
+        xlabel(['time [s]'])
+        %linkaxes(ax);
+    catch
+        close
+        fig_count = fig_count -1;
+    end
+
+     %%% plot Angle estimation
+    try
+        fig_count = fig_count+1;
+        figure(fig_count)            
+        sgtitle('Attitude estimation - quaternion')
+        ax = zeros(1,3);
+    
+        Nplots = length(params.pos_quat);
+        for i=1:Nplots
+            subplot(Nplots,1,i);
+            hold on
+            grid on
+            box on
+    
+            % indicize axes        
+            ax(i)=subplot(Nplots,1,i);     
+            
+            for traj=1:obj.setup.Ntraj   
+
+                THETA = obj.init.X(traj).val(params.pos_quat,:);
+                THETAHAT = obj.init.X_est(traj).val(params.pos_quat,:);
+
+                plot(obj.setup.time,THETA(i,:),'LineWidth',2);
+                set(gca,'ColorOrderIndex',traj)
+                plot(obj.setup.time,THETAHAT(i,:),'--','LineWidth',1);   
+
+                % QUATERR = quatmultiply(quatinv(THETA),THETAHAT);
+                % [THETAERR(3,:), THETAERR(2,:), THETAERR(1,:)] = quat2angle(QUATERR);
+                % plot(obj.setup.time,QUATERR(:,i),'LineWidth',2);
+                % plot(obj.setup.time,rad2deg(THETAERR(i,:)),'LineWidth',2);
+                set(gca,'ColorOrderIndex',traj)
+            end
+            
+            % labels
+            set(gca,'fontsize', fontsize)         
+            ylabel(['q_',num2str(i)])
         end
         legend('True','Est')            
         xlabel(['time [s]'])
@@ -258,7 +303,7 @@ function plot_3Dobject(obj,varargin)
             
             % labels
             set(gca,'fontsize', fontsize)         
-            ylabel(['\omega_',num2str(obj.setup.plot_vars(i))])
+            ylabel(['\omega_',num2str(i)])
         end
         legend('True','Est') 
         xlabel(['time [s]'])
@@ -293,7 +338,7 @@ function plot_3Dobject(obj,varargin)
             
             % labels
             set(gca,'fontsize', fontsize)         
-            ylabel(['bv_',num2str(obj.setup.plot_vars(i))])
+            ylabel(['bv_',num2str(i)])
         end
         legend('True','Est')            
         xlabel(['time [s]'])    
@@ -340,7 +385,7 @@ function plot_3Dobject(obj,varargin)
             
             % labels
             set(gca,'fontsize', fontsize)         
-            ylabel(['p_',num2str(obj.setup.plot_vars(i))])
+            ylabel(['p_',num2str(i)])
         end
         legend('True','Meas')            
         xlabel(['time [s]'])   
@@ -387,7 +432,7 @@ function plot_3Dobject(obj,varargin)
             
             % labels
             set(gca,'fontsize', fontsize)         
-            ylabel(['q_',num2str(obj.setup.plot_vars(i))])
+            ylabel(['q_',num2str(i)])
         end
         legend('True','Meas')           
         xlabel(['time [s]'])
@@ -434,7 +479,7 @@ function plot_3Dobject(obj,varargin)
             
             % labels
             set(gca,'fontsize', fontsize)         
-            ylabel(['a_',num2str(obj.setup.plot_vars(i))])
+            ylabel(['a_',num2str(i)])
         end
         legend('True','Meas')            
         xlabel(['time [s]'])
@@ -481,7 +526,7 @@ function plot_3Dobject(obj,varargin)
             
             % labels
             set(gca,'fontsize', fontsize)         
-            ylabel(['\omega_',num2str(obj.setup.plot_vars(i))])
+            ylabel(['\omega_',num2str(i)])
         end             
         xlabel(['time [s]'])
         %linkaxes(ax);  

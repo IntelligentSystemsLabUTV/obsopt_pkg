@@ -9,6 +9,7 @@ q = sym('q', [4,1], 'real');
 w = sym('w', [3,1], 'real');
 MEAS = sym('M', [3,1], 'real');
 GAMMA = sym('GAMMA', [3,1], 'real');
+THETA = sym('THETA', [3,1], 'real');
 syms R P Y real
 
 
@@ -42,15 +43,15 @@ Q2A = [
     atan2( 2*( q(1)*q(2) + q(3)*q(4) ), 1 - (q(2)^2 + q(3)^2)); ...
     asin( 2*( q(1)*q(3) - q(4)*q(2) )); ...
     atan2( 2*( q(1)*q(4) + q(2)*q(3) ), 1 - (q(3)^2 + q(4)^2));
-    ];
+    ]*0.5;
 fQ2A = symfun(Q2A,q);
 
 % from quat to angle
 A2Q = [
+    cos(R/2) + cos(P/2) + cos(Y/2); ...
     sin(R/2); ...
     sin(P/2); ...
-    sin(Y/2); ...
-    cos(R/2) + cos(P/2) + cos(Y/2)
+    sin(Y/2)
     ];
 fA2Q = symfun(A2Q,[R P Y]);
 
@@ -68,4 +69,18 @@ end
 
 fQ2Abar = symfun(Q2Abar,q);
 
+%% function definition - position
+
+% continuous time
+Ae = zeros(9);
+Ae(1:3,4:6) = +eye(3);
+Ae(4:6,7:9) = -eye(3);
+fAe = Ae;
+
+% discrete time
+Aed = THETA(1)*zeros(9);
+Aed(1:3,1:3) = THETA(1)*eye(3);
+Aed(4:6,1:3) = THETA(2)*eye(3);
+Aed(7:9,1:3) = THETA(3)*eye(3);
+fAed = symfun(Aed,THETA);
 
