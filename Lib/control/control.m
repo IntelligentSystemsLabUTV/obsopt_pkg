@@ -68,12 +68,13 @@ function u = control(t,drive,params,obs)
 
         % rotation control
         A = 1;
+        nu = 1;
         % u(4) = A*cos(10*t) + A*cos(8*t) + A*sin(5*t) + A*cos(1*t) + A*cos(2*t);
         % u(5) = A*cos(10*t) + A*cos(8*t) + A*sin(5*t) + A*cos(1*t) + A*cos(2*t);
         % u(6) = A*cos(10*t) + A*cos(8*t) + A*sin(5*t) + A*cos(1*t) + A*cos(2*t);
-        u(4) = A*cos(2*t);
-        u(5) = A*cos(2*t);
-        u(6) = A*cos(2*t);
+        u(4) = A*cos(nu*t);
+        u(5) = A*cos(nu*t);
+        u(6) = A*cos(nu*t);
 
         % ony for testing
         u(7,:) = z_des;

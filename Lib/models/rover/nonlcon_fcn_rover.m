@@ -7,13 +7,18 @@ function [c, ceq] = nonlcon_fcn_rover(xopt,xnonopt,obs)
     x(obs.setup.nonopt_vars) = xnonopt(1).val;  
     
     % tolerance
-    tol = 1e0*obs.init.myoptioptions.ConstraintTolerance;
+    tol = 0*obs.init.myoptioptions.ConstraintTolerance;
     
-    % eigs
-    for i=1:3
-        EIG(i) = max(abs(obs.init.params.EIG(i,:)));
+    % eigs pos
+    for i=1:size(obs.init.params.EIGPOS,1)
+        EIGPOS(i) = mean(nonzeros(abs(obs.init.params.EIGPOS(i,:))));        
     end
-    EIG = max(EIG);
+    % eigs quat
+    for i=1:size(obs.init.params.EIGQUAT,1)
+        EIGQUAT(i) = mean(nonzeros(abs(obs.init.params.EIGQUAT(i,:))));        
+    end
+    EIGPOSmax = max(EIGPOS);
+    EIGQUATmax = max(EIGQUAT);
     
 
     % init
@@ -22,7 +27,9 @@ function [c, ceq] = nonlcon_fcn_rover(xopt,xnonopt,obs)
 
             
     % cons
-    temp = EIG - (1 - tol);
-    c = [c;temp];
+    % temp = EIGPOSmax - (1 - tol);
+    % c = [c;temp];
+    % temp = EIGQUATmax - (1 - tol);
+    % c = [c;temp];
 
 end
