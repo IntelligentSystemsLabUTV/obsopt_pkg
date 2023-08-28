@@ -123,10 +123,12 @@ function params = params_rover(varargin)
     %%% observer params %%%
     % theta
     % params.theta = 1*[0.4221    0.2888   -0.0281];
-    params.theta = 0*[1 1.2662 -0.5457];    
+    params.theta = 0*[9.2056e-01    2.0635e+00   -1.1115e+00];
+%     params.theta = 0*[1 1.2662 -0.5457];    
     params.gamma = 0*ones(1,16);
 %     params.gamma(1:3) = 1*[1.8112, 0.6373, 1.0015];    
-    params.gamma(1:3) = 0*[1, 1, 1];    
+%     params.gamma(1:3) = 0*[1, 1, 1];    
+    params.gamma(1:3) = 0*[1.6307e+00   1.1027e+00   5.9066e-01];   
 
     % alpha
     params.alpha = 0*[0 0];      
@@ -171,7 +173,7 @@ function params = params_rover(varargin)
 %     params.pos_quat_out = [3*params.Nanchor + 3*params.space_dim + 1:3*params.Nanchor + 3*params.space_dim + params.rotation_dim + 1];
     params.pos_eul_out = [3*params.Nanchor + 3*params.space_dim + 1:3*params.Nanchor + 3*params.space_dim + params.rotation_dim];
     params.pos_w_out = [3*params.Nanchor + 3*params.space_dim + params.rotation_dim + 1:params.OutDim];
-    params.OutDim_compare = [params.pos_p_out params.pos_v_out params.pos_eul_out]; 
+    params.OutDim_compare = [params.pos_p_out params.pos_eul_out]; 
     
     % sampling
     params.IMU_samp = 1;

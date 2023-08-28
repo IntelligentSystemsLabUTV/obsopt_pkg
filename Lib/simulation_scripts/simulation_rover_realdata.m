@@ -15,8 +15,18 @@ function [obs,params] = simulation_rover_realdata(data)
 % rng(23);
 rng(2);
 
+for i=1:length(data)
+    Len(i) = length(data(i).val.time);
+end
+
+% truncate experiments
+UpNiter = max(Len);
+
 % create measurements
 for i=1:length(data)
+    if Len(i) < UpNiter
+        padtmp = UpNiter - Len(i);
+    end
     % distances
     D = data(i).val.UWB.';
     % position 
@@ -34,11 +44,18 @@ for i=1:length(data)
     W = data(i).val.W.';
     % stack Y
     Y(i).val = [D; p; v; IMU; EUL; W];
-    Len(i) = size(Y(i).val,2);
+    tmp = Y(i).val(:,end).*ones(size(Y(i).val,1),padtmp);
+    Y(i).val = [Y(i).val tmp];
+    data(i).val.pjump = [data(i).val.pjump; (data(i).val.pjump(end,:)'.*ones(size(data(i).val.pjump,2),padtmp))'];
+    data(i).val.qjump = [data(i).val.qjump; (data(i).val.qjump(end,:)'.*ones(size(data(i).val.qjump,2),padtmp))'];
+    tmpTs = data(i).val.time(end) - data(i).val.time(end-1);
+    data(i).val.time = [data(i).val.time (data(i).val.time(end)+tmpTs):tmpTs:(data(i).val.time(end)+padtmp*tmpTs)];
+    if Len(i) < UpNiter
+        Len(i) = size(Y(i).val,2);
+    end
 end
 
-% truncate experiments
-UpNiter = min(Len);
+
 
     
 % init observer buffer (see https://doi.org/10.48550/arXiv.2204.09359)
