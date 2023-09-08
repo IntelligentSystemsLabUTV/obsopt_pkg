@@ -12,15 +12,15 @@ function [obs,params] = simulation_general
 % close all
     
 % init observer buffer (see https://doi.org/10.48550/arXiv.2204.09359)
-Nw = 15;
-Nts = 10;
+Nw = 7;
+Nts = 1;
 
 % set sampling time
-Ts = 1e-1;
+Ts = 1e-2;
 
 % set initial and final time instant
 t0 = 0;
-tend = 100;
+tend = 20;
 % uncomment to test the MHE with a single optimisation step
 %tend = 1*(Nw*Nts-1)*Ts;
 
@@ -33,7 +33,7 @@ tend = 100;
 % model equations. e.g. for a mechanical system
 % params.M = mass
 % params.b = friction coefficient
-params_init = @params_VolterraLotka;
+params_init = @params_oscillator_VDP;
 
 %%%% params update function %%%%
 % remark: this file is used if the MHE is set to estimate mode parameters
@@ -45,7 +45,7 @@ params_init = @params_VolterraLotka;
 % x: state vector
 % OUTPUT: 
 % params_out: updated structure with the new model parameters 
-params_update = @params_update_VolterraLotka;
+params_update = @params_update_oscillator_VDP;
 
 
 %%%% model function %%%%
@@ -58,7 +58,7 @@ params_update = @params_update_VolterraLotka;
 % obs: instance of the obsopt observer class
 % OUTPUT:
 % xdot:output of the state space model
-model = @model_VolterraLotka;
+model = @model_oscillator_VDP;
 
 %%%% model reference function %%%%
 % remark: !DEVEL! this function is used to generate the reference
@@ -74,7 +74,7 @@ model = @model_VolterraLotka;
 % OUTPUT:
 % xdot:output of the state space model
 % model_reference = @model_reference;
-model_reference = @model_VolterraLotka;
+model_reference = @model_oscillator_VDP;
 
 %%%% measure function %%%%
 % function: this file shall be in the following form:   
@@ -134,7 +134,7 @@ noise_mat = 0*ones(5,2);
 % directly the model_init.m file.
 params = model_init('Ts',Ts,'T0',[t0, tend],'noise',0, 'noise_spec', noise_mat, 'params_update', params_update, ...
             'model',model,'measure',measure,'ode',ode, 'odeset', [1e-3 1e-6], ...
-            'input_enable',1,'input_law',input_law,'params_init',c);
+            'input_enable',0,'input_law',input_law,'params_init',params_init);
              
 %%%% observer init %%%%
 % defien arrival cost
@@ -147,8 +147,8 @@ terminal_weights = 1e-1*ones(size(terminal_states));
 obs = obsopt('DataType', 'simulated', 'optimise', 0, 'MultiStart', 0, 'J_normalise', 1, 'MaxOptTime', Inf, ... 
           'Nw', Nw, 'Nts', Nts, 'ode', ode, 'PE_maxiter', 0, 'WaitAllBuffer', 1, 'params',params, 'filters', filterScale,'filterTF', filter, ...
           'model_reference',model_reference, 'measure_reference',measure_reference, ...
-          'Jdot_thresh',0.95,'MaxIter', 5, 'Jterm_store', 1, 'AlwaysOpt', 1 , 'print', 0 , 'SafetyDensity', 2, 'AdaptiveFreqMin', [1.5], ...
-          'AdaptiveSampling',0, 'FlushBuffer', 1, 'opt', @fminsearchcon, 'terminal', 0, 'terminal_states', terminal_states, 'terminal_weights', terminal_weights, 'terminal_normalise', 1, ...
+          'Jdot_thresh',0.95,'MaxIter', 2, 'Jterm_store', 1, 'AlwaysOpt', 1 , 'print', 0 , 'SafetyDensity', 2, 'AdaptiveFreqMin', [1.5], ...
+          'AdaptiveSampling',0, 'FlushBuffer', 1, 'opt', @fminunc, 'terminal', 1, 'terminal_states', terminal_states, 'terminal_weights', terminal_weights, 'terminal_normalise', 1, ...
           'ConPos', [], 'LBcon', [], 'UBcon', [],'Bounds', 0);
 
 %% %%%% SIMULATION %%%%
@@ -164,7 +164,7 @@ t0 = tic;
 for i = 1:obs.setup.Niter
     
     % Display iteration step
-    if ((mod(i,10) == 0) || (i == 1))
+    if ((mod(i,100) == 0) || (i == 1))
         clc
         disp(['Iteration Number: ', num2str(obs.setup.time(i)),'/',num2str(obs.setup.time(obs.setup.Niter))])
         disp(['Last J:', num2str(obs.init.Jstory(end))]);
