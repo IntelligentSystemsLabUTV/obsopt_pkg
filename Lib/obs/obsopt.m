@@ -985,7 +985,7 @@ classdef obsopt < handle
                     break
                 end 
                 
-                %%% Allocation cost fucntion %%%
+                %%% Allocation cost function %%%
                 if 0
                     u_diff = obj.init.input_story(traj).val;
                     u_diff_norm = obj.init.params.Ru*vecnorm(u_diff).^2;                

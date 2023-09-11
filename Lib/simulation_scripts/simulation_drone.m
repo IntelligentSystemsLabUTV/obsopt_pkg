@@ -20,13 +20,16 @@ Nw = 400;
 Nts = 5;
 
 % set sampling time
-Ts = 1e-2;
+Ts = 1e-2; 
 
 % set initial and final time instant
 t0 = 0;
 %tend = 10;
 % uncomment to test the MHE with a single optimisation step
 tend = 1*(Nw*Nts-1)*Ts;
+
+% set switching time
+Tsw = tend/2;
 
 %%%% params init function %%%%
 params_init = @params_drone;
@@ -55,7 +58,7 @@ ode = @odeDD;
 input_law = @control_drone;
 
 %%%% params init %%%%
-params = model_init('Ts',Ts,'T0',[t0, tend],'noise',0, 'params_update', params_update, ...
+params = model_init('Ts',Ts,'T0',[t0, tend],'noise',1, 'params_update', params_update, ...
             'model',model,'measure',measure,'ode',ode, 'odeset', [1e-3 1e-6], ...
             'input_enable',1,'input_law',input_law,'params_init',params_init);
              
@@ -66,14 +69,14 @@ terminal_weights = 1e0*ones(size(terminal_states));
 
 % create observer class instance. For more information on the setup
 % options check directly the class constructor in obsopt.m
-obs = obsopt('DataType', 'simulated', 'optimise', 1, 'print', 1, ... 
+obs = obsopt('DataType', 'simulated', 'optimise',0 , 'print', 1, ... 
           'Nw', Nw, 'Nts', Nts, 'ode', ode, ...
           'PE_maxiter', 0, 'WaitAllBuffer', 1, 'params',params, 'filters', filterScale,'filterTF', filter, ...
           'model_reference',model_reference, 'measure_reference',measure_reference, ...
           'AdaptiveSampling',0, 'AdaptiveParams', [10 20 1 1 0.01 params.pos_uwb_out], ... %?
           'FlushBuffer', 1, ...
           'opt', @fminsearchcon, ...
-          'Jdot_thresh',0.95, 'MaxIter', 150, 'Jterm_store', 1, 'AlwaysOpt', 1 , 'SafetyDensity', Inf, ...
+          'Jdot_thresh',0.95, 'MaxIter', 100, 'Jterm_store', 1, 'AlwaysOpt', 1 , 'SafetyDensity', Inf, ...
           'MultiStart', params.multistart, 'J_normalise', 1, 'MaxOptTime', Inf, ...
           'terminal', 0, 'terminal_states', terminal_states, 'terminal_weights', terminal_weights, 'terminal_normalise', 1, ...
           'ConPos', [], 'LBcon', [], 'UBcon', [],'Bounds', 0 ,'NONCOLcon',@nonlcon_fcn_rover);
@@ -94,6 +97,19 @@ for i = 1:obs.setup.Niter
         disp(['Last J:', num2str(obs.init.Jstory(end))]);
     end
     
+    % if i > Tsw
+    %     if any(strcmp(varargin,'noise_spec'))
+    %         pos = find(strcmp(varargin,'noise_spec'));
+    %         noise_spec = varargin{pos+1};
+    %         params.noise_mu = noise_spec(:,3);
+    %         params.noise_std = noise_spec(:,4);
+    %     else
+    %     params.noise_mu = 0;
+    %     params.noise_std = 5e-2;
+    %     end
+    %     disp('switched');
+    % end
+
     % set current iteration in the obsopt class
     obs.init.ActualTimeIndex = i;
     obs.init.t = obs.setup.time(i);

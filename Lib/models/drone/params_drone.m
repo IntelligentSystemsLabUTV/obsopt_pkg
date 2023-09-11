@@ -21,7 +21,7 @@ function params = params_drone
     % observer params        
    
 %     %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-    params.gamma = [0.5 0.5 1];
+    params.gamma = [0.0445 0.9357 2.7896];
     params.dim_state = 28 + length(params.gamma);        
     params.pos_p = [1:3];           % see mode_rover.m
     params.pos_v = [4:6];           % see mode_rover.m    
@@ -41,15 +41,17 @@ function params = params_drone
     params.dim_input = 6;           % input on each dimension + orientation
 
     % output dim
-    params.OutDim = 6;
-    params.observed_state = [params.pos_p params.pos_p];     
+    params.OutDim = 12;
+    params.observed_state = [params.pos_p params.pos_p params.pos_v params.pos_v];     
     params.pos_uwb_out = [1:3];
     params.pos_cam_out = [4:6];
+    params.pos_uwb_out_der = [7:9];
+    params.pos_cam_out_der = [10:12];
     params.OutDim_compare = [params.pos_uwb_out params.pos_cam_out];
 
     % sampling 
     params.UWB_samp = 5;
-    params.CAM_samp = 5;
+    params.CAM_samp = 20;
 
     % memory
     params.last_noise = zeros(params.Ntraj,params.OutDim);
@@ -59,19 +61,61 @@ function params = params_drone
     params.last_CAM_pos_true = zeros(params.Ntraj,numel(params.pos_cam_out));
               
     % noise (on distances + acceleration)
-    params.noise_mat = 0*ones(params.OutDim,2);
+    params.noise_mat = 0*ones(params.OutDim,4);
+    
     % bias
+    
     params.noise_mat(params.pos_uwb_out,1) = 0*1e-2;            % noise on cam pos - bias 
     params.noise_mat(params.pos_cam_out,1) = 0*1e-2;            % noise on cam quat - bias 
+    % params.noise_mat(params.pos_uwb_out_der,1) = 1e-2;            % noise on cam pos - bias (without pseudoder)
+    % params.noise_mat(params.pos_cam_out_der,1) = 1e-2;            % noise on cam quat - bias (without pseudoder)
+    
+    % bias 2nd part
+   
+    params.noise_mat(params.pos_uwb_out,3) = 0*1e-2;            % noise on cam pos - bias 
+    params.noise_mat(params.pos_cam_out,3) = 0*1e-2;            % noise on cam quat - bias 
+    % params.noise_mat(params.pos_uwb_out_der,3) = 1e-2;            % noise on cam pos - bias (without pseudoder)
+    % params.noise_mat(params.pos_cam_out_der,3) = 1e-2;            % noise on cam quat - bias (without pseudoder)
+    
     % sigma
-    params.noise_mat(params.pos_uwb_out,2) = 5e-1;              % noise on cam pos - sigma 
-    params.noise_mat(params.pos_cam_out,2) = 5e-5;              % noise on cam quat - sigma
+   
+    params.noise_mat(params.pos_uwb_out,2) = 3e-1;              % noise on cam pos - sigma 
+    params.noise_mat(params.pos_cam_out,2) = 5e-2;              % noise on cam quat - sigma
+    % params.noise_mat(params.pos_uwb_out_der,2) = 1e-2;            % noise on cam pos - bias (without pseudoder)
+    % params.noise_mat(params.pos_cam_out_der,2) = 1e-2;            % noise on cam quat - bias (without pseudoder)
+    
+    % sigma 2nd part
+
+    params.noise_mat(params.pos_uwb_out,4) = 5e-2;              % noise on cam pos - sigma 
+    params.noise_mat(params.pos_cam_out,4) = 3e-1;              % noise on cam quat - sigma
+    % params.noise_mat(params.pos_uwb_out_der,4) = 1e-2;            % noise on cam pos - bias (without pseudoder)
+    % params.noise_mat(params.pos_cam_out_der,4) = 1e-2;            % noise on cam quat - bias (without pseudoder)
 
     % enable noise
     params.jerk_enable = 0;
     params.alpha_enable = 0;
     params.bias_v_enable = 0;
-        
+
+    % numerical derivative output
+    params.buflen_uwb = 30;
+    params.buflen_cam = 30;
+    params.wlen_uwb = 10;
+    params.wlen_cam = 10;
+    params.last_UWB_pos_der = zeros(params.Ntraj,3);
+    params.last_CAM_pos_der = zeros(params.Ntraj,3);
+
+
+    for traj=1:params.Ntraj
+        params.y_uwb_der(traj).val = zeros(3,1);
+        params.y_cam_der(traj).val = zeros(3,1);
+        params.y_uwb_der_buffer(traj).val = zeros(3,params.buflen_uwb);
+        params.y_cam_der_buffer(traj).val = zeros(3,params.buflen_cam);
+        params.y_uwb_der_counter(traj).val = 0;
+        params.y_cam_der_counter(traj).val = 0;
+    end
+
+
+
     % initial condition
     params.perturbed_vars = [params.pos_p params.pos_v params.pos_quat params.pos_omega];
     params.X(1).val(:,1) = 1*[              ...
@@ -116,12 +160,12 @@ function params = params_drone
 
 
     % same initial condition for all the trajectories (under development)
-    params.multi_traj_var = [params.pos_p params.pos_v params.pos_acc params.pos_bias];     
+    params.multi_traj_var = [params.pos_p];     
     for traj=2:params.Ntraj
         params.X(traj).val(:,1) = params.X(1).val(:,1);
 
         % random
-        params.X(traj).val(params.multi_traj_var,1) = params.X(1).val(params.multi_traj_var,1).*(1 + 1*5e-1*randn(length(params.multi_traj_var),1));
+        %params.X(traj).val(params.multi_traj_var,1) = params.X(1).val(params.multi_traj_var,1).*(1 + 1*5e-1*randn(length(params.multi_traj_var),1));
         
     end    
     

@@ -332,6 +332,58 @@ function plot_drone(obj,varargin)
         fig_count = fig_count -1;
     end
 
+
+
+
+    try
+        fig_count = fig_count+1;
+        figure(fig_count) 
+        txt = "uwb derivative ";
+        sgtitle(txt)
+        ax = zeros(1,3);
+        for i=1:length(params.pos_uwb_out_der)
+            subplot(length(params.pos_uwb_out_der),1,i);
+            hold on
+            grid on
+            box on
+    
+            % indicize axes        
+            ax(i)=subplot(length(params.pos_uwb_out_der),1,i);    
+
+            % down sampling instants
+            WindowTime = obj.setup.time(obj.init.temp_time);
+            
+            for traj=1:obj.setup.Ntraj            
+                plot(obj.setup.time,squeeze(obj.init.Ytrue_full_story(traj).val(1,params.pos_uwb_out_der(i),:)),'LineWidth',2);
+                set(gca,'ColorOrderIndex',traj)
+                plot(obj.setup.time,squeeze(obj.init.Y_full_story(traj).val(1,params.pos_uwb_out_der(i),:)),'--','LineWidth',1);          
+
+                set(gca,'ColorOrderIndex',traj)
+                % plot target values    
+                try
+                    data = reshape(obj.init.Y_full_story(traj).val(1,obj.setup.params.pos_uwb_out_der(i),obj.init.temp_time),1,length(WindowTime));
+                    plot(WindowTime,data,'o','MarkerSize',5);
+                catch 
+                    disp('CHECK T_END OR AYELS CONDITION - LOOKS LIKE NO OPTIMISATION HAS BEEN RUN')
+                end
+            end
+            
+            % labels
+            set(gca,'fontsize', fontsize)         
+            ylabel(['p_dot_',num2str(obj.setup.plot_vars(i))])
+        end
+        legend('True','Meas')            
+        xlabel(['time [s]'])   
+        %linkaxes(ax);
+    catch
+        close
+        fig_count = fig_count -1;
+    end
+
+
+
+
+
    %%%% plot cam measure data %%%%   
     try
         fig_count = fig_count+1;
@@ -400,4 +452,51 @@ function plot_drone(obj,varargin)
         close
         fig_count = fig_count -1;
     end
+
+
+    try
+        fig_count = fig_count+1;
+        figure(fig_count) 
+        txt = "cam derivative ";
+        sgtitle(txt)
+        ax = zeros(1,3);
+        for i=1:length(params.pos_cam_out_der)
+            subplot(length(params.pos_cam_out_der),1,i);
+            hold on
+            grid on
+            box on
+    
+            % indicize axes        
+            ax(i)=subplot(length(params.pos_cam_out_der),1,i);    
+
+            % down sampling instants
+            WindowTime = obj.setup.time(obj.init.temp_time);
+            
+            for traj=1:obj.setup.Ntraj            
+                plot(obj.setup.time,squeeze(obj.init.Ytrue_full_story(traj).val(1,params.pos_cam_out_der(i),:)),'LineWidth',2);
+                set(gca,'ColorOrderIndex',traj)
+                plot(obj.setup.time,squeeze(obj.init.Y_full_story(traj).val(1,params.pos_cam_out_der(i),:)),'--','LineWidth',1);          
+
+                set(gca,'ColorOrderIndex',traj)
+                % plot target values    
+                try
+                    data = reshape(obj.init.Y_full_story(traj).val(1,obj.setup.params.pos_cam_out_der(i),obj.init.temp_time),1,length(WindowTime));
+                    plot(WindowTime,data,'o','MarkerSize',5);
+                catch 
+                    disp('CHECK T_END OR AYELS CONDITION - LOOKS LIKE NO OPTIMISATION HAS BEEN RUN')
+                end
+            end
+            
+            % labels
+            set(gca,'fontsize', fontsize)         
+            ylabel(['p_dot_',num2str(obj.setup.plot_vars(i))])
+        end
+        legend('True','Meas')            
+        xlabel(['time [s]'])   
+        %linkaxes(ax);
+    catch
+        close
+        fig_count = fig_count -1;
+    end
+
 end

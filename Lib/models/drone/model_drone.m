@@ -33,11 +33,11 @@ function [x_dot, x] = model_drone(tspan,x,params,obs)
     % eq. 38 armesto
     x_dot(params.pos_p) = (1-(params.Ts*params.gamma(3)))*x(params.pos_p) + params.Ts*(params.gamma(1)*y(params.pos_uwb_out) + params.gamma(2)*y(params.pos_cam_out));
     % eq. 37 armesto 
-    x_dot(params.pos_v) = x(params.pos_v) + 0*(params.Ts*x(params.pos_acc) + 0.5*params.Ts^2*x(params.pos_jerk)); %no dynamics, i just want the position
+    x_dot(params.pos_v) = x(params.pos_v) + (params.Ts*x(params.pos_acc) + 0.5*params.Ts^2*x(params.pos_jerk)); %no dynamics, i just want the position
     % eq. 36 armesto
-    x_dot(params.pos_acc) = x(params.pos_acc) + 0*(params.Ts*(x(params.pos_jerk) + params.u(1:3) + cross(x(params.pos_alpha),x(params.pos_v)) + cross(x(params.pos_omega),x(params.pos_acc))));
+    x_dot(params.pos_acc) = x(params.pos_acc) + (params.Ts*(x(params.pos_jerk) + params.u(1:3) + cross(x(params.pos_alpha),x(params.pos_v)) + cross(x(params.pos_omega),x(params.pos_acc))));
     % eq. 39 armesto
-    x_dot(params.pos_bias) = x(params.pos_bias) + 0*(params.Ts*x(params.pos_bias_v));        
+    x_dot(params.pos_bias) = x(params.pos_bias) + (params.Ts*x(params.pos_bias_v));        
 
     %%% model dynamics - quaternion
 
