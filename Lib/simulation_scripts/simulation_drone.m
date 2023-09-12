@@ -29,7 +29,7 @@ t0 = 0;
 tend = 1*(Nw*Nts-1)*Ts;
 
 % set switching time
-Tsw = tend/2;
+Tsw = 10;
 
 %%%% params init function %%%%
 params_init = @params_drone;
@@ -96,19 +96,7 @@ for i = 1:obs.setup.Niter
         disp(['Iteration Number: ', num2str(obs.setup.time(i)),'/',num2str(obs.setup.time(obs.setup.Niter))])
         disp(['Last J:', num2str(obs.init.Jstory(end))]);
     end
-    
-    % if i > Tsw
-    %     if any(strcmp(varargin,'noise_spec'))
-    %         pos = find(strcmp(varargin,'noise_spec'));
-    %         noise_spec = varargin{pos+1};
-    %         params.noise_mu = noise_spec(:,3);
-    %         params.noise_std = noise_spec(:,4);
-    %     else
-    %     params.noise_mu = 0;
-    %     params.noise_std = 5e-2;
-    %     end
-    %     disp('switched');
-    % end
+
 
     % set current iteration in the obsopt class
     obs.init.ActualTimeIndex = i;
@@ -144,7 +132,7 @@ for i = 1:obs.setup.Niter
         %%%% REAL MEASUREMENT %%%%
         % here the noise is noise added aggording to noise_spec
         [y_meas(traj).val, obs] = obs.setup.measure_reference(obs.init.X(traj).val(:,stoppos),obs.init.params,obs.setup.time(startpos:stoppos),...
-                                                                            obs.init.input_story_ref(traj).val(:,max(1,startpos)),obs);          
+                                                                            obs.init.input_story_ref(traj).val(:,max(1,startpos)),obs,Tsw);          
     end
     
     %%%% MHE OBSERVER (SAVE MEAS) %%%%

@@ -10,7 +10,7 @@
 % OUTPUT:
 % x_dot: dynamics equations
 function [x_dot, x] = model_drone(tspan,x,params,obs)
-
+    
     % init the dynamics 
     x_dot = zeros(length(x),1);
 
@@ -29,6 +29,13 @@ function [x_dot, x] = model_drone(tspan,x,params,obs)
     % noise dynamics
     x_dot(params.pos_bias_v) = 0*x(params.pos_bias_v) + params.bias_v_enable*ones(3,1)*sin(tspan(1));
     
+    % switch gamma
+    if tspan > 10      
+        params.gamma(1:3) = params.gamma(4:6);
+    end
+    
+    obs.init.params.gamma_story(round((tspan*100)+2),:) = params.gamma(1:3)';
+
     %%% model dynamics - translation    
     % eq. 38 armesto
     x_dot(params.pos_p) = (1-(params.Ts*params.gamma(3)))*x(params.pos_p) + params.Ts*(params.gamma(1)*y(params.pos_uwb_out) + params.gamma(2)*y(params.pos_cam_out));
@@ -64,6 +71,5 @@ function [x_dot, x] = model_drone(tspan,x,params,obs)
     x_dot(params.pos_omega) = x(params.pos_omega) + 0*params.Ts*(x(params.pos_alpha) + 0*params.u(4:6));
 
     % parameter dynamics
-    x_dot(params.pos_gamma) = params.gamma;
-    
+    x_dot(params.pos_gamma) = params.gamma; 
 end

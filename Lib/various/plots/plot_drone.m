@@ -431,15 +431,15 @@ function plot_drone(obj,varargin)
     end
 
     try
-        %%% rover trajectory
+        %%% drone trajectory
         fig_count = fig_count+1;
         figure(fig_count)
         hold on
         grid on
 
-        % plot rover     
+        % plot drone     
         pos_p = obj.init.params.pos_p;
-        for traj=1:obj.setup.Ntraj 
+        for traj=1:obj.setup.Ntraj
             plot3(obj.init.X_est_runtime(traj).val(pos_p(1),:),obj.init.X_est_runtime(traj).val(pos_p(2),:),obj.init.X_est_runtime(traj).val(pos_p(3),:),'--','LineWidth',1.5);
             set(gca,'ColorOrderIndex',traj)
             plot3(obj.init.X(traj).val(pos_p(1),:),obj.init.X(traj).val(pos_p(2),:),obj.init.X(traj).val(pos_p(3),:),'LineWidth',1.5);    
@@ -493,6 +493,42 @@ function plot_drone(obj,varargin)
         end
         legend('True','Meas')            
         xlabel(['time [s]'])   
+        %linkaxes(ax);
+    catch
+        close
+        fig_count = fig_count -1;
+    end
+
+
+    try
+        fig_count = fig_count+1;
+        figure(fig_count) 
+        txt = "Gamma Story";
+        sgtitle(txt)
+        %ax = zeros(1,size(obs.init.params.gamma_story,1));
+        for i=1:size(obs.init.params.gamma_story,2)
+            subplot(size(obs.init.params.gamma_story,2),1,i);
+            hold on
+            grid on
+            box on
+    
+            % indicize axes        
+            %ax=obs.init.params.gamma_story(:,i)';    
+
+           
+            %for traj=1:obj.setup.Ntraj            
+                plot(obs.init.params.gamma_story(:,i),'LineWidth',2);
+               % set(gca,'ColorOrderIndex',traj)
+
+              
+            %end
+            
+            % labels
+            %set(gca,'fontsize', fontsize)         
+            %ylabel(['gamma_',num2str(obj.setup.plot_vars(i))])
+        end
+        %legend('True','Meas')            
+        %xlabel(['time [s]'])   
         %linkaxes(ax);
     catch
         close

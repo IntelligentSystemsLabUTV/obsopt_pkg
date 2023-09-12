@@ -21,7 +21,7 @@ function params = params_drone
     % observer params        
    
 %     %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-    params.gamma = [0.0445 0.9357 2.7896];
+    params.gamma = [0.0211 0.9589 1.9596 0.9551 0.0649 8.0065];
     params.dim_state = 28 + length(params.gamma);        
     params.pos_p = [1:3];           % see mode_rover.m
     params.pos_v = [4:6];           % see mode_rover.m    
@@ -33,6 +33,8 @@ function params = params_drone
     params.pos_jerk = [23:25];      % see mode_rover.m    
     params.pos_alpha = [26:28];     % see mode_rover.m    
     params.pos_gamma = [29:params.dim_state];
+
+    params.gamma_story = [params.gamma(1:3);zeros(1999,3)];
      
     params.pos_fc = [params.pos_p params.pos_v params.pos_acc params.pos_bias];
     params.dim_state_est = numel(params.pos_fc);
@@ -50,8 +52,8 @@ function params = params_drone
     params.OutDim_compare = [params.pos_uwb_out params.pos_cam_out];
 
     % sampling 
-    params.UWB_samp = 5;
-    params.CAM_samp = 20;
+    params.UWB_samp = 10;
+    params.CAM_samp = 10;
 
     % memory
     params.last_noise = zeros(params.Ntraj,params.OutDim);

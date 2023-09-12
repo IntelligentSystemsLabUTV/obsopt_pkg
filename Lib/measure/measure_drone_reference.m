@@ -10,7 +10,7 @@
 % t: time instant (may be not used)
 % OUTPUT:
 % y: output measurement
-function [y, obs] = measure_drone_reference(x,params,t,u,obs)
+function [y, obs] = measure_drone_reference(x,params,t,u,obs,Tsw)
 
     % compute the time index
     pos = zeros(1,length(t));
@@ -34,8 +34,11 @@ function [y, obs] = measure_drone_reference(x,params,t,u,obs)
         noise([params.pos_uwb_out params.pos_cam_out]) = obs.init.params.last_noise(traj,[params.pos_uwb_out params.pos_cam_out]);
     else 
         y(params.pos_cam_out) = y_true(params.pos_cam_out);
-
-        noise(params.pos_cam_out) = obs.setup.noise*(params.noise_mat(params.pos_cam_out,2).*randn(3,1) + params.noise_mat(params.pos_cam_out,1));
+        if t < Tsw
+            noise(params.pos_cam_out) = obs.setup.noise*(params.noise_mat(params.pos_cam_out,2).*randn(3,1) + params.noise_mat(params.pos_cam_out,1));
+        else
+            noise(params.pos_cam_out) = obs.setup.noise*(params.noise_mat(params.pos_cam_out,4).*randn(3,1) + params.noise_mat(params.pos_cam_out,1));
+        end
         obs.init.params.last_noise(traj,params.pos_cam_out) = noise(params.pos_cam_out);
         obs.init.params.last_CAM_pos(traj,:) = y(params.pos_cam_out);      
         
@@ -47,8 +50,11 @@ function [y, obs] = measure_drone_reference(x,params,t,u,obs)
         noise([params.pos_uwb_out params.pos_cam_out]) = obs.init.params.last_noise(traj,[params.pos_uwb_out params.pos_cam_out]);
     else 
         y(params.pos_uwb_out) = y_true(params.pos_uwb_out);
-
-        noise(params.pos_uwb_out) = obs.setup.noise*(params.noise_mat(params.pos_uwb_out,2).*randn(3,1) + params.noise_mat(params.pos_uwb_out,1));
+        if t < Tsw
+            noise(params.pos_uwb_out) = obs.setup.noise*(params.noise_mat(params.pos_uwb_out,2).*randn(3,1) + params.noise_mat(params.pos_uwb_out,1));
+        else
+            noise(params.pos_uwb_out) = obs.setup.noise*(params.noise_mat(params.pos_uwb_out,4).*randn(3,1) + params.noise_mat(params.pos_uwb_out,1));
+        end
         obs.init.params.last_noise(traj,params.pos_uwb_out) = noise(params.pos_uwb_out);
         obs.init.params.last_UWB_pos(traj,:) = y(params.pos_uwb_out);
     end
