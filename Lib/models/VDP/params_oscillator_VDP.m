@@ -21,7 +21,7 @@ function params = params_oscillator_VDP(varargin)
     params.A_mu = 0;
     params.F_mu = 0;
     params.Phi_mu = 0;
-    params.eps = 1;
+    params.eps = 0.1;
     
     % control parameters
     params.K1 = 0.1;
