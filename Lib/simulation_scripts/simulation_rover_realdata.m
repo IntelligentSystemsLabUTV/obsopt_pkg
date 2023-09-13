@@ -26,6 +26,8 @@ UpNiter = max(Len);
 for i=1:length(data)
     if Len(i) < UpNiter
         padtmp = UpNiter - Len(i);
+    else
+        padtmp = 0;
     end
     % distances
     D = data(i).val.UWB.';
@@ -114,7 +116,7 @@ Yweights = ones(params.OutDim,1);
 
 % create observer class instance. For more information on the setup
 % options check directly the class constructor in obsopt.m
-obs = obsopt('DataType', 'simulated', 'optimise', 1 , 'MultiStart', params.multistart, 'J_normalise', 1, 'MaxOptTime', Inf, ... 
+obs = obsopt('DataType', 'simulated', 'optimise', 0 , 'MultiStart', params.multistart, 'J_normalise', 1, 'MaxOptTime', Inf, ... 
           'Nw', Nw, 'Nts', Nts, 'ode', ode, 'PE_ma0iter', 0, 'WaitAllBuffer', 2, 'params',params, 'filters', filterScale,'filterTF', filter, ...
           'model_reference',model_reference, 'measure_reference',measure_reference, ...
           'Jdot_thresh',0.95,'MaxIter', 5, 'Jterm_store', 1, 'AlwaysOpt', 1 , 'print', 1 , 'SafetyDensity', Inf, 'AdaptiveParams', [10 160 1 1 0.5 params.pos_acc_out(1:2)], ...
@@ -167,7 +169,7 @@ for i = 1:obs.setup.Niter
         % here the noise is noise added aggording to noise_spec
         y_meas(traj).val = Y(traj).val(:,obs.init.ActualTimeIndex);    
         obs.init.Y_full_story(traj).val(1,:,obs.init.ActualTimeIndex) = y_meas(traj).val;
-        obs.init.Ytrue_full_story(traj).val(1,:,obs.init.ActualTimeIndex) = 0;
+        obs.init.Ytrue_full_story(traj).val(1,:,obs.init.ActualTimeIndex) = y_meas(traj).val;
         obs.init.noise_story(traj).val(1,:,obs.init.ActualTimeIndex) = 0;
         obs.init.input_story_ref(traj).val(:,obs.init.ActualTimeIndex) = zeros(params.dim_input,1);
         if mod(obs.init.ActualTimeIndex-1,params.UWB_samp) == 0 

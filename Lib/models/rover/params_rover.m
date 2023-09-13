@@ -123,12 +123,12 @@ function params = params_rover(varargin)
     %%% observer params %%%
     % theta
     % params.theta = 1*[0.4221    0.2888   -0.0281];
-    params.theta = 0*[9.2056e-01    2.0635e+00   -1.1115e+00];
+    params.theta = 1*[1.0139    1.7479   -0.1650];
 %     params.theta = 0*[1 1.2662 -0.5457];    
     params.gamma = 0*ones(1,16);
 %     params.gamma(1:3) = 1*[1.8112, 0.6373, 1.0015];    
 %     params.gamma(1:3) = 0*[1, 1, 1];    
-    params.gamma(1:3) = 0*[1.6307e+00   1.1027e+00   5.9066e-01];   
+    params.gamma(1:3) = 1*[1.6397   0.9979   0.6899];   
 
     % alpha
     params.alpha = 0*[0 0];      
@@ -237,9 +237,9 @@ function params = params_rover(varargin)
     %%%%%%%%%%%%%%%%%%%%%%%%        
 
     % initial condition - anchors diamond
-    params.X(1).val(:,1) = 1*[0;0;0;0; ...                % x pos + IMU bias
-                              0;0;0;0; ...                % y pos + IMU bias
-                              0;0;0;0; ...                % z pos + IMU bias
+    params.X(1).val(:,1) = 1*[0.3;0;0;0; ...                % x pos + IMU bias
+                              0.4;0;0;0; ...                % y pos + IMU bias
+                              0;0;9.8;0; ...                % z pos + IMU bias
                               1; 0; 0; 0; ...             % quaternion
                               0; 0; 0; ...                % omega
                               0; 0; 0; ...                % gyro bias
