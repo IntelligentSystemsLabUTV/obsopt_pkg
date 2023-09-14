@@ -237,8 +237,8 @@ function params = params_rover(varargin)
     %%%%%%%%%%%%%%%%%%%%%%%%        
 
     % initial condition - anchors diamond
-    params.X(1).val(:,1) = 1*[0.3;0;0;0; ...                % x pos + IMU bias
-                              0.4;0;0;0; ...                % y pos + IMU bias
+    params.X(1).val(:,1) = 1*[0;0;0;0; ...                % x pos + IMU bias
+                              0;0;0;0; ...                % y pos + IMU bias
                               0;0;9.8;0; ...                % z pos + IMU bias
                               1; 0; 0; 0; ...             % quaternion
                               0; 0; 0; ...                % omega
