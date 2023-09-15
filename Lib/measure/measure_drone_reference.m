@@ -23,6 +23,9 @@ function [y, obs] = measure_drone_reference(x,params,t,u,obs,Tsw)
     % get traj
     traj = obs.init.traj;
 
+    % comment the following line if you want to switch
+    %Tsw = Tsw + 100;
+
     % get the observed components of the state vector
     y_true = x(params.observed_state,:);
     noise = zeros(size(y_true));
@@ -34,6 +37,7 @@ function [y, obs] = measure_drone_reference(x,params,t,u,obs,Tsw)
         noise([params.pos_uwb_out params.pos_cam_out]) = obs.init.params.last_noise(traj,[params.pos_uwb_out params.pos_cam_out]);
     else 
         y(params.pos_cam_out) = y_true(params.pos_cam_out);
+        
         if t < Tsw
             noise(params.pos_cam_out) = obs.setup.noise*(params.noise_mat(params.pos_cam_out,2).*randn(3,1) + params.noise_mat(params.pos_cam_out,1));
         else

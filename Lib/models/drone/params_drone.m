@@ -22,21 +22,22 @@ function params = params_drone
    
 %     %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
     params.gamma = [0.0211 0.9589 1.9596 0.9551 0.0649 8.0065];
-    params.dim_state = 28 + length(params.gamma);        
+    params.dim_state = 12 + length(params.gamma);        
     params.pos_p = [1:3];           % see mode_rover.m
     params.pos_v = [4:6];           % see mode_rover.m    
     params.pos_acc = [7:9];         % see mode_rover.m    
-    params.pos_bias = [10:12];      % see mode_rover.m    
-    params.pos_quat = [13:16];      % see mode_rover.m    
-    params.pos_omega = [17:19];     % see mode_rover.m  
-    params.pos_bias_v = [20:22];    % see mode_rover.m  
-    params.pos_jerk = [23:25];      % see mode_rover.m    
-    params.pos_alpha = [26:28];     % see mode_rover.m    
-    params.pos_gamma = [29:params.dim_state];
+    params.pos_obs = [10:12];       % see mode_rover.m    
+    % params.pos_quat = [13:16];      % see mode_rover.m    
+    % params.pos_omega = [17:19];     % see mode_rover.m  
+    % params.pos_bias_v = [20:22];    % see mode_rover.m  
+    % params.pos_jerk = [23:25];      % see mode_rover.m    
+    % params.pos_alpha = [26:28];     % see mode_rover.m 
+
+    params.pos_gamma = [13:params.dim_state];
 
     params.gamma_story = [params.gamma(1:3);zeros(1999,3)];
      
-    params.pos_fc = [params.pos_p params.pos_v params.pos_acc params.pos_bias];
+    params.pos_fc = [params.pos_p params.pos_v params.pos_acc];
     params.dim_state_est = numel(params.pos_fc);
 
     % input dim
@@ -119,17 +120,12 @@ function params = params_drone
 
 
     % initial condition
-    params.perturbed_vars = [params.pos_p params.pos_v params.pos_quat params.pos_omega];
+    params.perturbed_vars = [params.pos_p params.pos_v];
     params.X(1).val(:,1) = 1*[              ...
                               3;1;0;        ... % pos
                               0;0;0;        ... % vel
                               0;0;0;        ... % acc                
-                              0;0;0;        ... % bias
-                              1;0;0;0;      ... % quat
-                              0;0;0;        ... % bias vel
-                              0;0;0;        ... % omega
-                              0;0;0;        ... % jerk
-                              0;0;0;        ... % alpha
+                              0;0;0;        ... % obs
                               params.gamma' ... % gamma
                               ];
     
@@ -173,8 +169,8 @@ function params = params_drone
     
     % plot vars (used to plot the state estimation. When the parameters are
     % too many, consider to use only the true state components)
-    params.plot_vars = [params.pos_p params.pos_quat];
-    params.plot_params = [params.pos_p params.pos_omega];
+    params.plot_vars = [params.pos_p];
+    params.plot_params = [params.pos_p];
     params.dim_out_plot = params.OutDim;       
         
 end
