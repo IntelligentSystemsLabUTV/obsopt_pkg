@@ -30,12 +30,22 @@ function [x_dot, x] = model_drone(tspan,x,params,obs)
     x_dot(params.pos_bias_v) = 0*x(params.pos_bias_v) + params.bias_v_enable*ones(3,1)*sin(tspan(1));
     
     % switch gamma
-    if tspan > 10      
+    if tspan > 10
+        tmp = params.gamma(1:3);
         params.gamma(1:3) = params.gamma(4:6);
+        params.gamma(4:6) = tmp;
     end
+
+    if tspan > 100
+        tmp = params.gamma(1:3);
+        params.gamma(1:3) = params.gamma(4:6);
+        params.gamma(4:6) = tmp;
+    end
+
+
     
     obs.init.params.gamma_story(round((tspan*100)+2),:) = params.gamma(1:3)';
-
+    
     %%% model dynamics - translation    
     % eq. 38 armesto
     x_dot(params.pos_p) = (1-(params.Ts*params.gamma(3)))*x(params.pos_p) + params.Ts*(params.gamma(1)*y(params.pos_uwb_out) + params.gamma(2)*y(params.pos_cam_out));

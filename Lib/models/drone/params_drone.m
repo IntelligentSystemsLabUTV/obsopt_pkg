@@ -121,7 +121,7 @@ function params = params_drone
     % initial condition
     params.perturbed_vars = [params.pos_p params.pos_v params.pos_quat params.pos_omega];
     params.X(1).val(:,1) = 1*[              ...
-                              0;0;0;        ... % pos
+                              3;1;0;        ... % pos
                               0;0;0;        ... % vel
                               0;0;0;        ... % acc                
                               0;0;0;        ... % bias

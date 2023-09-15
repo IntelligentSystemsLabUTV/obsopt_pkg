@@ -492,8 +492,7 @@ function plot_drone(obj,varargin)
             ylabel(['p_dot_',num2str(obj.setup.plot_vars(i))])
         end
         legend('True','Meas')            
-        xlabel(['time [s]'])   
-        %linkaxes(ax);
+        xlabel('time [s]')   
     catch
         close
         fig_count = fig_count -1;
@@ -506,30 +505,13 @@ function plot_drone(obj,varargin)
         txt = "Gamma Story";
         sgtitle(txt)
         %ax = zeros(1,size(obs.init.params.gamma_story,1));
-        for i=1:size(obs.init.params.gamma_story,2)
-            subplot(size(obs.init.params.gamma_story,2),1,i);
+        for i=1:size(params.gamma_story,2)
+            subplot(size(params.gamma_story,2),1,i);
             hold on
             grid on
-            box on
-    
-            % indicize axes        
-            %ax=obs.init.params.gamma_story(:,i)';    
-
-           
-            %for traj=1:obj.setup.Ntraj            
-                plot(obs.init.params.gamma_story(:,i),'LineWidth',2);
-               % set(gca,'ColorOrderIndex',traj)
-
-              
-            %end
-            
-            % labels
-            %set(gca,'fontsize', fontsize)         
-            %ylabel(['gamma_',num2str(obj.setup.plot_vars(i))])
+            box on 
+            plot(params.gamma_story(:,i),'LineWidth',2);
         end
-        %legend('True','Meas')            
-        %xlabel(['time [s]'])   
-        %linkaxes(ax);
     catch
         close
         fig_count = fig_count -1;
