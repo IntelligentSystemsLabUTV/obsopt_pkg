@@ -22,20 +22,25 @@ function [x_dot, x] = model_drone(tspan,x,params,obs)
     end    
     
     % compute the control
-    params.u = obs.init.input_story_ref(obs.init.traj).val(:,max(1,pos(1)));
+    y = obs.init.Y_full_story(obs.init.traj).val(1,:,pos(end))';
+    drive(1:3) = y(params.pos_uwb_out) - x(params.pos_obs);
+    drive(4:6) = y(params.pos_uwb_out_der) - x(params.pos_v);
+    params.u = params.input(tspan,drive,params,obs);
+    
+
     
     obs.init.input_story(obs.init.traj).val(:,pos(1)) = params.u(:,1);  
-    y = obs.init.Y_full_story(obs.init.traj).val(1,:,pos(end))';
+    
 
     % noise dynamics
 %    x_dot(params.pos_bias_v) = 0*(x(params.pos_bias_v) + params.bias_v_enable*ones(3,1)*sin(tspan(1)));
     
     % switch gamma
-    if tspan > 10
-        tmp = params.gamma(1:3);
-        params.gamma(1:3) = params.gamma(4:6);
-        params.gamma(4:6) = tmp;
-    end
+    % if tspan > 10
+    %     tmp = params.gamma(1:3);
+    %     params.gamma(1:3) = params.gamma(4:6);
+    %     params.gamma(4:6) = tmp;
+    % end
     % 
     % if tspan > 100
     %     tmp = params.gamma(1:3);
@@ -50,8 +55,12 @@ function [x_dot, x] = model_drone(tspan,x,params,obs)
     %%% model dynamics - translation    
     x_dot(params.pos_obs) = (1-(params.Ts*params.gamma(3)))*x(params.pos_p) + params.Ts*(params.gamma(1)*y(params.pos_uwb_out) + params.gamma(2)*y(params.pos_cam_out));
 
-    x_dot(params.pos_p) = x(params.pos_v);
-    x_dot(params.pos_v) = -params.u(1:3);
+    % x_dot(params.pos_p) = x(params.pos_v);
+    % x_dot(params.pos_v) = -params.u(1:3);
+
+    x_dot(params.pos_p) = x(params.pos_p) + x(params.pos_v)*params.Ts;
+    x_dot(params.pos_v) = x(params.pos_v) + params.u(1:3)*params.Ts;
+
 
 
 

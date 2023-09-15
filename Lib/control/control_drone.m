@@ -7,11 +7,12 @@ function u = control_drone(t,drive,params,obs)
 
         % traj
         % traj = obs.init.traj;
-
+        k1 = 200;
+        k2 = 200;
         % translation
-        u(1) = 0.0005*drive(1) + 0.0005*drive(4); %1*sin(t);%0.0;%
-        u(2) = 0.0005*drive(2) + 0.0005*drive(5); %1*cos(t);
-        u(3) = 1*drive(3) + 1*drive(6); %0.1;
+        u(1) = k1*drive(1) + k2*drive(4); %1*sin(t);%0.0;%
+        u(2) = k1*drive(2) + k2*drive(5); %1*cos(t);
+        u(3) = k1*drive(3) + k2*drive(6); %0.1;
 
         % rotation
         u(4) = 0.0;

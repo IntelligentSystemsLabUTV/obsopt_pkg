@@ -58,7 +58,7 @@ ode = @odeDD;
 input_law = @control_drone;
 
 %%%% params init %%%%
-params = model_init('Ts',Ts,'T0',[t0, tend],'noise',1, 'params_update', params_update, ...
+params = model_init('Ts',Ts,'T0',[t0, tend],'noise',0, 'params_update', params_update, ...
             'model',model,'measure',measure,'ode',ode, 'odeset', [1e-3 1e-6], ...
             'input_enable',1,'input_law',input_law,'params_init',params_init);
              
@@ -131,8 +131,8 @@ for i = 1:obs.setup.Niter
         
         %%%% REAL MEASUREMENT %%%%
         % here the noise is noise added aggording to noise_spec
-        [y_meas(traj).val, obs] = obs.setup.measure_reference(obs.init.X(traj).val(:,stoppos),obs.init.params,obs.setup.time(startpos:stoppos),...
-                                                                            obs.init.input_story_ref(traj).val(:,max(1,startpos)),obs,Tsw);          
+        [y_meas(traj).val, obs] = obs.setup.measure(obs.init.X_est(traj).val(:,stoppos),obs.init.params,obs.setup.time(startpos:stoppos),...
+                                                                            obs.init.input_story(traj).val(:,max(1,startpos)),obs,Tsw);          
     end
     
     %%%% MHE OBSERVER (SAVE MEAS) %%%%
