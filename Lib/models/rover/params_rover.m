@@ -134,7 +134,7 @@ function params = params_rover(varargin)
     params.alpha = 0*[0 0];      
 
     % filter
-    params.lowpass = 100;
+    params.lowpass = 1;
     
     %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
     % hyb obs parameters
