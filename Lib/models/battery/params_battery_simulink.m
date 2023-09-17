@@ -16,7 +16,7 @@ function params = params_battery_simulink
 
     % time
     params.Ts = 1e0;
-    params.time = 0:params.Ts:5000;
+    params.time = 0:params.Ts:6000;
 
     % handle SOC not zero
     params.input_data.SOC(find(params.input_data.SOC==0)) = eps;
