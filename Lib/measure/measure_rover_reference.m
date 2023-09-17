@@ -138,6 +138,11 @@ function [y, obs] = measure_rover_reference(x,params,t,u,obs)
             xtmp = fminunc(@(x)J_dist(x,Pa,D_meas),xopt,obs.setup.params.dist_optoptions);    
             xtmp = reshape(xtmp,3,3);     
             xtmp(3,:) = xtmp(3,:) - params.TagPos(3,:);
+            %%%%%%%%
+            % test to correct positioning of the tags
+%             xtmp(1,:) = xtmp(1,:) - 0.05;   % subtract 5 cm
+%             xtmp(2,:) = xtmp(2,:) - 0.05;   % subtract 5 cm
+            %%%%%%%%%
             xtmp = mean(xtmp,2);                  
             obs.init.params.p_jump(traj).val(:,end+1) =xtmp;            
             [obs.init.params.p_jump_der(traj).val(:,end+1), obs.init.params.p_jump_der_buffer, obs.init.params.p_jump_der_counter(traj).val] = PseudoDer(params.Ts*params.UWB_samp,...

@@ -15,8 +15,20 @@ function [obs,params] = simulation_rover_realdata(data)
 % rng(23);
 rng(2);
 
+for i=1:length(data)
+    Len(i) = length(data(i).val.time);
+end
+
+% truncate experiments
+UpNiter = max(Len);
+
 % create measurements
 for i=1:length(data)
+    if Len(i) < UpNiter
+        padtmp = UpNiter - Len(i);
+    else
+        padtmp = 0;
+    end
     % distances
     D = data(i).val.UWB.';
     % position 
@@ -34,11 +46,18 @@ for i=1:length(data)
     W = data(i).val.W.';
     % stack Y
     Y(i).val = [D; p; v; IMU; EUL; W];
-    Len(i) = size(Y(i).val,2);
+    tmp = Y(i).val(:,end).*ones(size(Y(i).val,1),padtmp);
+    Y(i).val = [Y(i).val tmp];
+    data(i).val.pjump = [data(i).val.pjump; (data(i).val.pjump(end,:)'.*ones(size(data(i).val.pjump,2),padtmp))'];
+    data(i).val.qjump = [data(i).val.qjump; (data(i).val.qjump(end,:)'.*ones(size(data(i).val.qjump,2),padtmp))'];
+    tmpTs = data(i).val.time(end) - data(i).val.time(end-1);
+    data(i).val.time = [data(i).val.time (data(i).val.time(end)+tmpTs):tmpTs:(data(i).val.time(end)+padtmp*tmpTs)];
+    if Len(i) < UpNiter
+        Len(i) = size(Y(i).val,2);
+    end
 end
 
-% truncate experiments
-UpNiter = min(Len);
+
 
     
 % init observer buffer (see https://doi.org/10.48550/arXiv.2204.09359)
@@ -97,7 +116,7 @@ Yweights = ones(params.OutDim,1);
 
 % create observer class instance. For more information on the setup
 % options check directly the class constructor in obsopt.m
-obs = obsopt('DataType', 'simulated', 'optimise', 1 , 'MultiStart', params.multistart, 'J_normalise', 1, 'MaxOptTime', Inf, ... 
+obs = obsopt('DataType', 'simulated', 'optimise', 0 , 'MultiStart', params.multistart, 'J_normalise', 1, 'MaxOptTime', Inf, ... 
           'Nw', Nw, 'Nts', Nts, 'ode', ode, 'PE_ma0iter', 0, 'WaitAllBuffer', 2, 'params',params, 'filters', filterScale,'filterTF', filter, ...
           'model_reference',model_reference, 'measure_reference',measure_reference, ...
           'Jdot_thresh',0.95,'MaxIter', 5, 'Jterm_store', 1, 'AlwaysOpt', 1 , 'print', 1 , 'SafetyDensity', Inf, 'AdaptiveParams', [10 160 1 1 0.5 params.pos_acc_out(1:2)], ...
@@ -150,7 +169,7 @@ for i = 1:obs.setup.Niter
         % here the noise is noise added aggording to noise_spec
         y_meas(traj).val = Y(traj).val(:,obs.init.ActualTimeIndex);    
         obs.init.Y_full_story(traj).val(1,:,obs.init.ActualTimeIndex) = y_meas(traj).val;
-        obs.init.Ytrue_full_story(traj).val(1,:,obs.init.ActualTimeIndex) = 0;
+        obs.init.Ytrue_full_story(traj).val(1,:,obs.init.ActualTimeIndex) = y_meas(traj).val;
         obs.init.noise_story(traj).val(1,:,obs.init.ActualTimeIndex) = 0;
         obs.init.input_story_ref(traj).val(:,obs.init.ActualTimeIndex) = zeros(params.dim_input,1);
         if mod(obs.init.ActualTimeIndex-1,params.UWB_samp) == 0 

@@ -123,16 +123,18 @@ function params = params_rover(varargin)
     %%% observer params %%%
     % theta
     % params.theta = 1*[0.4221    0.2888   -0.0281];
-    params.theta = 0*[1 1.2662 -0.5457];    
+    params.theta = 1*[1.0139    1.7479   -0.1650];
+%     params.theta = 0*[1 1.2662 -0.5457];    
     params.gamma = 0*ones(1,16);
 %     params.gamma(1:3) = 1*[1.8112, 0.6373, 1.0015];    
-    params.gamma(1:3) = 0*[1, 1, 1];    
+%     params.gamma(1:3) = 0*[1, 1, 1];    
+    params.gamma(1:3) = 1*[1.6397   0.9979   0.6899];   
 
     % alpha
     params.alpha = 0*[0 0];      
 
     % filter
-    params.lowpass = 100;
+    params.lowpass = 1;
     
     %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
     % hyb obs parameters
@@ -171,7 +173,7 @@ function params = params_rover(varargin)
 %     params.pos_quat_out = [3*params.Nanchor + 3*params.space_dim + 1:3*params.Nanchor + 3*params.space_dim + params.rotation_dim + 1];
     params.pos_eul_out = [3*params.Nanchor + 3*params.space_dim + 1:3*params.Nanchor + 3*params.space_dim + params.rotation_dim];
     params.pos_w_out = [3*params.Nanchor + 3*params.space_dim + params.rotation_dim + 1:params.OutDim];
-    params.OutDim_compare = [params.pos_p_out params.pos_v_out params.pos_eul_out]; 
+    params.OutDim_compare = [params.pos_p_out params.pos_eul_out]; 
     
     % sampling
     params.IMU_samp = 1;
@@ -237,7 +239,7 @@ function params = params_rover(varargin)
     % initial condition - anchors diamond
     params.X(1).val(:,1) = 1*[0;0;0;0; ...                % x pos + IMU bias
                               0;0;0;0; ...                % y pos + IMU bias
-                              0;0;0;0; ...                % z pos + IMU bias
+                              0;0;9.8;0; ...                % z pos + IMU bias
                               1; 0; 0; 0; ...             % quaternion
                               0; 0; 0; ...                % omega
                               0; 0; 0; ...                % gyro bias
