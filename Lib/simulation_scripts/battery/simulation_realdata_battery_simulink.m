@@ -17,7 +17,7 @@ clear params
 
 % init observer buffer (see https://doi.org/10.48550/arXiv.2204.09359)
 Nw = 30;
-Nts = 30;
+Nts = 20;
 
 % noise
 rng default
@@ -76,7 +76,6 @@ terminal_weights = 1e0*ones(size(terminal_states));
 % options check directly the class constructor in obsopt.m
 obs = obsopt('DataType', 'simulated', 'optimise', 1, 'MultiStart', params.multistart, 'J_normalise', 1, 'MaxOptTime', Inf, ... 
           'Nw', Nw, 'Nts', Nts, 'ode', ode, 'PE_maxiter', 0, 'WaitAllBuffer', 0, 'params',params, 'filters', filterScale,'filterTF', filter, ...
-          'model_reference',model_reference, 'measure_reference',measure_reference, ...
           'Jdot_thresh',0.95,'MaxIter', 1, 'Jterm_store', 1, 'AlwaysOpt', 1 , 'print', 0 , 'SafetyDensity', Inf, 'AdaptiveParams', [4 80 2 1 10 params.OutDim_compare], ...
           'AdaptiveSampling',0, 'FlushBuffer', 1, 'opt', @fminsearchcon, 'terminal', 1, 'terminal_states', terminal_states, 'terminal_weights', terminal_weights, 'terminal_normalise', 1, ...
           'ConPos', [], 'LBcon', [], 'UBcon', [],'NONCOLcon',@nonlcon_fcn,'Bounds', 1,'BoundsPos',[1 4 5],'BoundsValLow',[1e-3 1e-3 1e-3],'BoundsValUp',[1 1e3 1e3]);
