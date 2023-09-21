@@ -110,6 +110,13 @@ function params = params_battery_tushar(params_sim)
     params.y_true_sim = sim.simout.ECM_Vb.Data';
     params.soc_sim = sim.simout.ECM_soc.Data';
 
+    % set the GT params (lin interp)
+    params.params_GT_sample = resample(params_sim.input_data.SOC,250,1);
+    params.params_GT_OCV = interp1(params_sim.input_data.SOC,params_sim.input_data.OCV,params.params_GT_sample);
+    params.params_GT_R0 = interp1(params_sim.input_data.SOC,params_sim.input_data.R0,params.params_GT_sample);
+    params.params_GT_R1 = interp1(params_sim.input_data.SOC,params_sim.input_data.R1,params.params_GT_sample);
+    params.params_GT_C1 = interp1(params_sim.input_data.SOC,params_sim.input_data.C1,params.params_GT_sample);
+
     params = first_guess(params,params_sim);
     
 end

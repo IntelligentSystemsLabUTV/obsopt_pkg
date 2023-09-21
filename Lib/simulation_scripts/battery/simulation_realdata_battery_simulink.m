@@ -17,7 +17,7 @@ clear params
 
 % init observer buffer (see https://doi.org/10.48550/arXiv.2204.09359)
 Nw = 30;
-Nts = 20;
+Nts = 30;
 
 % noise
 rng default
@@ -77,8 +77,8 @@ terminal_weights = 1e0*ones(size(terminal_states));
 obs = obsopt('DataType', 'simulated', 'optimise', 1, 'MultiStart', params.multistart, 'J_normalise', 1, 'MaxOptTime', Inf, ... 
           'Nw', Nw, 'Nts', Nts, 'ode', ode, 'PE_maxiter', 0, 'WaitAllBuffer', 0, 'params',params, 'filters', filterScale,'filterTF', filter, ...
           'model_reference',model_reference, 'measure_reference',measure_reference, ...
-          'Jdot_thresh',0.95,'MaxIter', 2, 'Jterm_store', 1, 'AlwaysOpt', 1 , 'print', 0 , 'SafetyDensity', Inf, 'AdaptiveParams', [4 80 2 1 10 params.OutDim_compare], ...
-          'AdaptiveSampling',0, 'FlushBuffer', 1, 'opt', @fminunc, 'terminal', 1, 'terminal_states', terminal_states, 'terminal_weights', terminal_weights, 'terminal_normalise', 1, ...
+          'Jdot_thresh',0.95,'MaxIter', 1, 'Jterm_store', 1, 'AlwaysOpt', 1 , 'print', 0 , 'SafetyDensity', Inf, 'AdaptiveParams', [4 80 2 1 10 params.OutDim_compare], ...
+          'AdaptiveSampling',0, 'FlushBuffer', 1, 'opt', @fminsearchcon, 'terminal', 1, 'terminal_states', terminal_states, 'terminal_weights', terminal_weights, 'terminal_normalise', 1, ...
           'ConPos', [], 'LBcon', [], 'UBcon', [],'NONCOLcon',@nonlcon_fcn,'Bounds', 1,'BoundsPos',[1 4 5],'BoundsValLow',[1e-3 1e-3 1e-3],'BoundsValUp',[1 1e3 1e3]);
 
 
@@ -151,6 +151,11 @@ obs.init.total_time = toc(t0);
 %%% post sim operations %%%
 obs.init.X.val = zeros(params.dim_state,params.Niter);
 obs.init.X.val(1,:) = params_sim.out.simout.ECM_soc.Data';
+obs.init.X.val(3,:) = interp1(params_sim.input_data.SOC,params_sim.input_data.OCV,params_sim.out.simout.ECM_soc.Data);
+obs.init.X.val(4,:) = interp1(params_sim.input_data.SOC,params_sim.input_data.R0,params_sim.out.simout.ECM_soc.Data);
+obs.init.X.val(5,:) = interp1(params_sim.input_data.SOC,params_sim.input_data.R1,params_sim.out.simout.ECM_soc.Data);
+obs.init.X.val(6,:) = interp1(params_sim.input_data.SOC,params_sim.input_data.C1,params_sim.out.simout.ECM_soc.Data);
+
 obs.init.Ytrue_full_story.val = zeros(obs.setup.Nfilt,params.OutDim,params.Niter);
 obs.init.Ytrue_full_story.val(1,1,:) = params_sim.out.simout.ECM_Vb.Data';
 % the whole process could be long, why not going for a nap? No worries, 

@@ -74,6 +74,9 @@ function params_out = first_guess(params,params_sim)
     % update est params
     params = params_update_battery_tushar(params,params.X(traj).val(:,1));       
 
+    % save the points you used for the polyfit
+    params.params_first_guess = x_out;
+
     params_out = params;
         
 end
