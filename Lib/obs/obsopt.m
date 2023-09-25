@@ -1063,6 +1063,12 @@ classdef obsopt < handle
             
             buffer_ready = (obj.init.ActualTimeIndex > obj.init.FNts*obj.init.Fbuflen);
 
+            buf_data = squeeze(obj.init.Y(obj.init.traj).val(1,:,:));
+            y = reshape(obj.init.Y_full_story(obj.init.traj).val(1,:,obj.init.ActualTimeIndex),obj.init.params.OutDim,1);
+            DiffTerm = diff(buf_data);
+            VecTerm = vecnorm(DiffTerm,2,2);
+            obj.init.PE_story(:,obj.init.ActualTimeIndex) = sum(VecTerm) + norm(y-buf_data(end,:));
+
             if buffer_ready && obj.setup.AdaptiveSampling                
 
                 % get current buffer - new
@@ -1211,9 +1217,18 @@ classdef obsopt < handle
             % set NtsVal depending on freqs
             if any(obj.init.freqs(:,end))
                 % define freq on which calibrate the sampling time
-                freq = freq_bound*obj.init.freqs(freq_sel,end); % Hz
-                Ts_wv = 1/(freq); % s
-                distance_min = max(1,ceil(Ts_wv/obj.setup.Ts));
+
+                % here with wavelets
+                % freq = freq_bound*obj.init.freqs(freq_sel,end); % Hz
+                % Ts_wv = 1/(freq); % s
+                %distance_min = max(1,ceil(Ts_wv/obj.setup.Ts));
+
+                % here with PE
+                if obj.init.PE_story(obj.init.ActualTimeIndex) >= freq_bound
+                    distance_min = distance + 1;
+                else
+                    distance_min = 1;
+                end
             else
                 distance_min = obj.setup.NtsVal(NtsPos);                
             end
