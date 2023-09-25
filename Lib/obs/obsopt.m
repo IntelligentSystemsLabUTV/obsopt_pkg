@@ -188,12 +188,12 @@ classdef obsopt < handle
             if any(strcmp(varargin,'AdaptiveParams')) && (obj.setup.AdaptiveSampling)
                 pos = find(strcmp(varargin,'AdaptiveParams'));
                 tmp = varargin{pos+1};                         
-                obj.init.Fnyq = tmp(1);     % integer: multiplying the Nyqist frequency
-                obj.init.Fbuflen = tmp(2);  % integer < Nw: on how many elements of the buffer mnake the wavelet
-                obj.init.Fselect = tmp(3);  % 1 = min 2 = max: choose the highest or lowes frequency 
-                obj.init.FNts = tmp(4);     % nteger: granularity of the buffer on which making the wavelet
-                obj.init.Fmin = tmp(5);     % minimum freq considered
-                obj.init.wavelet_output_dim = tmp(6:end);   % integer: on which measurement make the wavelet
+                obj.init.Fnyq = tmp(1);     % integer
+                obj.init.Fbuflen = tmp(2);  % integer < Nw
+                obj.init.Fselect = tmp(3);  % 1 = min 2 = max 
+                obj.init.FNts = tmp(4);
+                obj.init.Fmin = tmp(5);
+                obj.init.wavelet_output_dim = tmp(6:end);
             else
                 obj.init.FNts = 1;
                 obj.init.Fbuflen = 20;
@@ -373,7 +373,7 @@ classdef obsopt < handle
                 pos = find(strcmp(varargin,'BoundsWeight'));
                 obj.setup.boundsWeight = varargin{pos+1};                
             else
-                obj.setup.boundsWeight = [];
+                obj.setup.boundsWeight = ones(1,numel(obj.setup.boundsPos));
             end
             
             % constraint pos
@@ -499,14 +499,6 @@ classdef obsopt < handle
                 temp_scale = varargin{pos+1};
             else
                 temp_scale = [1];
-            end
-
-            % set different weights for different Y quantities
-            if any(strcmp(varargin,'Yweights'))
-                pos = find(strcmp(varargin,'Yweights'));
-                obj.setup.Y_weights = varargin{pos+1};
-            else
-                obj.setup.Y_weights = ones(obj.setup.dim_out,1);
             end
             
             
@@ -670,9 +662,6 @@ classdef obsopt < handle
                 obj.init.drive_out(i).val = [];
                 obj.init.input_story(i).val(:,1) = zeros(obj.setup.params.dim_input,1);
                 obj.init.input_story_ref(i).val(:,1) = zeros(obj.setup.params.dim_input,1);
-
-                % noise story if used
-                obj.init.noise_story(i).val(:,1) = zeros(obj.setup.dim_out,1);
             end
             
             % input dimension
@@ -745,7 +734,7 @@ classdef obsopt < handle
                                                   'MaxFunEvals',Inf,'OutputFcn',@obj.outfun,'TolFun',obj.init.TolFun,'TolX',obj.init.TolX);   
             elseif strcmp(func2str(obj.setup.fmin),'patternsearch')                              
                 obj.init.myoptioptions = optimoptions(func2str(obj.setup.fmin), 'MaxIter', obj.setup.max_iter, 'display',obj.init.display, ...
-                                                      'Cache', 'on', 'UseParallel', false, 'StepTolerance', 0,'MaxFunEvals',Inf);            
+                                                      'Cache', 'on', 'UseParallel', false, 'StepTolerance', 0,'MaxFunEvals',Inf,'Algorithm','nups');            
             else
                 obj.init.myoptioptions = optimoptions(func2str(obj.setup.fmin), 'MaxIter', obj.setup.max_iter, 'display',obj.init.display, ...
                                                       'OptimalityTolerance', 0, 'StepTolerance', 0,'MaxFunEvals',Inf, 'GradObj', 'off',...
@@ -766,7 +755,7 @@ classdef obsopt < handle
         % accordingly to the selected filters (see setup.temp_scale).
         function obj = scale_factor(obj)
             for dim=1:obj.setup.dim_out
-                obj.init.scale_factor(dim,:) = obj.setup.Y_weights(dim).*obj.setup.J_temp_scale.*ones(1,obj.setup.J_nterm_total);
+                obj.init.scale_factor(dim,:) = obj.setup.J_temp_scale.*ones(1,obj.setup.J_nterm_total);
             end
         end
         
@@ -970,9 +959,9 @@ classdef obsopt < handle
                         % init value
                         init_value = obj.init.temp_x0(obj.init.traj).val(obj.setup.boundsPos(bound));
                         % barrier - low
-                        err_low = min(X.y(obj.setup.boundsPos(bound),:)-obj.setup.boundsValLow(bound));
+                        err_low = min(X.y(obj.setup.boundsPos(bound),2:end)-obj.setup.boundsValLow(bound));
                         % barrier - up
-                        err_up = max(obj.setup.boundsValUp(bound)-X.y(obj.setup.boundsPos(bound),:));
+                        err_up = max(obj.setup.boundsValUp(bound)-X.y(obj.setup.boundsPos(bound),2:end));
                         % terminal
                         err_terminal = norm(X.y(obj.setup.boundsPos(bound),:)-init_value);
                         % sum stuff
@@ -1073,6 +1062,12 @@ classdef obsopt < handle
         function obj = dJ_cond_v5_function(obj)            
             
             buffer_ready = (obj.init.ActualTimeIndex > obj.init.FNts*obj.init.Fbuflen);
+
+            buf_data = squeeze(obj.init.Y(obj.init.traj).val(1,:,:));
+            y = reshape(obj.init.Y_full_story(obj.init.traj).val(1,:,obj.init.ActualTimeIndex),obj.init.params.OutDim,1);
+            DiffTerm = diff(buf_data);
+            VecTerm = vecnorm(DiffTerm,2,2);
+            obj.init.PE_story(:,obj.init.ActualTimeIndex) = sum(VecTerm) + norm(y-buf_data(end,:));
 
             if buffer_ready && obj.setup.AdaptiveSampling                
 
@@ -1222,9 +1217,18 @@ classdef obsopt < handle
             % set NtsVal depending on freqs
             if any(obj.init.freqs(:,end))
                 % define freq on which calibrate the sampling time
-                freq = freq_bound*obj.init.freqs(freq_sel,end); % Hz
-                Ts_wv = 1/(freq); % s
-                distance_min = max(1,ceil(Ts_wv/obj.setup.Ts));
+
+                % here with wavelets
+                % freq = freq_bound*obj.init.freqs(freq_sel,end); % Hz
+                % Ts_wv = 1/(freq); % s
+                %distance_min = max(1,ceil(Ts_wv/obj.setup.Ts));
+
+                % here with PE
+                if obj.init.PE_story(obj.init.ActualTimeIndex) >= freq_bound
+                    distance_min = distance + 1;
+                else
+                    distance_min = 1;
+                end
             else
                 distance_min = obj.setup.NtsVal(NtsPos);                
             end
@@ -1490,7 +1494,7 @@ classdef obsopt < handle
                                     obj.init.myoptioptions.MaxMeshSize = 100;
                                     obj.init.myoptioptions.InitialMeshSize = 100;
                                     obj.init.myoptioptions.Display = 'iter';
-%                                    obj.init.myoptioptions.Algorithm = 'nups-gps';
+                                    obj.init.myoptioptions.Algorithm = 'nups-gps';
                                     obj.init.myoptioptions.UseParallel = true;                                    
                                     obj.init.myoptimoptions.UseCompletePoll = true;
                                 elseif strcmp(func2str(obj.setup.fmin),'fminsearchcon')   
