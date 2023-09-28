@@ -1,0 +1,27 @@
+%% PARAMS_UPDATE_DOUBLE_PENDULUM
+% file: params_update_double_pendulum.m
+% author: Federico Oliva
+% date: 15/06/2022
+% description: this function updates the estimated parameters on a double 
+% pendulum
+% INPUT:
+% params: structure with all the necessary parameters 
+% x: state vector
+% OUTPUT:
+% params_out: updated structure with the new model parameters
+function params_out = params_update_double_pendulum(params,x)
+
+    % assign params
+    params_out = params;
+    
+    % update parameters
+    params_out.M1 = x(5);
+    params_out.M2 = x(6);
+%     params_out.c1 = x(5);
+%     params_out.c2 = x(6);
+
+%     params_out.K1 = x(5);
+%     params_out.K2 = x(6);
+%     params_out.K3 = x(7);
+%     params_out.K4 = x(8);
+end

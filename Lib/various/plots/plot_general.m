@@ -10,7 +10,8 @@ function plot_general(obj,varargin)
     
     set(0,'DefaultFigureWindowStyle','docked');            
     
-    fontsize = 20;
+    fontsize = 5;
+    Lwidth = 0.5;
     fig_count = 0;
     
     %%%% plot state estimation %%%
@@ -25,9 +26,9 @@ function plot_general(obj,varargin)
         
         for traj=1:obj.setup.Ntraj
             if 1 || strcmp(obj.setup.DataType,'simulated')
-                plot(obj.setup.time,obj.init.X(traj).val(obj.setup.plot_vars(i),:),'b--','LineWidth',2);
+                plot(obj.setup.time,obj.init.X(traj).val(obj.setup.plot_vars(i),:),'b--','LineWidth',Lwidth);
             end
-            plot(obj.setup.time,obj.init.X_est(traj).val(obj.setup.plot_vars(i),:),'r--','LineWidth',2);                                                  
+            plot(obj.setup.time,obj.init.X_est(traj).val(obj.setup.plot_vars(i),:),'r--','LineWidth',Lwidth);                                                  
         end    
 
         % labels
@@ -56,9 +57,9 @@ function plot_general(obj,varargin)
 
             for traj=1:obj.setup.Ntraj
                 if 1 || strcmp(obj.setup.DataType,'simulated')
-                    plot(obj.setup.time,obj.init.X(traj).val(obj.setup.plot_params(i),:),'b--','LineWidth',2);
+                    plot(obj.setup.time,obj.init.X(traj).val(obj.setup.plot_params(i),:),'b--','LineWidth',Lwidth);
                 end
-                plot(obj.setup.time,obj.init.X_est(traj).val(obj.setup.plot_params(i),:),'g--','LineWidth',2);                                                      
+                plot(obj.setup.time,obj.init.X_est(traj).val(obj.setup.plot_params(i),:),'g--','LineWidth',Lwidth);                                                      
             end
 
             % labels
@@ -91,12 +92,12 @@ function plot_general(obj,varargin)
 
             log_flag = 1;
             if ~log_flag
-                plot(obj.setup.time,est_error,'k','LineWidth',2);
+                plot(obj.setup.time,est_error,'k','LineWidth',Lwidth);
             else
                 % log 
 %                     set(gca, 'XScale', 'log')
                 set(gca, 'YScale', 'log')
-                plot(obj.setup.time,abs(est_error),'k','LineWidth',2);
+                plot(obj.setup.time,abs(est_error),'k','LineWidth',Lwidth);
             end            
 
             set(gca,'fontsize', fontsize)
@@ -123,12 +124,12 @@ function plot_general(obj,varargin)
 
                 log_flag = 1;
                 if ~log_flag
-                    plot(obj.setup.time,est_error,'b','LineWidth',2);
+                    plot(obj.setup.time,est_error,'b','LineWidth',Lwidth);
                 else
                     % log 
 %                     set(gca, 'XScale', 'log')
                     set(gca, 'YScale', 'log')
-                    plot(obj.setup.time,abs(est_error),'b','LineWidth',2);
+                    plot(obj.setup.time,abs(est_error),'b','LineWidth',Lwidth);
                 end
 
                 set(gca,'fontsize', fontsize)                
@@ -154,12 +155,12 @@ function plot_general(obj,varargin)
 
         log_flag = 0;
         if ~log_flag
-            plot(obj.setup.time,est_error_norm,'k','LineWidth',2);
+            plot(obj.setup.time,est_error_norm,'k','LineWidth',Lwidth);
         else
             % log 
 %                     set(gca, 'XScale', 'log')
             set(gca, 'YScale', 'log')
-            plot(obj.setup.time,abs(est_error_norm),'r--','LineWidth',2);
+            plot(obj.setup.time,abs(est_error_norm),'r--','LineWidth',Lwidth);
         end
 
         set(gca,'fontsize', fontsize)
@@ -183,12 +184,12 @@ function plot_general(obj,varargin)
 
         log_flag = 0;
         if ~log_flag
-            plot(obj.setup.time,est_error_norm,'r','LineWidth',2);
+            plot(obj.setup.time,est_error_norm,'r','LineWidth',Lwidth);
         else
             % log 
 %                     set(gca, 'XScale', 'log')
             set(gca, 'YScale', 'log')
-            plot(obj.setup.time,abs(est_error_norm),'b--','LineWidth',2);
+            plot(obj.setup.time,abs(est_error_norm),'b--','LineWidth',Lwidth);
         end
 
         set(gca,'fontsize', fontsize)
@@ -225,8 +226,8 @@ function plot_general(obj,varargin)
                     if strcmp(obj.setup.DataType,'simulated')
                         plot(obj.setup.time,y_plot,'b--');
                     end
-                    plot(obj.setup.time,yhat_plot,'r--','LineWidth',2);
-                    plot(obj.setup.time,y_plot,'k:','LineWidth',2);                            
+                    plot(obj.setup.time,yhat_plot,'r--','LineWidth',Lwidth);
+                    plot(obj.setup.time,y_plot,'k:','LineWidth',Lwidth);                            
                 else
                     plot(obj.setup.time,abs(y_plot-yhat_plot));
                     set(gca, 'YScale', 'log')
@@ -272,7 +273,7 @@ function plot_general(obj,varargin)
         for traj=1:obj.setup.Ntraj
             % plot true values
             y_meas = reshape(obj.init.Y_full_story(traj).val(1,k,:),size(obj.setup.time));
-            plot(obj.setup.time,y_meas,'m:','LineWidth',2)
+            plot(obj.setup.time,y_meas,'m:','LineWidth',Lwidth)
 
             % plot target values    
             try

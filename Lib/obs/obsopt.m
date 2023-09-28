@@ -1431,7 +1431,7 @@ classdef obsopt < handle
                                 end
                             end        
                             if (obj.setup.J_term_terminal) && (obj.setup.terminal_normalise)
-                                E = vecnorm(obj.init.X_est(traj).val(obj.setup.terminal_states,range)');
+                                E = vecnorm(obj.init.X_est(traj).val(obj.setup.terminal_states,range)',2,1);
                                 E_scale = E/sum(E);
                                 for dim=1:length(obj.setup.terminal_states)                                                                        
 %                                     obj.init.scale_factor_scaled_terminal(dim) = obj.init.scale_factor(1,obj.setup.J_term_terminal_position)/(E_scale(dim)); 

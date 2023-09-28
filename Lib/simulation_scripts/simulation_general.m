@@ -12,15 +12,15 @@ function [obs,params] = simulation_general
 % close all
     
 % init observer buffer (see https://doi.org/10.48550/arXiv.2204.09359)
-Nw = 7;
+Nw = 3;
 Nts = 1;
 
 % set sampling time
-Ts = 1e-2;
+Ts = 1e-1;
 
 % set initial and final time instant
 t0 = 0;
-tend = 60;
+tend = 100;
 % uncomment to test the MHE with a single optimisation step
 %tend = 1*(Nw*Nts-1)*Ts;
 
@@ -34,7 +34,7 @@ tend = 60;
 % params.M = mass
 % params.b = friction coefficient
 % params_init = @params_oscillator_VDP;
-params_init = @params_
+params_init = @params_double_pendulum;
 
 %%%% params update function %%%%
 % remark: this file is used if the MHE is set to estimate mode parameters
@@ -46,7 +46,8 @@ params_init = @params_
 % x: state vector
 % OUTPUT: 
 % params_out: updated structure with the new model parameters 
-params_update = @params_update_oscillator_VDP;
+% params_update = @params_update_oscillator_VDP;
+params_update = @params_update_double_pendulum;
 
 
 %%%% model function %%%%
@@ -59,7 +60,8 @@ params_update = @params_update_oscillator_VDP;
 % obs: instance of the obsopt observer class
 % OUTPUT:
 % xdot:output of the state space model
-model = @model_oscillator_VDP;
+% model = @model_oscillator_VDP;
+model = @model_double_pendulum;
 
 %%%% model reference function %%%%
 % remark: !DEVEL! this function is used to generate the reference
@@ -75,7 +77,8 @@ model = @model_oscillator_VDP;
 % OUTPUT:
 % xdot:output of the state space model
 % model_reference = @model_reference;
-model_reference = @model_oscillator_VDP;
+% model_reference = @model_oscillator_VDP;
+model_reference = @model_double_pendulum;
 
 %%%% measure function %%%%
 % function: this file shall be in the following form:   
@@ -119,14 +122,14 @@ ode = @oderk4_fast;
 % params: structure with model parameters (see params_init)
 % OUTPUT:
 % u: control variable
-input_law = @control;
+input_law = @control_pendulum;
 
 %%%% measurement noise %%%%
 % this should be a vector with 2 columns and as many rows as the state
 % dimension. All the noise are considered as Gaussian distributed. The 
 % first column defines the mean while the second column the variance.
-noise_mat = 0*ones(5,2);
-% noise_mat(1,2) = 5e-2;
+noise_mat = 0*ones(6,2);
+noise_mat(1:2,2) = 5e-2;
 
 %%%% params init %%%%
 % init the parameters structure through funtion @model_init. 
@@ -136,7 +139,7 @@ noise_mat = 0*ones(5,2);
 % directly the model_init.m file.
 params = model_init('Ts',Ts,'T0',[t0, tend],'noise',1, 'noise_spec', noise_mat, 'params_update', params_update, ...
             'model',model,'measure',measure,'ode',ode, 'odeset', [1e-3 1e-6], ...
-            'input_enable',0,'input_law',input_law,'params_init',params_init);
+            'input_enable',1,'input_law',input_law,'params_init',params_init);
              
 %%%% observer init %%%%
 % defien arrival cost
@@ -153,8 +156,8 @@ AdaptiveParams = [0.05   0   1e-4   0   0       0]; % for the PE
 obs = obsopt('DataType', 'simulated', 'optimise', 1, 'MultiStart', 0, 'J_normalise', 1, 'MaxOptTime', Inf, ... 
           'Nw', Nw, 'Nts', Nts, 'ode', ode, 'PE_maxiter', 0, 'WaitAllBuffer', 1, 'params',params, 'filters', filterScale,'filterTF', filter, ...
           'model_reference',model_reference, 'measure_reference',measure_reference, ...
-          'Jdot_thresh',0.95,'MaxIter', 50, 'Jterm_store', 1, 'AlwaysOpt', 1 , 'print', 0 , 'SafetyDensity', 1000, 'AdaptiveParams', AdaptiveParams, ...
-          'AdaptiveSampling',0, 'FlushBuffer', 1, 'opt', @fminsearchcon, 'terminal', 1, 'terminal_states', terminal_states, 'terminal_weights', terminal_weights, 'terminal_normalise', 1, ...
+          'Jdot_thresh',0.95,'MaxIter', 1, 'Jterm_store', 1, 'AlwaysOpt', 1 , 'print', 0 , 'SafetyDensity', 1000, 'AdaptiveParams', AdaptiveParams, ...
+          'AdaptiveSampling',0, 'FlushBuffer', 1, 'opt', @fminunc, 'terminal', 1, 'terminal_states', terminal_states, 'terminal_weights', terminal_weights, 'terminal_normalise', 1, ...
           'ConPos', [], 'LBcon', [], 'UBcon', [],'Bounds', 0);
 
 %% %%%% SIMULATION %%%%
