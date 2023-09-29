@@ -1219,7 +1219,7 @@ classdef obsopt < handle
             % define bound on freq (at least 2 due to Nyquist)
             freq_bound = obj.init.Fnyq;
             % set NtsVal depending on freqs
-            if any(obj.init.freqs(:,end)) && 0
+            if any(obj.init.freqs(:,end)) && obj.setup.AdaptiveSampling
                 % define freq on which calibrate the sampling time
 
                 % here with wavelets

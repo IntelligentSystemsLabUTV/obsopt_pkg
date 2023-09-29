@@ -12,7 +12,7 @@ function [obs,params] = simulation_general
 % close all
     
 % init observer buffer (see https://doi.org/10.48550/arXiv.2204.09359)
-Nw = 3;
+Nw = 5;
 Nts = 1;
 
 % set sampling time
@@ -35,6 +35,7 @@ tend = 100;
 % params.b = friction coefficient
 % params_init = @params_oscillator_VDP;
 params_init = @params_double_pendulum;
+% params_init = @params_runaway;
 
 %%%% params update function %%%%
 % remark: this file is used if the MHE is set to estimate mode parameters
@@ -48,6 +49,7 @@ params_init = @params_double_pendulum;
 % params_out: updated structure with the new model parameters 
 % params_update = @params_update_oscillator_VDP;
 params_update = @params_update_double_pendulum;
+% params_update = @params_update_runaway;
 
 
 %%%% model function %%%%
@@ -62,6 +64,7 @@ params_update = @params_update_double_pendulum;
 % xdot:output of the state space model
 % model = @model_oscillator_VDP;
 model = @model_double_pendulum;
+% model = @model_runaway;
 
 %%%% model reference function %%%%
 % remark: !DEVEL! this function is used to generate the reference
@@ -79,6 +82,7 @@ model = @model_double_pendulum;
 % model_reference = @model_reference;
 % model_reference = @model_oscillator_VDP;
 model_reference = @model_double_pendulum;
+% model_reference = @model_runaway;
 
 %%%% measure function %%%%
 % function: this file shall be in the following form:   
@@ -123,6 +127,7 @@ ode = @oderk4_fast;
 % OUTPUT:
 % u: control variable
 input_law = @control_pendulum;
+% input_law = @control;
 
 %%%% measurement noise %%%%
 % this should be a vector with 2 columns and as many rows as the state
@@ -149,15 +154,15 @@ terminal_weights = 1e-1*ones(size(terminal_states));
 
 % adaptive params
 % AdaptiveParams = [1     Nw  2   1   0.01    1]; % for the wavelets
-AdaptiveParams = [0.05   0   1e-4   0   0       0]; % for the PE
+AdaptiveParams = [1.5   0   1e-2   0   0       0]; % for the PE
 
 % create observer class instance. For more information on the setup
 % options check directly the class constructor in obsopt.m
 obs = obsopt('DataType', 'simulated', 'optimise', 1, 'MultiStart', 0, 'J_normalise', 1, 'MaxOptTime', Inf, ... 
           'Nw', Nw, 'Nts', Nts, 'ode', ode, 'PE_maxiter', 0, 'WaitAllBuffer', 1, 'params',params, 'filters', filterScale,'filterTF', filter, ...
           'model_reference',model_reference, 'measure_reference',measure_reference, ...
-          'Jdot_thresh',0.95,'MaxIter', 1, 'Jterm_store', 1, 'AlwaysOpt', 1 , 'print', 0 , 'SafetyDensity', 1000, 'AdaptiveParams', AdaptiveParams, ...
-          'AdaptiveSampling',0, 'FlushBuffer', 1, 'opt', @fminunc, 'terminal', 1, 'terminal_states', terminal_states, 'terminal_weights', terminal_weights, 'terminal_normalise', 1, ...
+          'Jdot_thresh',0.95,'MaxIter', 1, 'Jterm_store', 1, 'AlwaysOpt', 1 , 'print', 0 , 'SafetyDensity', 10, 'AdaptiveParams', AdaptiveParams, ...
+          'AdaptiveSampling',1, 'FlushBuffer', 1, 'opt', @fminunc, 'terminal', 1, 'terminal_states', terminal_states, 'terminal_weights', terminal_weights, 'terminal_normalise', 1, ...
           'ConPos', [], 'LBcon', [], 'UBcon', [],'Bounds', 0);
 
 %% %%%% SIMULATION %%%%

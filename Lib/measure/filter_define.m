@@ -56,7 +56,7 @@ function [filter, filterScale, reference] = filter_define(Ts,Nts)
     end
     
     %%%% 2nd order filter %%%%
-    fil3 = 1;
+    fil3 = 0;
     if fil3
     i = i+1; 
     eps0 = 1e-4;
