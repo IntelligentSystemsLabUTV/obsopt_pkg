@@ -193,7 +193,9 @@ classdef obsopt < handle
                 obj.init.Fselect = tmp(3);  % 1 = min 2 = max 
                 obj.init.FNts = tmp(4);
                 obj.init.Fmin = tmp(5);
-                obj.init.wavelet_output_dim = tmp(6:end);
+                obj.init.epsD = tmp(6);
+                obj.init.PE_flag = tmp(7);
+                obj.init.wavelet_output_dim = tmp(8:end);
             else
                 obj.init.FNts = 1;
                 obj.init.Fbuflen = 20;
@@ -1062,9 +1064,9 @@ classdef obsopt < handle
         function obj = dJ_cond_v5_function(obj)           
 
             % Wavelet adaptive
-            buffer_ready = 0*(obj.init.ActualTimeIndex > obj.init.FNts*obj.init.Fbuflen);
+            buffer_ready = (~obj.init.PE_flag)*(obj.init.ActualTimeIndex > obj.init.FNts*obj.init.Fbuflen);
 
-            if buffer_ready && obj.setup.AdaptiveSampling                
+            if buffer_ready && (~obj.init.PE_flag)               
 
                 % get current buffer - new
                 pos_hat = obj.init.ActualTimeIndex:-obj.init.FNts:(obj.init.ActualTimeIndex-obj.init.FNts*obj.init.Fbuflen);                
@@ -1114,12 +1116,14 @@ classdef obsopt < handle
             end  
 
             % PE adaptive
-            buf_data = squeeze(obj.init.Y(obj.init.traj).val(1,:,:));
-            y = reshape(obj.init.Y_full_story(obj.init.traj).val(1,:,obj.init.ActualTimeIndex),obj.init.params.OutDim,1);
-            DiffTerm = diff(buf_data);
-            VecTerm = vecnorm(DiffTerm,2,2);
-            obj.init.PE_story(:,obj.init.ActualTimeIndex) = sum(VecTerm) + norm(y-buf_data(end,:));
-            obj.init.freqs = [obj.init.freqs ones(obj.init.nfreqs,1)];
+            if obj.init.PE_flag
+                buf_data = squeeze(obj.init.Y(obj.init.traj).val(1,:,:));
+                y = reshape(obj.init.Y_full_story(obj.init.traj).val(1,:,obj.init.ActualTimeIndex),obj.init.params.OutDim,1);
+                DiffTerm = diff(buf_data);
+                VecTerm = vecnorm(DiffTerm,2,2);
+                obj.init.PE_story(:,obj.init.ActualTimeIndex) = sum(VecTerm) + norm(y-buf_data(end,:));
+                obj.init.freqs = [obj.init.freqs ones(obj.init.nfreqs,1)];
+            end
 
         end                
         
@@ -1219,15 +1223,9 @@ classdef obsopt < handle
             % define bound on freq (at least 2 due to Nyquist)
             freq_bound = obj.init.Fnyq;
             % set NtsVal depending on freqs
-            if any(obj.init.freqs(:,end)) && obj.setup.AdaptiveSampling
+            if obj.setup.AdaptiveSampling
                 % define freq on which calibrate the sampling time
 
-                % here with wavelets
-                % freq = freq_bound*obj.init.freqs(freq_sel,end); % Hz
-                % Ts_wv = 1/(freq); % s
-                %distance_min = max(1,ceil(Ts_wv/obj.setup.Ts));
-
-                % here with PE
                 lasterr = nonzeros(squeeze(obj.init.Y(obj.init.traj).val(1,:,:))) - nonzeros(squeeze(obj.init.Yhat_full_story(obj.init.traj).val(1,:,nonzeros(obj.init.Y_space))));
                 if ~isempty(lasterr)
                     lasterr = vecnorm(lasterr);
@@ -1235,13 +1233,34 @@ classdef obsopt < handle
                     lasterr = Inf;
                 end
                 obj.init.lasterror_story(obj.init.traj).val(obj.init.ActualTimeIndex) = lasterr;
-                if (obj.init.PE_story(obj.init.ActualTimeIndex) >= freq_bound) && (lasterr > freq_sel)
-                    distance_min = distance;
-                else
-                    distance_min = Inf;
+
+                % here with wavelets
+                if (~obj.init.PE_flag)
+                    if (lasterr > obj.init.epsD)                        
+                        freq = freq_bound*obj.init.freqs(freq_sel,end); % Hz
+                        Ts_wv = 1/(freq); % s
+                        distance_min = max(1,ceil(Ts_wv/obj.setup.Ts));
+                    else
+                        distance_min = Inf;
+                    end
                 end
-            else
-                distance_min = obj.setup.NtsVal(NtsPos);                
+
+                % here with PE
+                if (obj.init.PE_flag)
+                    if (obj.init.PE_story(obj.init.ActualTimeIndex) >= freq_bound) && (lasterr > obj.init.epsD)
+                        distance_min = distance;
+                    else
+                        distance_min = Inf;
+                    end
+                end
+
+                if ~any(obj.init.freqs(:,end)) 
+                    distance_min = Inf;%obj.setup.NtsVal(NtsPos); 
+                else
+                    a = 1;
+                end
+                obj.init.dmin_story(obj.init.ActualTimeIndex) = distance_min;
+                
             end
 
             % update the minimum distance                        

@@ -277,7 +277,7 @@ function plot_general(obj,varargin)
 
             % plot target values    
             try
-                data = reshape(obj.init.target_story(traj).val(1,k,obj.init.temp_time),1,length(WindowTime));
+                data = reshape(obj.init.Ytrue_full_story(traj).val(1,k,obj.init.temp_time),1,length(WindowTime));
                 plot(WindowTime,data,'bo','MarkerSize',5);
             catch 
                 disp('CHECK T_END OR AYELS CONDITION - LOOKS LIKE NO OPTIMISATION HAS BEEN RUN')
@@ -292,7 +292,7 @@ function plot_general(obj,varargin)
     %%% plot adaptive sampling            
     ax(n_subplot) = subplot(n_subplot,1,n_subplot);
     % frequency constraint
-%     y_meas = squeeze(obj.init.Y_full_story.val(1,1,:));  
+    y_meas = squeeze(obj.init.Y_full_story.val(1,1,:));  
 %     [WT,F] = cwt(y_meas,obj.init.wvname,1/obj.setup.Ts,'VoicesPerOctave',obj.init.Nv,'FrequencyLimits',obj.init.FLIMITS);    
 %     heatmap(obj.setup.time,F,real(WT))
 %     grid off

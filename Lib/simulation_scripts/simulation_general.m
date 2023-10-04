@@ -12,15 +12,15 @@ function [obs,params] = simulation_general
 % close all
     
 % init observer buffer (see https://doi.org/10.48550/arXiv.2204.09359)
-Nw = 5;
+Nw = 7;
 Nts = 1;
 
 % set sampling time
-Ts = 1e-1;
+Ts = 1e-2;
 
 % set initial and final time instant
 t0 = 0;
-tend = 100;
+tend = 20;
 % uncomment to test the MHE with a single optimisation step
 %tend = 1*(Nw*Nts-1)*Ts;
 
@@ -33,8 +33,8 @@ tend = 100;
 % model equations. e.g. for a mechanical system
 % params.M = mass
 % params.b = friction coefficient
-% params_init = @params_oscillator_VDP;
-params_init = @params_double_pendulum;
+params_init = @params_oscillator_VDP;
+% params_init = @params_double_pendulum;
 % params_init = @params_runaway;
 
 %%%% params update function %%%%
@@ -47,8 +47,8 @@ params_init = @params_double_pendulum;
 % x: state vector
 % OUTPUT: 
 % params_out: updated structure with the new model parameters 
-% params_update = @params_update_oscillator_VDP;
-params_update = @params_update_double_pendulum;
+params_update = @params_update_oscillator_VDP;
+% params_update = @params_update_double_pendulum;
 % params_update = @params_update_runaway;
 
 
@@ -62,8 +62,8 @@ params_update = @params_update_double_pendulum;
 % obs: instance of the obsopt observer class
 % OUTPUT:
 % xdot:output of the state space model
-% model = @model_oscillator_VDP;
-model = @model_double_pendulum;
+model = @model_oscillator_VDP;
+% model = @model_double_pendulum;
 % model = @model_runaway;
 
 %%%% model reference function %%%%
@@ -80,8 +80,8 @@ model = @model_double_pendulum;
 % OUTPUT:
 % xdot:output of the state space model
 % model_reference = @model_reference;
-% model_reference = @model_oscillator_VDP;
-model_reference = @model_double_pendulum;
+model_reference = @model_oscillator_VDP;
+% model_reference = @model_double_pendulum;
 % model_reference = @model_runaway;
 
 %%%% measure function %%%%
@@ -114,8 +114,8 @@ measure_reference = @measure_general;
 
 %%%% integration method %%%%
 % ode45-like integration method. For discrete time systems use @odeDD
-% ode = @odeEuler;
-ode = @oderk4_fast;
+ode = @odeEuler;
+% ode = @oderk4_fast;
 
 %%%% input law %%%
 % function: defines the input law used. Remember to check the @model
@@ -126,8 +126,8 @@ ode = @oderk4_fast;
 % params: structure with model parameters (see params_init)
 % OUTPUT:
 % u: control variable
-input_law = @control_pendulum;
-% input_law = @control;
+% input_law = @control_pendulum;
+input_law = @control;
 
 %%%% measurement noise %%%%
 % this should be a vector with 2 columns and as many rows as the state
@@ -144,7 +144,7 @@ noise_mat(1:2,2) = 5e-2;
 % directly the model_init.m file.
 params = model_init('Ts',Ts,'T0',[t0, tend],'noise',1, 'noise_spec', noise_mat, 'params_update', params_update, ...
             'model',model,'measure',measure,'ode',ode, 'odeset', [1e-3 1e-6], ...
-            'input_enable',1,'input_law',input_law,'params_init',params_init);
+            'input_enable',0,'input_law',input_law,'params_init',params_init);
              
 %%%% observer init %%%%
 % defien arrival cost
@@ -153,15 +153,15 @@ terminal_weights = 1e-1*ones(size(terminal_states));
 %terminal_weights(3:5) = 10*terminal_weights(3);
 
 % adaptive params
-% AdaptiveParams = [1     Nw  2   1   0.01    1]; % for the wavelets
-AdaptiveParams = [1.5   0   1e-2   0   0       0]; % for the PE
+% AdaptiveParams = [2     150  2   1   0.05    -1   0 1]; % for the wavelets
+AdaptiveParams = [1.7   0   0   0   0       -1   1 0]; % for the PE
 
 % create observer class instance. For more information on the setup
 % options check directly the class constructor in obsopt.m
 obs = obsopt('DataType', 'simulated', 'optimise', 1, 'MultiStart', 0, 'J_normalise', 1, 'MaxOptTime', Inf, ... 
           'Nw', Nw, 'Nts', Nts, 'ode', ode, 'PE_maxiter', 0, 'WaitAllBuffer', 1, 'params',params, 'filters', filterScale,'filterTF', filter, ...
           'model_reference',model_reference, 'measure_reference',measure_reference, ...
-          'Jdot_thresh',0.95,'MaxIter', 1, 'Jterm_store', 1, 'AlwaysOpt', 1 , 'print', 0 , 'SafetyDensity', 10, 'AdaptiveParams', AdaptiveParams, ...
+          'Jdot_thresh',0.95,'MaxIter', 1, 'Jterm_store', 1, 'AlwaysOpt', 1 , 'print', 0 , 'SafetyDensity', Inf, 'AdaptiveParams', AdaptiveParams, ...
           'AdaptiveSampling',1, 'FlushBuffer', 1, 'opt', @fminunc, 'terminal', 1, 'terminal_states', terminal_states, 'terminal_weights', terminal_weights, 'terminal_normalise', 1, ...
           'ConPos', [], 'LBcon', [], 'UBcon', [],'Bounds', 0);
 
