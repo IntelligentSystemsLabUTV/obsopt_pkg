@@ -50,6 +50,7 @@ for i = 1:M-1
 
     % test quatnormalize
 %     X(13:16,i+1) = quatnormalize(X(13:16,i+1)');
+
     
     % shift time instant
     t0 = tspan(i+1);

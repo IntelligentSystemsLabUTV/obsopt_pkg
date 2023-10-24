@@ -289,19 +289,19 @@ function plot_general(obj,varargin)
     xlabel('simulation time [s]');
     legend('meas','sampled')
     linkaxes(ax(1:n_subplot-1),'x');
-    %%% plot adaptive sampling            
-    ax(n_subplot) = subplot(n_subplot,1,n_subplot);
-    % frequency constraint
+    %%% plot adaptive sampling                    
     y_meas = squeeze(obj.init.Y_full_story.val(1,1,:));  
-%     [WT,F] = cwt(y_meas,obj.init.wvname,1/obj.setup.Ts,'VoicesPerOctave',obj.init.Nv,'FrequencyLimits',obj.init.FLIMITS);    
-%     heatmap(obj.setup.time,F,real(WT))
-%     grid off
-%     colormap jet
+    % ax(n_subplot) = subplot(n_subplot,1,n_subplot);
+    % [WT,F] = cwt(y_meas,obj.init.wvname,1/obj.setup.Ts,'VoicesPerOctave',obj.init.Nv,'FrequencyLimits',obj.init.FLIMITS);    
+    % heatmap(obj.setup.time,F,real(WT))
+    % grid off
+    % colormap jet
 
     %%% single cwt
     fig_count = fig_count+1;
     figure(fig_count)
-    cwt(y_meas,obj.init.wvname,1/obj.setup.Ts,'VoicesPerOctave',obj.init.Nv,'FrequencyLimits',obj.init.FLIMITS);
+    % cwt(y_meas,obj.init.wvname,1/obj.setup.Ts,'VoicesPerOctave',obj.init.Nv,'FrequencyLimits',obj.init.FLIMITS);
+    cwt(y_meas,obj.init.wvname,1/obj.setup.Ts,'VoicesPerOctave',obj.init.Nv,'FrequencyLimits',[1e-4 1e2]);
             
     
 end

@@ -40,16 +40,16 @@ for i = 1:M-1
     x = X(:,i);
     
     % Runge Kutta 4
-    K1(:,i) = feval(ode,t0,x);
-    K2 = feval(ode,t0+dt/2,x + K1(:,i)*dt/2);
-    K3 = feval(ode,t0+dt/2,x + K2*dt/2);
-    K4 = feval(ode,t0+dt,x + K3*dt);
+    [K1(:,i), Xjump] = feval(ode,t0,x);
+    [K2, ~] = feval(ode,t0+dt/2,x + K1(:,i)*dt/2);
+    [K3, ~] = feval(ode,t0+dt/2,x + K2*dt/2);
+    [K4, ~] = feval(ode,t0+dt,x + K3*dt);
     
     %%% just to update the drive correctly %%%
     tmp = feval(ode,t0,x);
     
     % Solution at ti+1
-    X(:,i+1) = x + (dt/6)*(K1(:,i) + 2*K2 + 2*K3 + K4);
+    X(:,i+1) = Xjump + (dt/6)*(K1(:,i) + 2*K2 + 2*K3 + K4);
     
     % shift time instant
     t0 = tspan(i+1);

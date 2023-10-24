@@ -176,7 +176,7 @@ classdef obsopt < handle
             obj.init.freqs = zeros(obj.init.nfreqs,1);
             obj.init.wvname = 'amor';
             obj.init.Nv = 48;
-            obj.init.PLIMITS = [1e0*obj.setup.Ts 2e2*obj.setup.Ts];
+            obj.init.PLIMITS = [1e-2*obj.setup.Ts 2e2*obj.setup.Ts];
             obj.init.FLIMITS = fliplr(1./obj.init.PLIMITS);            
             obj.init.NtsChanged = 0;
             obj.init.break = 0;
@@ -1069,8 +1069,13 @@ classdef obsopt < handle
 
             % Wavelet adaptive
             buffer_ready = (~obj.init.PE_flag)*(obj.init.ActualTimeIndex > obj.init.FNts*obj.init.Fbuflen);
+            buf_data = squeeze(obj.init.Y(obj.init.traj).val(1,:,:));
+            y = obj.init.Y_full_story(obj.init.traj).val(1,:,obj.init.ActualTimeIndex);
+            DiffTerm = diff(buf_data);
+            VecTerm = vecnorm(DiffTerm,2,2);
+            obj.init.PE_story(:,obj.init.ActualTimeIndex) = sum(VecTerm) + norm(y-buf_data(end,:));            
 
-            if buffer_ready && (~obj.init.PE_flag)               
+            if buffer_ready && obj.setup.AdaptiveSampling                
 
                 % get current buffer - new
                 pos_hat = obj.init.ActualTimeIndex:-obj.init.FNts:(obj.init.ActualTimeIndex-obj.init.FNts*obj.init.Fbuflen);                

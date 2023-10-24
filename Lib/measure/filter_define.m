@@ -14,6 +14,9 @@
 % filterScale: array weighting the filters in the cost function
 function [filter, filterScale, reference] = filter_define(Ts,Nts)
 
+    % TBD: filter every time sample?
+    Nts = 1;
+
     % init filterScale and filter
     i = 0;
     filterScale(i+1)= 1;
@@ -34,7 +37,7 @@ function [filter, filterScale, reference] = filter_define(Ts,Nts)
     filter(i).D = D.D;
     filter(i).G = G;
     filter(i).dim = size(D.B,1);
-    filterScale(i+1)= 1e0;
+    filterScale(i+1)= 0;
     end
 
     %%%% integral filter %%%%
