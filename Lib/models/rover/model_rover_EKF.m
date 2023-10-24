@@ -61,9 +61,6 @@ function [x_dot, x] = model_rover_EKF(tspan,x,params,obs)
     % omega dynamics
     x_dot(params.pos_w) = 0;
 
-    % bias
-    x_dot(params.pos_bias_w) = 0; 
-
     
     
 end

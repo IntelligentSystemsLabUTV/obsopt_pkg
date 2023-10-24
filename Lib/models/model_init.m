@@ -187,7 +187,7 @@ function params = model_init(varargin)
                 params.X_est(traj).val(params.perturbed_vars,1) = 1*init(params.perturbed_vars).*(1 + params.noise*params.perc(params.perturbed_vars,traj).*ones(length(params.perturbed_vars),1)) + ...
                                                                   0*params.noise*noise_std'.*randn(length(params.perturbed_vars),1);    
 %                 params.X_est(traj).val(params.perturbed_vars,1) = 0;
-%                 params.X_est(traj).val(params.pos_quat(1),1) = 1;
+                params.X_est(traj).val(params.pos_quat(1),1) = 1;
 %                 params.X_est(traj).val(3,1) = 0.5;
             end            
 

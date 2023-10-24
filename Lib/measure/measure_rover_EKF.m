@@ -47,11 +47,13 @@ function y = measure_rover_EKF(x,params,tspan,u,obs)
         Eul_true = [roll; pitch; yaw];
 
         % place the tags
-        R = quat2rotm(Quat_true.');
+        [Y, P, R] = quat2angle(Quat_true','ZYX');
+        R = angle2dcm(Y,P,R);
+        TagTmp = params.TagPos.*([ones(2,3); 0*ones(1,3)]);
         for i=1:3
-            Pt(:,i) = R*params.TagPos(:,i) + P_true;
+            Pt(:,i) = R*TagTmp(:,i) + P_true;
         end
-        Pt(3,:) = Pt(3,:) - params.TagPos(3,:);
+        Pt(3,:) = Pt(3,:) + params.TagPos(3,:);
     
         % different sampling times   
         if mod(pos(k)+offset_UWBsamp,params.UWB_samp) == 0 
@@ -72,7 +74,7 @@ function y = measure_rover_EKF(x,params,tspan,u,obs)
         else   
             D = reshape(obs.init.params.last_D(traj,:),3*params.Nanchor,1);
             Quat_true = reshape(obs.init.params.last_Quat(traj,:),4,1);
-            [yaw, pitch, roll]  = quat2angle(Quat_true.');
+            [yaw, pitch, roll]  = quat2angle(Quat_true.','ZYX');
             Eul_true = [roll; pitch; yaw];
         end
     

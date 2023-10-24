@@ -201,6 +201,10 @@ classdef obsopt < handle
                 obj.init.Fbuflen = 20;
                 obj.init.Fselect = 2;
                 obj.init.Fnyq = 2;
+                obj.init.FNts = 0;
+                obj.init.PE_flag = 1;
+                obj.init.epsD = Inf;
+                obj.init.wavelet_output_dim = [];
             end
             
             % enable or not the buffer flush on the adaptive sampling
@@ -1260,7 +1264,9 @@ classdef obsopt < handle
                     a = 1;
                 end
                 obj.init.dmin_story(obj.init.ActualTimeIndex) = distance_min;
-                
+
+            else
+                distance_min = obj.setup.NtsVal(NtsPos);
             end
 
             % update the minimum distance                        

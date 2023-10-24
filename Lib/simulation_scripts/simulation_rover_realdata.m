@@ -39,9 +39,10 @@ for i=1:length(data)
     IMU = data(i).val.IMU.';
     % quaternion
     Q = data(i).val.q.';
+    Qstory(i).val = Q;
     % RPY
     [YA, PI, RO]  = quat2angle(Q.');
-    EUL = [RO, PI, YA].';
+    EUL = [wrapTo4PiRound(RO), wrapTo4PiRound(PI), wrapTo4PiRound(YA)].';
     % angular velocity
     W = data(i).val.W.';
     % stack Y
@@ -178,6 +179,9 @@ for i = 1:obs.setup.Niter
             obs.init.params.q_jump(obs.init.traj).val(:,end+1) = data(traj).val.qjump(max(1,obs.init.ActualTimeIndex),:);
             obs.init.params.UWB_pos(end+1) = obs.init.ActualTimeIndex;
         end
+
+        %% ground truth
+        obs.init.X(traj).val(params.pos_quat,obs.init.ActualTimeIndex) = Qstory(traj).val(:,obs.init.ActualTimeIndex);
         
     end
     
@@ -205,12 +209,6 @@ for i = 1:obs.setup.Niter
     
     
 
-end
-
-%%%% SNR %%%
-% the SNR is computed on the mesurements https://ieeexplore.ieee.org/document/9805818 
-for i=1:obs.setup.dim_out
-    obs.init.SNR(1).val(i) = 10*log(sum(obs.init.Ytrue_full_story(1).val(1,i,:).^2)/sum(obs.init.noise_story(1).val(i,:).^2));
 end
 
 

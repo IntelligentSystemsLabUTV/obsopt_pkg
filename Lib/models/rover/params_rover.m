@@ -69,8 +69,8 @@ function params = params_rover(varargin)
     % anchor stuff
     % pos anchors Mesh 1
     % AM1 = params.out.AM1(1:2,:);
-    % AM1 = 4*[1 -1 1 -1; 1 1 -1 -1];    
-    AM1 = [-0.40 -0.40 +2.48 +2.80; +4.20 -1.80 -2.20 +4.20];    
+    AM1 = 4*[1 -1 1 -1; 1 1 -1 -1];    
+%     AM1 = [-0.40 -0.40 +2.48 +2.80; +4.20 -1.80 -2.20 +4.20];    
     % AM1 = [0 0 15 15; 0 4.7 4.7 0];    
     % square box
     an_dp = max(max(abs(AM1)));
@@ -122,19 +122,19 @@ function params = params_rover(varargin)
 
     %%% observer params %%%
     % theta
-    % params.theta = 1*[0.4221    0.2888   -0.0281];
-    params.theta = 1*[1.0139    1.7479   -0.1650];
+    params.theta = 1*[0.4221    0.2888   -0.0281];
+%     params.theta = 1*[1.0139    1.7479   -0.1650];
 %     params.theta = 0*[1 1.2662 -0.5457];    
     params.gamma = 0*ones(1,16);
 %     params.gamma(1:3) = 1*[1.8112, 0.6373, 1.0015];    
-%     params.gamma(1:3) = 0*[1, 1, 1];    
-    params.gamma(1:3) = 1*[1.6397   0.9979   0.6899];   
+    params.gamma(1:3) = 0.5*[1, 1, 1];    
+%     params.gamma(1:3) = 1*[1.6397   0.9979   0.6899];   
 
     % alpha
     params.alpha = 0*[0 0];      
 
     % filter
-    params.lowpass = 1;
+    params.lowpass = 100;
     
     %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
     % hyb obs parameters
@@ -319,7 +319,7 @@ function params = params_rover(varargin)
     params.dim_out_plot = [params.pos_p_out params.pos_v_out];       
 
     % fminunc
-    params.dist_optoptions = optimoptions('fminunc', 'MaxIter', 50, 'display','off', 'TolFun', 1e-8,'TolX',1e-8);
+    params.dist_optoptions = optimoptions('fminunc', 'MaxIter', 5, 'display','off');
 %     params.dist_optoptions = optimoptions('fmincon', 'MaxIter', 200, 'display','off');
 %     params.dist_optoptions = optimset('MaxIter', 10000,'display','off');  
 
@@ -381,6 +381,8 @@ function params = params_rover(varargin)
     params.fAqbar = fAqbar;
     params.fA2Qbar = fA2Qbar;
     params.fQ2Abar = fQ2Abar;
+    params.fA2Q = fA2Q;
+    params.fQ2A = fQ2A;
     params.fAe = fAe;
     params.fAed = fAed;
 

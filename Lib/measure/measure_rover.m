@@ -74,7 +74,7 @@ function y = measure_rover(x,params,tspan,u,obs)
         else   
             D = reshape(obs.init.params.last_D(traj,:),3*params.Nanchor,1);
             Quat_true = reshape(obs.init.params.last_Quat(traj,:),4,1);
-            [yaw, pitch, roll]  = quat2angle(Quat_true.');
+            [yaw, pitch, roll]  = quat2angle(Quat_true.','ZYX');
             Eul_true = [roll; pitch; yaw];
         end
     
