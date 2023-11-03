@@ -4,19 +4,34 @@ function data = plotBag(out,plotF,GTF,tstop,Ts)
     % init
     fig_count = 0;
     fontsize = 15;
-    alignflag = 0;
-    DSAMP = 1*(16/Ts/20);
+    alignflag = 1;
+    DSAMP = 0*(16/Ts/20);
     close all
     set(0,'DefaultFigureWindowStyle','docked');
 
     % define time of gorund truth and estimation    
     if GTF
-        T0_GT = double(out.viconData{1}.Header.Stamp.Sec);
-        TF_GT =  double(out.viconData{end}.Header.Stamp.Sec);        
+
+        a(1,1) = double(out.viconData{1}.Header.Stamp.Sec);
+        a(2,1) = double(out.EKFData{1}.Header.Stamp.Sec);
+        a(3,1) = double(out.UWBData{1}.Header.Stamp.Sec);
+
+        a(1,2) = double(out.viconData{end}.Header.Stamp.Sec);
+        a(2,2) = double(out.EKFData{end}.Header.Stamp.Sec);
+        a(3,2) = double(out.UWBData{end}.Header.Stamp.Sec);
+
+            
     else
-        T0_GT = double(out.EKFData{1}.Header.Stamp.Sec);
-        TF_GT =  double(out.EKFData{end}.Header.Stamp.Sec); 
+       
+        a(1,1) = double(out.EKFData{1}.Header.Stamp.Sec);
+        a(2,1) = double(out.UWBData{1}.Header.Stamp.Sec);
+
+        a(1,2) = double(out.EKFData{end}.Header.Stamp.Sec);
+        a(2,2) = double(out.UWBData{end}.Header.Stamp.Sec);
+ 
     end
+    [T0_GT,i] = min(a(:,1));
+    TF_GT =  a(i,2);   
     time = T0_GT:Ts:TF_GT;
     time = time - T0_GT;
     time_full = time;
@@ -69,17 +84,18 @@ function data = plotBag(out,plotF,GTF,tstop,Ts)
     T0_Vicon = double(out.viconData{1}.Header.Stamp.Sec);   % get T0 for Vicon
     dT = T0_GT - T0_Vicon;    % get time difference
     Nsamp = alignflag*floor(abs(dT));  % get number of samples to pad
-    if dT < 0 
+    if dT > 0 
         data.p = [data.p(1,:).*ones(Nsamp,3); data.p];
     else
         data.p(1:Nsamp,:) = [];
     end
 
     % get data
+    tmp = [];
     for i=1:size(data.p,2)
-        data.p(:,i) = interp(data.p(:,i),ceil(numel(time_full)/size(data.p,1)));  
+        tmp(:,i) = resample(data.p(:,i),numel(time_full),size(data.p,1));  
     end      
-    data.p = data.p(1:pos,:);
+    data.p = tmp(1:pos,:);
 
     %% distances
 
@@ -99,15 +115,16 @@ function data = plotBag(out,plotF,GTF,tstop,Ts)
     T0_UWB = double(out.UWBData{1}.Header.Stamp.Sec);   % get T0 for UWB
     dT = T0_GT - T0_UWB;    % get time difference
     Nsamp = DSAMP + alignflag*floor(abs(dT)/20);  % get number of samples to pad
-    if dT < 0 
+    if dT > 0 
         xhat = [xhat(1,:).*ones(Nsamp,12); xhat];
     else
         xhat(1:Nsamp,:) = [];
     end
 
     % resample on the GT samples
+    tmp = [];
     for i=1:size(xhat,2)
-        tmp(:,i) = interp(xhat(:,i),ceil(numel(time_full)/size(xhat,1)));
+        tmp(:,i) = resample(xhat(:,i),numel(time_full),size(xhat,1));
     end
     xhat = tmp(1:pos,:);
     data.UWB = xhat;
@@ -157,7 +174,7 @@ function data = plotBag(out,plotF,GTF,tstop,Ts)
     T0_EKF = double(out.EKFData{1}.Header.Stamp.Sec);   % get T0 for EKF
     dT = T0_GT - T0_EKF;    % get time difference
     Nsamp = alignflag*floor(abs(dT));  % get number of samples to pad
-    if dT < 0 
+    if dT > 0 
         xhat = [xhat(1,:).*ones(Nsamp,3); xhat];
     else
         xhat(1:Nsamp,:) = [];
@@ -166,7 +183,7 @@ function data = plotBag(out,plotF,GTF,tstop,Ts)
     % get data
     tmp = [];
     for i=1:size(xhat,2)
-        tmp(:,i) = interp(xhat(:,i),ceil(numel(time_full)/size(xhat,1)));  
+        tmp(:,i) = resample(xhat(:,i),numel(time_full),size(xhat,1));  
     end
     xhat = tmp(1:pos,:);
     data.phat = xhat;    
@@ -182,7 +199,7 @@ function data = plotBag(out,plotF,GTF,tstop,Ts)
     T0_PJUMP = double(out.PJUMPData{1}.Header.Stamp.Sec);   % get T0 for PJUMP
     dT = T0_GT - T0_PJUMP;    % get time difference
     Nsamp = DSAMP + alignflag*floor(abs(dT)/20);  % get number of samples to pad
-    if dT < 0 
+    if dT > 0 
         xhat = [xhat(1,:).*ones(Nsamp,3); xhat];
     else
         xhat(1:Nsamp,:) = [];
@@ -191,7 +208,7 @@ function data = plotBag(out,plotF,GTF,tstop,Ts)
     % get data
     tmp = [];
     for i=1:size(xhat,2)
-        tmp(:,i) = interp(xhat(:,i),ceil(numel(time_full)/size(xhat,1)));  
+        tmp(:,i) = resample(xhat(:,i),numel(time_full),size(xhat,1));  
     end
     xhat = tmp(1:pos,:);
     data.pjump = xhat;
@@ -206,7 +223,7 @@ function data = plotBag(out,plotF,GTF,tstop,Ts)
     T0_PHYB = double(out.PHYBData{1}.Header.Stamp.Sec);   % get T0 for PHYB
     dT = T0_GT - T0_PHYB;    % get time difference
     Nsamp = alignflag*floor(abs(dT));  % get number of samples to pad
-    if dT < 0 
+    if dT > 0 
         xhat = [xhat(1,:).*ones(Nsamp,3); xhat];
     else
         xhat(1:Nsamp,:) = [];
@@ -215,7 +232,7 @@ function data = plotBag(out,plotF,GTF,tstop,Ts)
     % get data
     tmp = [];
     for i=1:size(xhat,2)
-        tmp(:,i) = interp(xhat(:,i),ceil(numel(time_full)/size(xhat,1)));  
+        tmp(:,i) = resample(xhat(:,i),numel(time_full),size(xhat,1));  
     end
     xhat = tmp(1:pos,:);
     data.phyb = xhat;
@@ -282,7 +299,7 @@ function data = plotBag(out,plotF,GTF,tstop,Ts)
     T0_Vicon = double(out.viconData{1}.Header.Stamp.Sec);   % get T0 for Vicon
     dT = T0_GT - T0_Vicon;    % get time difference
     Nsamp = alignflag*floor(abs(dT));  % get number of samples to pad
-    if dT < 0 
+    if dT > 0 
         data.p = [data.p(1,:).*ones(Nsamp,3); data.p];
     else
         data.p(1:Nsamp,:) = [];
@@ -291,7 +308,7 @@ function data = plotBag(out,plotF,GTF,tstop,Ts)
     % get data
     tmp = [];
     for i=1:size(data.q,2)
-        tmp(:,i) = interp(data.q(:,i),ceil(numel(time_full)/size(data.q,1)));  
+        tmp(:,i) = resample(data.q(:,i),numel(time_full),size(data.q,1));  
     end
     data.q = tmp(1:pos,:);
 
@@ -306,8 +323,8 @@ function data = plotBag(out,plotF,GTF,tstop,Ts)
     T0_EKF = double(out.EKFData{1}.Header.Stamp.Sec);   % get T0 for EKF
     dT = T0_GT - T0_EKF;    % get time difference
     Nsamp = alignflag*floor(abs(dT));  % get number of samples to pad
-    if dT < 0 
-        xhat = [xhat(1,:).*ones(Nsamp,3); xhat];
+    if dT > 0 
+        xhat = [xhat(1,:).*ones(Nsamp,4); xhat];
     else
         xhat(1:Nsamp,:) = [];
     end
@@ -315,7 +332,7 @@ function data = plotBag(out,plotF,GTF,tstop,Ts)
     % get data
     tmp = [];
     for i=1:size(xhat,2)
-        tmp(:,i) = interp(xhat(:,i),ceil(numel(time_full)/size(xhat,1)));  
+        tmp(:,i) = resample(xhat(:,i),numel(time_full),size(xhat,1));  
     end
     xhat = tmp(1:pos,:);
     data.qhat = xhat; 
@@ -331,8 +348,8 @@ function data = plotBag(out,plotF,GTF,tstop,Ts)
     T0_PJUMP = double(out.PJUMPData{1}.Header.Stamp.Sec);   % get T0 for PJUMP
     dT = T0_GT - T0_PJUMP;    % get time difference
     Nsamp = DSAMP + alignflag*floor(abs(dT)/20);  % get number of samples to pad
-    if dT < 0 
-        xhat = [xhat(1,:).*ones(Nsamp,3); xhat];
+    if dT > 0 
+        xhat = [xhat(1,:).*ones(Nsamp,4); xhat];
     else
         xhat(1:Nsamp,:) = [];
     end
@@ -340,7 +357,7 @@ function data = plotBag(out,plotF,GTF,tstop,Ts)
     % get data
     tmp = [];
     for i=1:size(xhat,2)
-        tmp(:,i) = interp(xhat(:,i),ceil(numel(time_full)/size(xhat,1)));  
+        tmp(:,i) = resample(xhat(:,i),numel(time_full),size(xhat,1));  
     end
     xhat = tmp(1:pos,:);
     data.qjump = xhat;
@@ -356,8 +373,8 @@ function data = plotBag(out,plotF,GTF,tstop,Ts)
     T0_PHYB = double(out.PHYBData{1}.Header.Stamp.Sec);   % get T0 for PHYB
     dT = T0_GT - T0_PHYB;    % get time difference
     Nsamp = alignflag*floor(abs(dT));  % get number of samples to pad
-    if dT < 0 
-        xhat = [xhat(1,:).*ones(Nsamp,3); xhat];
+    if dT > 0 
+        xhat = [xhat(1,:).*ones(Nsamp,4); xhat];
     else
         xhat(1:Nsamp,:) = [];
     end
@@ -365,7 +382,7 @@ function data = plotBag(out,plotF,GTF,tstop,Ts)
     % get data
     tmp = [];
     for i=1:size(xhat,2)
-        tmp(:,i) = interp(xhat(:,i),ceil(numel(time_full)/size(xhat,1)));  
+        tmp(:,i) = resample(xhat(:,i),numel(time_full),size(xhat,1));  
     end
     xhat = tmp(1:pos,:);
     data.qhyb = xhat;
@@ -445,7 +462,7 @@ function data = plotBag(out,plotF,GTF,tstop,Ts)
     T0_IMU = double(out.IMUData{1}.Header.Stamp.Sec);   % get T0 for IMU
     dT = T0_GT - T0_IMU;    % get time difference
     Nsamp = alignflag*floor(abs(dT));  % get number of samples to pad
-    if dT < 0 
+    if dT > 0 
         xhat = [xhat(1,:).*ones(Nsamp,3); xhat];
     else
         xhat(1:Nsamp,:) = [];
@@ -454,7 +471,7 @@ function data = plotBag(out,plotF,GTF,tstop,Ts)
     % get data
     tmp = [];
     for i=1:size(xhat,2)
-        tmp(:,i) = interp(xhat(:,i),ceil(numel(time_full)/size(xhat,1)));  
+        tmp(:,i) = resample(xhat(:,i),numel(time_full),size(xhat,1));  
     end
     xhat = tmp(1:pos,:);
     data.IMU = xhat;
@@ -467,7 +484,7 @@ function data = plotBag(out,plotF,GTF,tstop,Ts)
     xhat(:,3) = cellfun(@(m) double(m.AngularVelocity.Z),out.IMUData);
     
     % align
-    if dT < 0 
+    if dT > 0 
         xhat = [xhat(1,:).*ones(Nsamp,3); xhat];
     else
         xhat(1:Nsamp,:) = [];
@@ -476,7 +493,7 @@ function data = plotBag(out,plotF,GTF,tstop,Ts)
     % get data
     tmp = [];
     for i=1:size(xhat,2)
-        tmp(:,i) = interp(xhat(:,i),ceil(numel(time_full)/size(xhat,1)));  
+        tmp(:,i) = resample(xhat(:,i),numel(time_full),size(xhat,1));  
     end
     xhat = tmp(1:pos,:);
     data.W = xhat;
@@ -493,7 +510,7 @@ function data = plotBag(out,plotF,GTF,tstop,Ts)
     T0_IMUHYB = double(out.IMUHYBData{1}.Header.Stamp.Sec);   % get T0 for IMUHYB
     dT = T0_GT - T0_IMUHYB;    % get time difference
     Nsamp = alignflag*floor(abs(dT));  % get number of samples to pad
-    if dT < 0 
+    if dT > 0 
         xhat = [xhat(1,:).*ones(Nsamp,3); xhat];
     else
         xhat(1:Nsamp,:) = [];
@@ -502,7 +519,7 @@ function data = plotBag(out,plotF,GTF,tstop,Ts)
     % get data
     tmp = [];
     for i=1:size(xhat,2)
-        tmp(:,i) = interp(xhat(:,i),ceil(numel(time_full)/size(xhat,1)));  
+        tmp(:,i) = resample(xhat(:,i),numel(time_full),size(xhat,1));  
     end
     xhat = tmp(1:pos,:);
     data.IMUHYB = xhat;
@@ -515,7 +532,7 @@ function data = plotBag(out,plotF,GTF,tstop,Ts)
     xhat(:,3) = cellfun(@(m) double(m.AngularVelocity.Z),out.IMUHYBData);
     
     % align
-    if dT < 0 
+    if dT > 0 
         xhat = [xhat(1,:).*ones(Nsamp,3); xhat];
     else
         xhat(1:Nsamp,:) = [];
@@ -524,7 +541,7 @@ function data = plotBag(out,plotF,GTF,tstop,Ts)
     % get data
     tmp = [];
     for i=1:size(xhat,2)
-        tmp(:,i) = interp(xhat(:,i),ceil(numel(time_full)/size(xhat,1)));  
+        tmp(:,i) = resample(xhat(:,i),numel(time_full),size(xhat,1));  
     end
     xhat = tmp(1:pos,:);
     data.WHYB = xhat;
@@ -541,7 +558,7 @@ function data = plotBag(out,plotF,GTF,tstop,Ts)
     T0_BiasHYB = double(out.BiasHYBData{1}.Header.Stamp.Sec);   % get T0 for IMUHYB
     dT = T0_GT - T0_BiasHYB;    % get time difference
     Nsamp = alignflag*floor(abs(dT));  % get number of samples to pad
-    if dT < 0 
+    if dT > 0 
         xhat = [xhat(1,:).*ones(Nsamp,3); xhat];
     else
         xhat(1:Nsamp,:) = [];
@@ -550,7 +567,7 @@ function data = plotBag(out,plotF,GTF,tstop,Ts)
     % get data
     tmp = [];
     for i=1:size(xhat,2)
-        tmp(:,i) = interp(xhat(:,i),ceil(numel(time_full)/size(xhat,1)));  
+        tmp(:,i) = resample(xhat(:,i),numel(time_full),size(xhat,1));  
     end
     xhat = tmp(1:pos,:);
     data.BIASHYB = xhat;

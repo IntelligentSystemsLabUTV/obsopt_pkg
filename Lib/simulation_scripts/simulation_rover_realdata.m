@@ -82,14 +82,14 @@ params_update = @params_update_rover;
 
 %%%% model function %%%%
 model = @model_rover;
-% model = @model_rover_EKF;
+model = @model_rover_EKF;
 
 %%%% model reference function %%%%
 model_reference = @model_rover_reference;
 
 %%%% measure function %%%%
 measure = @measure_rover;
-% measure = @measure_rover_EKF;
+measure = @measure_rover_EKF;
 measure_reference = @measure_rover_reference;
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
