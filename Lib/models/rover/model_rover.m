@@ -53,12 +53,14 @@ function [x_dot, x] = model_rover(tspan,x,params,obs)
                 p_jump_der = obs.init.params.p_jump_der(obs.init.traj).val(:,pos(1)/params.UWB_samp);
 
                 % stability analysis - position
-                Ae = params.fAe;
-                AeEXP = expm(Ae*params.Ts*params.UWB_samp);                            
-                Aed = double(simplify(params.fAed(params.theta(1), params.theta(2), params.theta(3))));
-                AeJump = (eye(9) - Aed);
-                MONOTROMIC = AeJump*AeEXP;
-                obs.init.params.EIGPOS(:,pos(1)) = sort(real(eig(MONOTROMIC)));
+                if 1
+                    Ae = params.fAe;
+                    AeEXP = expm(Ae*params.Ts*params.UWB_samp);                            
+                    Aed = double(simplify(params.fAed(params.theta(1), params.theta(2), params.theta(3))));
+                    AeJump = (eye(9) - Aed);
+                    MONOTROMIC = AeJump*AeEXP;
+                    obs.init.params.EIGPOS(:,pos(1)) = sort(real(eig(MONOTROMIC)));
+                end
                 
                 % jump map - x
                 xp(1) = x(1) + params.theta(1)*(p_jump(1)-x(1));
@@ -196,46 +198,48 @@ function [x_dot, x] = model_rover(tspan,x,params,obs)
         xp(params.pos_quat) = quatnormalize(xp(params.pos_quat).');
 
         % stability analysis - quaternion
-        GAMMA = diag([params.gamma(1), params.gamma(2), params.gamma(3)]);
-        q = xp(params.pos_quat)';
-        q = [q(2:4)'; q(1)];
-        w = xp(params.pos_w)';
-        Aq = double(params.fAqbar(q(1),q(2),q(3),q(4),w(1),w(2),w(3)));
-        AqEXP = expm(Aq*params.Ts*params.UWB_samp);
-%         A2Q = double(params.fA2Qbar(rollhat,pitchhat,yawhat));
-        A2Q = double(params.fA2Qbar(0,0,0));
-        Q2A = double(params.fQ2Abar(q(1),q(2),q(3),q(4)));
-        A2Qtrue = quatnormalize(double(params.fA2Q(0,0,0))');
-        AqJump = (eye(4) - A2Q*GAMMA*Q2A);
-%         MONOTROMIC = AqJump*AqEXP(1:4,1:4);
-        MONOTROMIC = AqJump;
-        obs.init.params.EIGQUAT(:,pos(1)) = sort(real(eig(MONOTROMIC(1:3,1:3))));
-
-        % Lyapunov function
-        q_j = obs.init.X(obs.init.traj).val(params.pos_quat,max(1,pos(1)-obs.init.params.UWB_samp));
-        qhat_j = obs.init.X_est(obs.init.traj).val(params.pos_quat,max(1,pos(1)-obs.init.params.UWB_samp));
-        q_i = obs.init.X(obs.init.traj).val(params.pos_quat,max(1,pos(1)));
-        qhat_i = x(params.pos_quat);
-        qhat_i_jump = xp(params.pos_quat);
-
-        % standard difference
-        e_j = q_j - qhat_j; % error after last jump
-        e_i = q_i - qhat_i; % error before this jump
-        e_i_jump = q_i - qhat_i_jump; % error after this jump
-        Ve_j = norm(e_j)^2;
-        Ve_i = norm(e_i)^2;
-        Ve_i_jump = norm(e_i_jump)^2;
-
-        % quat product
-%         e_j = quatmultiply(q_j',quatinv(qhat_j')); % error after last jump
-%         e_i = quatmultiply(q_i',quatinv(qhat_i')); % error before this jump
-%         e_i_jump = quatmultiply(q_i',quatinv(qhat_i_jump')); % error after this jump
-%         Ve_j = quatnorm(e_j)^2;
-%         Ve_i = quatnorm(e_i)^2;
-%         Ve_i_jump = quatnorm(e_i_jump)^2;
-
-        obs.init.params.INCREASE(pos(1)) = abs(Ve_i - Ve_j);
-        obs.init.params.DECREASE(pos(1)) = abs(Ve_i_jump - Ve_i);
+        if 0
+            GAMMA = diag([params.gamma(1), params.gamma(2), params.gamma(3)]);
+            q = xp(params.pos_quat)';
+            q = [q(2:4)'; q(1)];
+            w = xp(params.pos_w)';
+            Aq = double(params.fAqbar(q(1),q(2),q(3),q(4),w(1),w(2),w(3)));
+            AqEXP = expm(Aq*params.Ts*params.UWB_samp);
+    %         A2Q = double(params.fA2Qbar(rollhat,pitchhat,yawhat));
+            A2Q = double(params.fA2Qbar(0,0,0));
+            Q2A = double(params.fQ2Abar(q(1),q(2),q(3),q(4)));
+            A2Qtrue = quatnormalize(double(params.fA2Q(0,0,0))');
+            AqJump = (eye(4) - A2Q*GAMMA*Q2A);
+    %         MONOTROMIC = AqJump*AqEXP(1:4,1:4);
+            MONOTROMIC = AqJump;
+            obs.init.params.EIGQUAT(:,pos(1)) = sort(real(eig(MONOTROMIC(1:3,1:3))));
+    
+            % Lyapunov function
+            q_j = obs.init.X(obs.init.traj).val(params.pos_quat,max(1,pos(1)-obs.init.params.UWB_samp));
+            qhat_j = obs.init.X_est(obs.init.traj).val(params.pos_quat,max(1,pos(1)-obs.init.params.UWB_samp));
+            q_i = obs.init.X(obs.init.traj).val(params.pos_quat,max(1,pos(1)));
+            qhat_i = x(params.pos_quat);
+            qhat_i_jump = xp(params.pos_quat);
+    
+            % standard difference
+            e_j = q_j - qhat_j; % error after last jump
+            e_i = q_i - qhat_i; % error before this jump
+            e_i_jump = q_i - qhat_i_jump; % error after this jump
+            Ve_j = norm(e_j)^2;
+            Ve_i = norm(e_i)^2;
+            Ve_i_jump = norm(e_i_jump)^2;
+    
+            % quat product
+    %         e_j = quatmultiply(q_j',quatinv(qhat_j')); % error after last jump
+    %         e_i = quatmultiply(q_i',quatinv(qhat_i')); % error before this jump
+    %         e_i_jump = quatmultiply(q_i',quatinv(qhat_i_jump')); % error after this jump
+    %         Ve_j = quatnorm(e_j)^2;
+    %         Ve_i = quatnorm(e_i)^2;
+    %         Ve_i_jump = quatnorm(e_i_jump)^2;
+    
+            obs.init.params.INCREASE(pos(1)) = abs(Ve_i - Ve_j);
+            obs.init.params.DECREASE(pos(1)) = abs(Ve_i_jump - Ve_i);
+        end
 
         
         

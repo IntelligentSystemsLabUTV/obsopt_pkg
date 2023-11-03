@@ -14,7 +14,7 @@ function params_out = params_update_rover(params,x)
     params_out = params; 
 
     params_out.theta = x(params.pos_Gamma(1:3));        
-    params_out.gamma = x(params.pos_Gamma(4:19));  
+%     params_out.gamma = x(params.pos_Gamma(4:19));  
         
     
 end

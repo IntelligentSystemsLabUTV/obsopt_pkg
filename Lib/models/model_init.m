@@ -188,13 +188,14 @@ function params = model_init(varargin)
                                                                   0*params.noise*noise_std'.*randn(length(params.perturbed_vars),1);    
 %                 params.X_est(traj).val(params.perturbed_vars,1) = 0;
                 params.X_est(traj).val(params.pos_quat(1),1) = 1;
+                params.X_est(traj).val(params.pos_quat,1) = quatnormalize(params.X_est(traj).val(params.pos_quat,1)');
 %                 params.X_est(traj).val(3,1) = 0.5;
             end            
 
             % test - bias starting always from 0
             if params.noise 
-                % params.X_est(traj).val(params.pos_bias,1) = 0;
-                % params.X_est(traj).val(params.pos_bias_w,1) = 0;
+                params.X_est(traj).val(params.pos_bias,1) = 0;
+%                 params.X_est(traj).val(params.pos_bias_w,1) = 0;
             end
         end
 

@@ -131,32 +131,28 @@ function [y, obs] = measure_rover_reference(x,params,t,u,obs)
     if mod(pos(end),params.UWB_samp) == 0
 
         % gradient and pseudoderivative
-        if 1
-            D_meas = y(params.pos_dist_out);
-            % 1 opt for all tags            
-            xopt = zeros(9,1);            
-            xtmp = fminunc(@(x)J_dist(x,Pa,D_meas),xopt,obs.setup.params.dist_optoptions);    
-            xtmp = reshape(xtmp,3,3);     
-            xtmp(3,:) = xtmp(3,:) - params.TagPos(3,:);
-            %%%%%%%%
-            % test to correct positioning of the tags
-%             xtmp(1,:) = xtmp(1,:) - 0.05;   % subtract 5 cm
-%             xtmp(2,:) = xtmp(2,:) - 0.05;   % subtract 5 cm
-            %%%%%%%%%
-            xtmp = mean(xtmp,2);                  
-            obs.init.params.p_jump(traj).val(:,end+1) =xtmp;            
-            [obs.init.params.p_jump_der(traj).val(:,end+1), obs.init.params.p_jump_der_buffer, obs.init.params.p_jump_der_counter(traj).val] = PseudoDer(params.Ts*params.UWB_samp,...
-               obs.init.params.p_jump(traj).val(:,end),params.wlen,...
-               params.buflen,params.space_dim,0,0,obs,obs.init.params.p_jump_der_buffer,obs.init.params.p_jump_der_counter(traj).val);
-        else        
-        % dry measure              
-            xtmp = Pt;                   
-            xtmp(3,:) = xtmp(3,:) - params.TagPos(3,:);
-            xtmp = mean(xtmp,2);                   
-            obs.init.params.p_jump(traj).val(:,end+1) = xtmp;
-            % obs.init.params.p_jump(traj).val(:,end+1) = P_true; 
-            obs.init.params.p_jump_der(traj).val(:,end+1) = x(params.pos_v);
-        end
+        if params.hyb
+            if 1
+                D_meas = y(params.pos_dist_out);
+                % 1 opt for all tags            
+                xopt = 1*reshape(Pt,9,1);
+                xtmp = fminunc(@(x)J_dist(x,Pa,D_meas),xopt,obs.setup.params.dist_optoptions); 
+                xtmp = reshape(xtmp,3,3);     
+                xtmp(3,:) = xtmp(3,:) - params.TagPos(3,:);
+                xtmp = mean(xtmp,2);
+                obs.init.params.p_jump(traj).val(:,end+1) =xtmp;            
+                [obs.init.params.p_jump_der(traj).val(:,end+1), obs.init.params.p_jump_der_buffer, obs.init.params.p_jump_der_counter(traj).val] = PseudoDer(params.Ts*params.UWB_samp,...
+                   obs.init.params.p_jump(traj).val(:,end),params.wlen,...
+                   params.buflen,params.space_dim,0,0,obs,obs.init.params.p_jump_der_buffer,obs.init.params.p_jump_der_counter(traj).val);
+            else        
+            % dry measure              
+                xtmp = Pt;                   
+                xtmp(3,:) = xtmp(3,:) - params.TagPos(3,:);
+                xtmp = mean(xtmp,2);                   
+                obs.init.params.p_jump(traj).val(:,end+1) = xtmp;
+                % obs.init.params.p_jump(traj).val(:,end+1) = P_true; 
+                obs.init.params.p_jump_der(traj).val(:,end+1) = x(params.pos_v);
+            end
         if traj == 1
             obs.init.params.p_jump_time(end+1) = pos(end);
         end
@@ -187,6 +183,7 @@ function [y, obs] = measure_rover_reference(x,params,t,u,obs)
         Rest = V*U';
         qjump = quatnormalize(rotm2quat(Rest));
         obs.init.params.q_jump(traj).val(:,end+1) = qjump;
+        end
     end
     
     % store

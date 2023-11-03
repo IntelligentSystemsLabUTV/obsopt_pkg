@@ -1073,7 +1073,7 @@ classdef obsopt < handle
             y = obj.init.Y_full_story(obj.init.traj).val(1,:,obj.init.ActualTimeIndex);
             DiffTerm = diff(buf_data);
             VecTerm = vecnorm(DiffTerm,2,2);
-            obj.init.PE_story(:,obj.init.ActualTimeIndex) = sum(VecTerm) + norm(y-buf_data(end,:));            
+            obj.init.PE_story(:,obj.init.ActualTimeIndex) = sum(VecTerm) + norm(y'-buf_data(end,:));            
 
             if buffer_ready && obj.setup.AdaptiveSampling                
 
