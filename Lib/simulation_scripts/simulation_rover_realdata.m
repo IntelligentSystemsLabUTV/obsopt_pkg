@@ -33,6 +33,7 @@ for i=1:length(data)
     D = data(i).val.UWB.';
     % position 
     p = data(i).val.p.';
+    p = p + [0.23; 0.12; 0];
     % velocity
     v = zeros(size(p));
     % IMU
@@ -86,14 +87,14 @@ params_update = @params_update_rover;
 
 %%%% model function %%%%
 model = @model_rover;
-% model = @model_rover_EKF;
+model = @model_rover_EKF;
 
 %%%% model reference function %%%%
 model_reference = @model_rover_reference;
 
 %%%% measure function %%%%
 measure = @measure_rover;
-% measure = @measure_rover_EKF;
+measure = @measure_rover_EKF;
 measure_reference = @measure_rover_reference;
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
@@ -121,7 +122,7 @@ Yweights = ones(params.OutDim,1);
 
 % create observer class instance. For more information on the setup
 % options check directly the class constructor in obsopt.m
-obs = obsopt('DataType', 'simulated', 'optimise', 1 , 'MultiStart', params.multistart, 'J_normalise', 1, 'MaxOptTime', Inf, ... 
+obs = obsopt('DataType', 'simulated', 'optimise', 0 , 'MultiStart', params.multistart, 'J_normalise', 1, 'MaxOptTime', Inf, ... 
           'Nw', Nw, 'Nts', Nts, 'ode', ode, 'PE_ma0iter', 0, 'WaitAllBuffer', 2, 'params',params, 'filters', filterScale,'filterTF', filter, ...
           'model_reference',model_reference, 'measure_reference',measure_reference, ...
           'Jdot_thresh',0.95,'MaxIter', 5, 'Jterm_store', 1, 'AlwaysOpt', 1 , 'print', 0 , 'SafetyDensity', Inf, 'AdaptiveParams', [10 160 1 1 0.5 params.pos_acc_out(1:2)], ...

@@ -16,8 +16,8 @@ function params = params_rover(varargin)
         Ntraj = 1;
     end
     
-    params.hyb = 1;
-    params.ekf = 0;
+    params.hyb = 0;
+    params.ekf = 1;
 
     % system parameters
     params.m = 1;
@@ -124,11 +124,11 @@ function params = params_rover(varargin)
     %%% observer params %%%
     % theta
     % params.theta = 1*[0.4221    0.2888   -0.0281];
-    params.theta = 0*[0.20  0.09  -0.02];
+    params.theta = 1*[0.9188  2.1741  -0.7208];
 %     params.theta = 1*[0.05  0.1  -0.02];
     params.gamma = 0*ones(1,16);
 %     params.gamma(1:3) = 1*[1.8112, 0.6373, 1.0015];    
-    params.gamma(1:3) = 0*[1, 1, 1];    
+    params.gamma(1:3) = 0.9881*[1, 1, 1];    
 %     params.gamma(1:3) = 1*[1.6397   0.9979   0.6899];   
 
     % alpha
@@ -369,7 +369,7 @@ function params = params_rover(varargin)
         ]);      
     
     % process noise - model: bias - acc - gyro
-    params.Q = 1*diag([1e-2*ones(1,3) 1e2*ones(1,3) 1e0*ones(1,3)]);
+    params.Q = 1*diag([1e-3*ones(1,3) 1e2*ones(1,3) 1e0*ones(1,3)]);
 
     % EKF covariance matrix
     for traj=1:params.Ntraj

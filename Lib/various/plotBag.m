@@ -89,11 +89,15 @@ function data = plotBag(out,plotF,GTF,tstop,Ts,rescaleFlag)
     data.p(:,3) = x;
 
     % starting time for Vicon 
-    T0_Vicon = double(out.viconData{1}.Header.Stamp.Sec);   % get T0 for Vicon
+    if GTF
+        T0_Vicon = double(out.viconData{1}.Header.Stamp.Sec);   % get T0 for Vicon
+    else
+        T0_Vicon = T0_GT;
+    end
     TsVicon = Ts; %mean(diff(cell2mat(cellfun(@(m) double(m.Header.Stamp.Sec),out.viconData,'UniformOutput',false))));
     dT = T0_GT - T0_Vicon;    % get time difference
     Nsamp = floor(alignflag*(rescaleFlagVicon + floor(abs(dT)/TsVicon*Ts)));  % get number of samples to pad
-    if dT < 0 
+    if dT >= 0 
         data.p = [data.p(1,:).*ones(Nsamp,3); data.p];
     else
         data.p(1:Nsamp,:) = [];
@@ -125,7 +129,7 @@ function data = plotBag(out,plotF,GTF,tstop,Ts,rescaleFlag)
     TsUWB = Ts; %mean(diff(cell2mat(cellfun(@(m) double(m.Header.Stamp.Sec),out.UWBData,'UniformOutput',false))));
     dT = T0_GT - T0_UWB;    % get time difference
     Nsamp = floor(alignflag*(rescaleFlagUWB + abs(dT)/TsUWB*Ts));  % get number of samples to pad
-    if dT < 0 
+    if dT >= 0 
         xhat = [xhat(1,:).*ones(Nsamp,12); xhat];
     else
         xhat(1:Nsamp,:) = [];
@@ -185,7 +189,7 @@ function data = plotBag(out,plotF,GTF,tstop,Ts,rescaleFlag)
     TsEKF = Ts; %mean(diff(cell2mat(cellfun(@(m) double(m.Header.Stamp.Sec),out.EKFData,'UniformOutput',false))));
     dT = T0_GT - T0_EKF;    % get time difference
     Nsamp = floor(alignflag*(rescaleFlagEKF + abs(dT)/TsEKF*Ts));  % get number of samples to pad
-    if dT < 0 
+    if dT >= 0 
         xhat = [xhat(1,:).*ones(Nsamp,3); xhat];
     else
         xhat(1:Nsamp,:) = [];
@@ -210,7 +214,7 @@ function data = plotBag(out,plotF,GTF,tstop,Ts,rescaleFlag)
     TsPJUMP = Ts; %mean(diff(cell2mat(cellfun(@(m) double(m.Header.Stamp.Sec),out.EKFData,'UniformOutput',false))));
     dT = T0_GT - T0_PJUMP;    % get time difference
     Nsamp = floor(alignflag*(rescaleFlagPJUMP + abs(dT)/TsPJUMP*Ts));  % get number of samples to pad
-    if dT < 0 
+    if dT >= 0 
         xhat = [xhat(1,:).*ones(Nsamp,3); xhat];
     else
         xhat(1:Nsamp,:) = [];
@@ -282,10 +286,14 @@ function data = plotBag(out,plotF,GTF,tstop,Ts,rescaleFlag)
     data.q(:,1) = x;
 
     % starting time for Vicon 
-    T0_Vicon = double(out.viconData{1}.Header.Stamp.Sec);   % get T0 for Vicon
+    if GTF
+        T0_Vicon = double(out.viconData{1}.Header.Stamp.Sec);   % get T0 for Vicon
+    else
+        T0_Vicon = T0_GT;
+    end
     dT = T0_GT - T0_Vicon;    % get time difference
     Nsamp = floor(alignflag*(rescaleFlagVicon + abs(dT)/TsVicon*Ts));  % get number of samples to pad
-    if dT < 0 
+    if dT >= 0 
         data.q = [data.q(1,:).*ones(Nsamp,4); data.q];
     else
         data.q(1:Nsamp,:) = [];
@@ -309,7 +317,7 @@ function data = plotBag(out,plotF,GTF,tstop,Ts,rescaleFlag)
     T0_EKF = double(out.EKFData{1}.Header.Stamp.Sec);   % get T0 for EKF
     dT = T0_GT - T0_EKF;    % get time difference
     Nsamp = floor(alignflag*(rescaleFlagEKF + abs(dT)/TsEKF*Ts));  % get number of samples to pad
-    if dT < 0 
+    if dT >= 0 
         xhat = [xhat(1,:).*ones(Nsamp,4); xhat];
     else
         xhat(1:Nsamp,:) = [];
@@ -335,7 +343,7 @@ function data = plotBag(out,plotF,GTF,tstop,Ts,rescaleFlag)
     TsPJUMP = Ts; %mean(diff(cell2mat(cellfun(@(m) double(m.Header.Stamp.Sec),out.EKFData,'UniformOutput',false))));
     dT = T0_GT - T0_PJUMP;    % get time difference
     Nsamp = floor(alignflag*(rescaleFlagPJUMP + abs(dT)/TsPJUMP*Ts));  % get number of samples to pad
-    if dT < 0 
+    if dT >= 0 
         xhat = [xhat(1,:).*ones(Nsamp,4); xhat];
     else
         xhat(1:Nsamp,:) = [];
@@ -413,7 +421,7 @@ function data = plotBag(out,plotF,GTF,tstop,Ts,rescaleFlag)
     TsIMU = Ts; %mean(diff(cell2mat(cellfun(@(m) double(m.Header.Stamp.Sec),out.IMUData,'UniformOutput',false))));
     dT = T0_GT - T0_IMU;    % get time difference
     Nsamp = floor(alignflag*(rescaleFlagIMU + abs(dT)/TsIMU*Ts));  % get number of samples to pad
-    if dT < 0 
+    if dT >= 0 
         xhat = [xhat(1,:).*ones(Nsamp,3); xhat];
     else
         xhat(1:Nsamp,:) = [];
@@ -435,7 +443,7 @@ function data = plotBag(out,plotF,GTF,tstop,Ts,rescaleFlag)
     xhat(:,3) = cellfun(@(m) double(m.AngularVelocity.Z),out.IMUData);
     
     % align
-    if dT < 0 
+    if dT >= 0 
         xhat = [xhat(1,:).*ones(Nsamp,3); xhat];
     else
         xhat(1:Nsamp,:) = [];
