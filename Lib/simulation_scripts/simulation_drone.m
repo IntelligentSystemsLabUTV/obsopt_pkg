@@ -24,7 +24,7 @@ Ts = 1e-2;
 
 % set initial and final time instant
 t0 = 0;
-%tend = 10;
+%tend = 40;
 % uncomment to test the MHE with a single optimisation step
 tend = 1*(Nw*Nts-1)*Ts;
 
@@ -44,8 +44,8 @@ model = @model_drone;
 model_reference = @model_drone_reference;
 
 %%%% measure function %%%%
-measure = @measure_drone;
 measure_reference = @measure_drone_reference;
+measure = @measure_drone;
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 %%%% filters %%%%
@@ -58,7 +58,7 @@ ode = @odeDD;
 input_law = @control_drone;
 
 %%%% params init %%%%
-params = model_init('Ts',Ts,'T0',[t0, tend],'noise',0, 'params_update', params_update, ...
+params = model_init('Ts',Ts,'T0',[t0, tend],'noise',1, 'params_update', params_update, ...
             'model',model,'measure',measure,'ode',ode, 'odeset', [1e-3 1e-6], ...
             'input_enable',1,'input_law',input_law,'params_init',params_init);
              
@@ -69,14 +69,14 @@ terminal_weights = 1e0*ones(size(terminal_states));
 
 % create observer class instance. For more information on the setup
 % options check directly the class constructor in obsopt.m
-obs = obsopt('DataType', 'simulated', 'optimise',0 , 'print', 1, ... 
+obs = obsopt('DataType', 'simulated', 'optimise',1 , 'print', 1, ... 
           'Nw', Nw, 'Nts', Nts, 'ode', ode, ...
           'PE_maxiter', 0, 'WaitAllBuffer', 1, 'params',params, 'filters', filterScale,'filterTF', filter, ...
           'model_reference',model_reference, 'measure_reference',measure_reference, ...
           'AdaptiveSampling',0, 'AdaptiveParams', [10 20 1 1 0.01 params.pos_uwb_out], ... %?
           'FlushBuffer', 1, ...
           'opt', @fminsearchcon, ...
-          'Jdot_thresh',0.95, 'MaxIter', 100, 'Jterm_store', 1, 'AlwaysOpt', 1 , 'SafetyDensity', Inf, ...
+          'Jdot_thresh',0.95, 'MaxIter', 20, 'Jterm_store', 1, 'AlwaysOpt', 1 , 'SafetyDensity', Inf, ...
           'MultiStart', params.multistart, 'J_normalise', 1, 'MaxOptTime', Inf, ...
           'terminal', 0, 'terminal_states', terminal_states, 'terminal_weights', terminal_weights, 'terminal_normalise', 1, ...
           'ConPos', [], 'LBcon', [], 'UBcon', [],'Bounds', 0 ,'NONCOLcon',@nonlcon_fcn_rover);
@@ -131,8 +131,12 @@ for i = 1:obs.setup.Niter
         
         %%%% REAL MEASUREMENT %%%%
         % here the noise is noise added aggording to noise_spec
-        [y_meas(traj).val, obs] = obs.setup.measure(obs.init.X_est(traj).val(:,stoppos),obs.init.params,obs.setup.time(startpos:stoppos),...
-                                                                            obs.init.input_story(traj).val(:,max(1,startpos)),obs,Tsw);          
+            [y_meas(traj).val, obs] = measure_drone_reference(obs.init.X_est(traj).val(:,stoppos),obs.init.params,obs.setup.time(startpos:stoppos),...
+                                                                            obs.init.input_story(traj).val(:,max(1,startpos)),obs,Tsw);
+
+            % [tmp, obs] = measure_drone(obs.init.X(traj).val(:,stoppos),obs.init.params,obs.setup.time(startpos:stoppos),...
+            %                                                                 obs.init.input_story(traj).val(:,max(1,startpos)),obs);
+
     end
     
     %%%% MHE OBSERVER (SAVE MEAS) %%%%

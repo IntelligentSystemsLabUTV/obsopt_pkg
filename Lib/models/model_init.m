@@ -168,8 +168,8 @@ function params = model_init(varargin)
             params.perc = zeros(params.StateDim,params.Ntraj);
             
             % randomly define the percentage (bool flag, see below)
-            randflag = 1; 
-            noise_std = 1e-1*ones(1,numel(params.perturbed_vars));
+            randflag = 0; 
+            noise_std = 1e-0*ones(1,numel(params.perturbed_vars));
 
             % if case: random perturbation percentage - optimised vars            
             if randflag
@@ -186,7 +186,9 @@ function params = model_init(varargin)
                 % around init
                 params.X_est(traj).val(params.perturbed_vars,1) = init(params.perturbed_vars).*(1 + params.noise*params.perc(params.perturbed_vars,traj).*ones(length(params.perturbed_vars),1)) + ...
                                                                   params.noise*noise_std'.*randn(length(params.perturbed_vars),1);                  
+                
             end
+            params.X_est(traj).val(params.pos_p) = [3,0.1,3];
 
             % test - bias starting always from 0
             % if params.noise 

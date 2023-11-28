@@ -810,6 +810,9 @@ classdef obsopt < handle
                 obj.init.traj = traj;
                 obj.init.params.traj = traj;
                 
+                
+
+
                 % cost function init
                 Jtot = 0;
                 
@@ -832,6 +835,8 @@ classdef obsopt < handle
                 % update params
                 obj.init.params = obj.setup.params.params_update(obj.init.params,x);
                 
+                
+
                 % get desired trajectory
                 y_target = varargin{4}(traj).val;
 
@@ -855,11 +860,25 @@ classdef obsopt < handle
                 end
                 % get evolution with input only if at least 2 iinstans are
                 % considered
+                Yhat = zeros(obj.setup.Nfilt+1,obj.setup.dim_out,length(tspan)-1);
                 if length(tspan)>1
-                    X = obj.setup.ode(@(t,x)obj.setup.model(t, x, obj.init.params, obj), tspan , x_start, obj.setup.odeset);
+                %     X = obj.setup.ode(@(t,x)obj.setup.model(t, x, obj.init.params, obj), tspan , x_start, obj.setup.odeset);
+                    for iter = 1:length(tspan)-1
+                        dt = tspan(iter:iter+1);
+                        X = obj.setup.ode(@(t,x)obj.setup.model(t, x, obj.init.params, obj), dt , x_start, obj.setup.odeset);
+                        x_start = X.y(:,end);
+
+                        u_in = [zeros(size(obj.init.input_story(traj).val,1),1), obj.init.input_story(traj).val];
+                        ytmp = obj.setup.measure(X.y(:,end),obj.init.params,dt(2),0,obj); %u_in(:,(tspan_pos(iter):tspan_pos(iter+1)))
+                        Yhat(1,:,iter) = ytmp';
+                        
+                    end
+                    Yhat(1,:,end+1) = Yhat(1,:,end);
                 else
                     X.y = x_start;
                 end
+               
+
                 
                 obj.init.params.optimising = 0;
                 
@@ -878,9 +897,9 @@ classdef obsopt < handle
                 end                
                 
                 %%% get measure  %%               
-                Yhat = zeros(obj.setup.Nfilt+1,obj.setup.dim_out,size(X.y,2));                
-                u_in = [zeros(size(obj.init.input_story(traj).val,1),1), obj.init.input_story(traj).val];
-                Yhat(1,:,:) = obj.setup.measure(X.y,obj.init.params,tspan,u_in(:,(tspan_pos(1):tspan_pos(end))),obj);
+                % Yhat = zeros(obj.setup.Nfilt+1,obj.setup.dim_out,size(X.y,2));                
+                % u_in = [zeros(size(obj.init.input_story(traj).val,1),1), obj.init.input_story(traj).val];
+                % Yhat(1,:,:) = obj.setup.measure(X.y,obj.init.params,tspan,u_in(:,(tspan_pos(1):tspan_pos(end))),obj);
                 
                 %%% compute filters %%%
                 if obj.setup.Nfilt > 0                     
@@ -1482,7 +1501,7 @@ classdef obsopt < handle
                                     obj.init.myoptioptions.MaxMeshSize = 100;
                                     obj.init.myoptioptions.InitialMeshSize = 100;
                                     obj.init.myoptioptions.Display = 'iter';
-%                                    obj.init.myoptioptions.Algorithm = 'nups-gps';
+                                    obj.init.myoptioptions.Algorithm = 'nups-gps';
                                     obj.init.myoptioptions.UseParallel = true;                                    
                                     obj.init.myoptimoptions.UseCompletePoll = true;
                                 elseif strcmp(func2str(obj.setup.fmin),'fminsearchcon')   

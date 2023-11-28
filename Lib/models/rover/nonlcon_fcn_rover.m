@@ -5,6 +5,8 @@ function [c, ceq] = nonlcon_fcn_rover(xopt,xnonopt,obs)
     x = zeros(obs.setup.dim_state,1);
     x(obs.setup.opt_vars) = xopt;
     x(obs.setup.nonopt_vars) = xnonopt(1).val;  
+
+    obs.setup.params.optstory.val = [obs.setup.params.optstory.val xopt];
     
     % tolerance
 %     tol = 1e0*obs.init.myoptioptions.ConstraintTolerance;
@@ -24,4 +26,7 @@ function [c, ceq] = nonlcon_fcn_rover(xopt,xnonopt,obs)
     c = [c;temp];
     temp = -x(obs.init.params.pos_gamma(2)) + tol;
     c = [c;temp];
+    % temp = -x(obs.init.params.pos_gamma(3))  + tol;
+    % c = [c;temp];
+
 end

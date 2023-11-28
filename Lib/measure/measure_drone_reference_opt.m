@@ -1,0 +1,67 @@
+%% MODEL_REFERENCE
+% file: measure_general.m
+% author: Federico Oliva
+% date: 10/01/2022
+% description: this function implements the output mapping of a general
+% state space system
+% INPUT:
+% x: state vector
+% params: structure with all the necessary parameters 
+% t: time instant (may be not used)
+% OUTPUT:
+% y: output measurement
+function [y_ref, obs] = measure_drone_reference_opt(x,params,t,u,obs,Tsw)
+
+    % compute the time index
+    pos = zeros(1,length(t));
+    for i=1:length(t)
+        tdiff = obs.setup.time-t(i);   
+        pos(i) = find(abs(tdiff) == min(abs(tdiff)),1,'first');    
+        pos(i) = max(1,pos(i));        
+    end
+
+        % get traj
+    traj = obs.init.traj;
+
+    % comment the following line if you want to switch
+    Tsw =  Inf;
+
+    % get the observed components of the state vector
+    y_ref = x(params.observed_state);
+    noise = zeros(size(y_ref));
+    
+    % down sampling - CAM
+    if mod(pos(end),params.CAM_samp) ~= 0
+        noise([params.pos_cam_out]) = obs.init.params.last_noise(traj,[params.pos_cam_out]);
+    else 
+        if t < Tsw
+            noise(params.pos_cam_out) = obs.setup.noise*(params.noise_mat(params.pos_cam_out,2).*randn(6,1) + params.noise_mat(params.pos_cam_out,1));
+        else
+            noise(params.pos_cam_out) = obs.setup.noise*(params.noise_mat(params.pos_cam_out,4).*randn(6,1) + params.noise_mat(params.pos_cam_out,1));
+        end
+        obs.init.params.last_noise(traj,params.pos_cam_out) = noise(params.pos_cam_out);
+        
+    end
+
+        % down sampling - UWB
+    if mod(pos(end),params.UWB_samp) ~= 0
+        noise([params.pos_uwb_out]) = obs.init.params.last_noise(traj,[params.pos_uwb_out]);
+    else 
+        if t < Tsw
+            noise(params.pos_uwb_out) = obs.setup.noise*(params.noise_mat(params.pos_uwb_out,2).*randn(6,1) + params.noise_mat(params.pos_uwb_out,1));
+        else
+            noise(params.pos_uwb_out) = obs.setup.noise*(params.noise_mat(params.pos_uwb_out,4).*randn(6,1) + params.noise_mat(params.pos_uwb_out,1));
+        end
+        obs.init.params.last_noise(traj,params.pos_uwb_out) = noise(params.pos_uwb_out);
+        
+    end
+    
+    noise = [noise;zeros(3,1)];
+    obs.init.noise_story(traj).val(:,pos(end)) = noise;
+    y_ref = [y_ref;y_ref(params.pos_uwb_out(1:3))];
+    obs.init.Y_full_story(traj).val(1,:,pos(end)) = y_ref;
+
+    
+    
+
+end

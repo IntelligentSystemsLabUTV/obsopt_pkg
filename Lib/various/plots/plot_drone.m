@@ -47,12 +47,48 @@ function plot_drone(obj,varargin)
             ylabel(['p_',num2str(obj.setup.plot_vars(i))])
         end
         %linkaxes(ax);
-        legend('True','Est')   
+        legend('Ref','Est')   
         xlabel(['time [s]']) 
     catch ME
         close
         fig_count = fig_count -1;
     end
+
+
+ %%%% observer position estimation %%%
+    try
+        fig_count = fig_count+1;
+        figure(fig_count)            
+        sgtitle('Observer position estimation')
+        ax = zeros(1,3);
+        for i=1:length(params.pos_obs)
+            subplot(length(params.pos_obs),1,i);
+            hold on
+            grid on
+            box on
+    
+            % indicize axes        
+            ax(i)=subplot(length(params.pos_obs),1,i);     
+            plot(obj.init.params.obs(i,:))
+            % for traj=1:obj.setup.Ntraj            
+            %     plot(obj.setup.time,obj.init.X(traj).val(params.pos_obs(i),:),'LineWidth',2);
+            %     set(gca,'ColorOrderIndex',traj)
+            %     plot(obj.setup.time,obj.init.X_est_runtime(traj).val(params.pos_obs(i),:),'--','LineWidth',1);                                                                                                  
+            % end
+            
+            % labels
+            set(gca,'fontsize', fontsize)         
+            ylabel(['p_',num2str(obj.setup.plot_vars(i))])
+        end
+        %linkaxes(ax);
+        legend('Ref','Est')   
+        xlabel(['time [s]']) 
+    catch ME
+        close
+        fig_count = fig_count -1;
+    end
+
+
 
     %%% plot velocity estimation
     try
@@ -79,7 +115,7 @@ function plot_drone(obj,varargin)
             set(gca,'fontsize', fontsize)         
             ylabel(['v_',num2str(obj.setup.plot_vars(i))])
         end
-        legend('True','Est') 
+        legend('Ref','Est') 
         xlabel(['time [s]'])
         %linkaxes(ax);
     catch
@@ -112,7 +148,7 @@ function plot_drone(obj,varargin)
             set(gca,'fontsize', fontsize)         
             ylabel(['a_',num2str(obj.setup.plot_vars(i))])
         end
-        legend('True','Est')  
+        legend('Ref','Est')  
         xlabel(['time [s]'])
         %linkaxes(ax);
     catch
@@ -145,7 +181,7 @@ function plot_drone(obj,varargin)
             set(gca,'fontsize', fontsize)         
             ylabel(['b_',num2str(obj.setup.plot_vars(i))])
         end
-        legend('True','Est') 
+        legend('Ref','Est') 
         xlabel(['time [s]'])
         %linkaxes(ax);
     catch
@@ -178,7 +214,7 @@ function plot_drone(obj,varargin)
             set(gca,'fontsize', fontsize)         
             ylabel(['q_',num2str(obj.setup.plot_vars(i))])
         end
-        legend('True','Est')            
+        legend('Ref','Est')            
         xlabel(['time [s]'])
         %linkaxes(ax);
     catch
@@ -211,7 +247,7 @@ function plot_drone(obj,varargin)
             set(gca,'fontsize', fontsize)         
             ylabel(['\omega_',num2str(obj.setup.plot_vars(i))])
         end
-        legend('True','Est') 
+        legend('Ref','Est') 
         xlabel(['time [s]'])
         %linkaxes(ax);
     catch
@@ -245,7 +281,7 @@ function plot_drone(obj,varargin)
             set(gca,'fontsize', fontsize)         
             ylabel(['\alpha_',num2str(obj.setup.plot_vars(i))])
         end
-        legend('True','Est')     
+        legend('Ref','Est')     
         xlabel(['time [s]'])
         %linkaxes(ax);
     catch
@@ -278,7 +314,7 @@ function plot_drone(obj,varargin)
             set(gca,'fontsize', fontsize)         
             ylabel(['bv_',num2str(obj.setup.plot_vars(i))])
         end
-        legend('True','Est')            
+        legend('Ref','Est')            
         xlabel(['time [s]'])    
         %linkaxes(ax);
     catch
@@ -300,12 +336,12 @@ function plot_drone(obj,varargin)
             box on
     
             % indicize axes        
-            ax(i)=subplot(length(params.pos_uwb_out),1,i);    
+            ax(i)=subplot(length(params.pos_uwb_out),1,i);
 
             % down sampling instants
             WindowTime = obj.setup.time(obj.init.temp_time);
             
-            for traj=1:obj.setup.Ntraj            
+            for traj=1:obj.setup.Ntraj
                 plot(obj.setup.time,squeeze(obj.init.Ytrue_full_story(traj).val(1,params.pos_uwb_out(i),:)),'LineWidth',2);
                 set(gca,'ColorOrderIndex',traj)
                 plot(obj.setup.time,squeeze(obj.init.Y_full_story(traj).val(1,params.pos_uwb_out(i),:)),'--','LineWidth',1);          
@@ -313,7 +349,7 @@ function plot_drone(obj,varargin)
                 set(gca,'ColorOrderIndex',traj)
                 % plot target values    
                 try
-                    data = reshape(obj.init.Y_full_story(traj).val(1,obj.setup.params.pos_uwb_out(i),obj.init.temp_time),1,length(WindowTime));
+                    data = reshape(obj.init.Yhat_full_story(traj).val(1,obj.setup.params.pos_uwb_out(i),obj.init.temp_time),1,length(WindowTime));
                     plot(WindowTime,data,'o','MarkerSize',5);
                 catch 
                     disp('CHECK T_END OR AYELS CONDITION - LOOKS LIKE NO OPTIMISATION HAS BEEN RUN')
@@ -324,7 +360,7 @@ function plot_drone(obj,varargin)
             set(gca,'fontsize', fontsize)         
             ylabel(['p_',num2str(obj.setup.plot_vars(i))])
         end
-        legend('True','Meas')            
+        legend('Ref','Meas')            
         xlabel(['time [s]'])   
         %linkaxes(ax);
     catch
@@ -372,7 +408,7 @@ function plot_drone(obj,varargin)
             set(gca,'fontsize', fontsize)         
             ylabel(['p_dot_',num2str(obj.setup.plot_vars(i))])
         end
-        legend('True','Meas')            
+        legend('Ref','Meas')            
         xlabel(['time [s]'])   
         %linkaxes(ax);
     catch
@@ -411,7 +447,7 @@ function plot_drone(obj,varargin)
                 set(gca,'ColorOrderIndex',traj)
                 % plot target values    
                 try
-                    data = reshape(obj.init.Y_full_story(traj).val(1,obj.setup.params.pos_cam_out(i),obj.init.temp_time),1,length(WindowTime));
+                    data = reshape(obj.init.Yhat_full_story(traj).val(1,obj.setup.params.pos_cam_out(i),obj.init.temp_time),1,length(WindowTime));
                     plot(WindowTime,data,'o','MarkerSize',5);
                 catch 
                     disp('CHECK T_END OR AYELS CONDITION - LOOKS LIKE NO OPTIMISATION HAS BEEN RUN')
@@ -422,7 +458,7 @@ function plot_drone(obj,varargin)
             set(gca,'fontsize', fontsize)         
             ylabel(['p_',num2str(obj.setup.plot_vars(i))])
         end
-        legend('True','Meas')            
+        legend('Ref','Meas')            
         xlabel(['time [s]'])   
         %linkaxes(ax);
     catch
@@ -491,7 +527,7 @@ function plot_drone(obj,varargin)
             set(gca,'fontsize', fontsize)         
             ylabel(['p_dot_',num2str(obj.setup.plot_vars(i))])
         end
-        legend('True','Meas')            
+        legend('Ref','Meas')            
         xlabel('time [s]')   
     catch
         close
@@ -510,11 +546,116 @@ function plot_drone(obj,varargin)
             hold on
             grid on
             box on 
-            plot(params.gamma_story(:,i),'LineWidth',2);
+            plot(params.gamma_story(1:end-1,i),'LineWidth',2);
         end
     catch
         close
         fig_count = fig_count -1;
     end
+
+    try
+        fig_count = fig_count+1;
+        figure(fig_count) 
+        txt = "Gamma State";
+        sgtitle(txt)
+        %ax = zeros(1,size(obs.init.params.gamma_story,1));
+        for i=1:size(params.gamma_state,2)
+            subplot(size(params.gamma_state,2),1,i);
+            hold on
+            grid on
+            box on 
+            plot(params.gamma_state(1:end-1,i),'LineWidth',2);
+        end
+    catch
+        close
+        fig_count = fig_count -1;
+    end
+
+    try
+        fig_count = fig_count+1;
+        figure(fig_count) 
+        txt = "Drive Story position & orientation";
+        sgtitle(txt)
+        %ax = zeros(1,size(obs.init.params.gamma_story,1));
+        for i=1:6
+            subplot(6,1,i);
+            hold on
+            grid on
+            box on 
+            plot(params.drive_story(i,1:end-1),'LineWidth',2);
+        end
+    catch
+        close
+        fig_count = fig_count -1;
+    end
+
+        try
+        fig_count = fig_count+1;
+        figure(fig_count) 
+        txt = "Drive Story velocity & omega";
+        sgtitle(txt)
+        %ax = zeros(1,size(obs.init.params.gamma_story,1));
+        for i=7:12
+            subplot(6,1,i-6);
+            hold on
+            grid on
+            box on 
+            plot(params.drive_story(i,1:end-1),'LineWidth',2);
+        end
+    catch
+        close
+        fig_count = fig_count -1;
+    end
+
+    try
+        fig_count = fig_count+1;
+        figure(fig_count) 
+        txt = "Control Story";
+        sgtitle(txt)
+        %ax = zeros(1,size(obs.init.params.gamma_story,1));
+        for i=1:size(params.control_story,2)
+            subplot(size(params.control_story,2),1,i);
+            hold on
+            grid on
+            box on 
+            plot(params.control_story(:,i),'LineWidth',2);
+        end
+    catch
+        close
+        fig_count = fig_count -1;
+    end
+
+     try
+        fig_count = fig_count+1;
+        figure(fig_count) 
+        txt = "Optimization Story";
+        sgtitle(txt)
+        %ax = zeros(1,size(obs.init.params.gamma_story,1));
+        for i=1:size(obj.setup.params.optstory.val,1)
+            subplot(size(obj.setup.params.optstory.val,1),1,i);
+            hold on
+            grid on
+            box on 
+            plot(obj.setup.params.optstory.val(i,1:end-3),'LineWidth',2);
+        end
+    catch
+        close
+        fig_count = fig_count -1;
+     end
+
+     try
+        fig_count = fig_count+1;
+        figure(fig_count) 
+        txt = "RMSE Story";
+        sgtitle(txt)
+        %ax = zeros(1,size(obs.init.params.gamma_story,1));
+        plot(params.err,'LineWidth',2);
+    catch
+        close
+        fig_count = fig_count -1;
+     end
+
+
+
 
 end

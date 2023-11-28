@@ -22,13 +22,14 @@ function [x_dot, x] = model_drone(tspan,x,params,obs)
     end    
     
     % compute the control
-    y = obs.init.Y_full_story(obs.init.traj).val(1,:,pos(end))';
-    drive(1:3) = y(params.pos_uwb_out) - x(params.pos_obs);
-    drive(4:6) = y(params.pos_uwb_out_der) - x(params.pos_v);
+    y = obs.init.Y_full_story(obs.init.traj).val(1,:,pos(1))';
+    y_hat = obs.init.Yhat_full_story(obs.init.traj).val(1,:,pos(1))';
+    drive(1:6) = y(params.pos_uwb_out) - y_hat(params.pos_uwb_out);% y(params.pos_uwb_out) - y_hat([params.pos_obs params.pos_obs]);%
+    drive(7:12) = y(params.pos_uwb_out_der) - y_hat(params.pos_uwb_out_der);%y(params.pos_uwb_out) - y_hat([params.pos_obs params.pos_obs]);%
+    drive(13:18) = x([params.pos_p params.pos_eul]);
     params.u = params.input(tspan,drive,params,obs);
-    
+    obs.init.params.drive_story(:,pos(end)) = drive;
 
-    
     obs.init.input_story(obs.init.traj).val(:,pos(1)) = params.u(:,1);  
     
 
@@ -36,7 +37,7 @@ function [x_dot, x] = model_drone(tspan,x,params,obs)
 %    x_dot(params.pos_bias_v) = 0*(x(params.pos_bias_v) + params.bias_v_enable*ones(3,1)*sin(tspan(1)));
     
     % switch gamma
-    % if tspan > 10
+    % if tspan > 20
     %     tmp = params.gamma(1:3);
     %     params.gamma(1:3) = params.gamma(4:6);
     %     params.gamma(4:6) = tmp;
@@ -48,55 +49,49 @@ function [x_dot, x] = model_drone(tspan,x,params,obs)
     %     params.gamma(4:6) = tmp;
     % end
 
-
+  
     
-    obs.init.params.gamma_story(round((tspan*100)+2),:) = params.gamma(1:3)';
-    
-    %%% model dynamics - translation    
-    x_dot(params.pos_obs) = (1-(params.Ts*params.gamma(3)))*x(params.pos_p) + params.Ts*(params.gamma(1)*y(params.pos_uwb_out) + params.gamma(2)*y(params.pos_cam_out));
+    obs.init.params.gamma_story(round((tspan*100)+2),:) = params.gamma';
 
+    obs.init.params.gamma_state(round((tspan*100)+2),:) = x(params.pos_gamma);
+
+    obs.init.params.err(round(tspan*100)+1) = norm(x(params.pos_obs)-x(params.pos_p));
+    
+
+    y = obs.init.Yhat_full_story(obs.init.traj).val(1,:,pos(1))';
+    
+    %%% model dynamics - translation (Z)    
+    % x_dot(params.pos_obs) = (1-(params.Ts*params.gamma(3)))*x(params.pos_obs) + (params.gamma(3)*params.Ts)*(params.gamma(1)*y(params.pos_uwb_out(1:3)) + params.gamma(2)*y(params.pos_cam_out(1:3)));
+    
+    %%% model dynamics - translation (C)    
+    x_dot(params.pos_obs) =  (1/(params.Ts*params.gamma(3)))*(-x(params.pos_obs) + params.gamma(1)*y(params.pos_uwb_out(1:3)) + params.gamma(2)*y(params.pos_cam_out(1:3)));%-x(params.pos_p)
+    
+    obs.init.params.obs(:,pos(end)) = x(params.pos_obs);
+
+    % Drone dynamics (C)
+    x_dot(params.pos_p) = x(params.pos_v);
+    
+    x_dot(params.pos_eul) = x(params.pos_o);
+    
+   
+    
+    x_dot(params.pos_v(1)) = (params.k*(sin(x(params.pos_eul(1)))*sin(x(params.pos_eul(3))) + cos(x(params.pos_eul(1)))*cos(x(params.pos_eul(3)))*sin(x(params.pos_eul(2))))*(params.u(1) + params.u(2) + params.u(3) + params.u(4)))/params.m;
+    x_dot(params.pos_v(2)) = -(params.k*(cos(x(params.pos_eul(3)))*sin(x(params.pos_eul(1))) - cos(x(params.pos_eul(1)))*sin(x(params.pos_eul(3)))*sin(x(params.pos_eul(2))))*(params.u(1) + params.u(2) + params.u(3) + params.u(4)))/params.m;
+    x_dot(params.pos_v(3)) = (params.k*cos(x(params.pos_eul(1)))*cos(x(params.pos_eul(2)))*(params.u(1) + params.u(2) + params.u(3) + params.u(4)))/params.m - params.g;
+    x_dot(params.pos_o(1)) = ((x(params.pos_o(2))*((x(params.pos_o(3))*(params.Iyy*cos(x(params.pos_eul(1)))^2*cos(x(params.pos_eul(2))) - params.Izz*cos(x(params.pos_eul(1)))^2*cos(x(params.pos_eul(2))) - params.Iyy*cos(x(params.pos_eul(2)))*sin(x(params.pos_eul(1)))^2 + params.Izz*cos(x(params.pos_eul(2)))*sin(x(params.pos_eul(1)))^2))/2 - (x(params.pos_o(2))*(2*params.Iyy*cos(x(params.pos_eul(1)))*sin(x(params.pos_eul(1))) - 2*params.Izz*cos(x(params.pos_eul(1)))*sin(x(params.pos_eul(1)))))/2) + x(params.pos_o(3))*((x(params.pos_o(2))*(params.Iyy*cos(x(params.pos_eul(1)))^2*cos(x(params.pos_eul(2))) - params.Izz*cos(x(params.pos_eul(1)))^2*cos(x(params.pos_eul(2))) - params.Iyy*cos(x(params.pos_eul(2)))*sin(x(params.pos_eul(1)))^2 + params.Izz*cos(x(params.pos_eul(2)))*sin(x(params.pos_eul(1)))^2))/2 + (x(params.pos_o(3))*(2*params.Iyy*cos(x(params.pos_eul(1)))*cos(x(params.pos_eul(2)))^2*sin(x(params.pos_eul(1))) - 2*params.Izz*cos(x(params.pos_eul(1)))*cos(x(params.pos_eul(2)))^2*sin(x(params.pos_eul(1)))))/2 + params.Ixx*x(params.pos_o(2))*cos(x(params.pos_eul(2)))) - params.k*params.l*(params.u(2) - params.u(4)))*(params.Iyy*params.Izz*cos(x(params.pos_eul(1)))^4*cos(x(params.pos_eul(2)))^2 + params.Ixx*params.Iyy*cos(x(params.pos_eul(1)))^2*sin(x(params.pos_eul(2)))^2 + params.Iyy*params.Izz*cos(x(params.pos_eul(2)))^2*sin(x(params.pos_eul(1)))^4 + params.Ixx*params.Izz*sin(x(params.pos_eul(1)))^2*sin(x(params.pos_eul(2)))^2 + 2*params.Iyy*params.Izz*cos(x(params.pos_eul(1)))^2*cos(x(params.pos_eul(2)))^2*sin(x(params.pos_eul(1)))^2))/(params.Ixx*params.Iyy*params.Izz*cos(x(params.pos_eul(1)))^4*cos(x(params.pos_eul(2)))^2 + params.Ixx*params.Iyy*params.Izz*cos(x(params.pos_eul(2)))^2*sin(x(params.pos_eul(1)))^4 + 2*params.Ixx*params.Iyy*params.Izz*cos(x(params.pos_eul(1)))^2*cos(x(params.pos_eul(2)))^2*sin(x(params.pos_eul(1)))^2) + (sin(x(params.pos_eul(2)))*(params.Iyy*cos(x(params.pos_eul(1)))*sin(x(params.pos_eul(1))) - params.Izz*cos(x(params.pos_eul(1)))*sin(x(params.pos_eul(1))))*(x(params.pos_o(2))*((x(params.pos_o(3))*(params.Iyy*cos(x(params.pos_eul(1)))*sin(x(params.pos_eul(1)))*sin(x(params.pos_eul(2))) - params.Izz*cos(x(params.pos_eul(1)))*sin(x(params.pos_eul(1)))*sin(x(params.pos_eul(2)))))/2 - 2*params.Iyy*x(params.pos_o(1))*cos(x(params.pos_eul(1)))*sin(x(params.pos_eul(1))) + 2*params.Izz*x(params.pos_o(1))*cos(x(params.pos_eul(1)))*sin(x(params.pos_eul(1)))) + x(params.pos_o(3))*((x(params.pos_o(2))*(params.Iyy*cos(x(params.pos_eul(1)))*sin(x(params.pos_eul(1)))*sin(x(params.pos_eul(2))) - params.Izz*cos(x(params.pos_eul(1)))*sin(x(params.pos_eul(1)))*sin(x(params.pos_eul(2)))))/2 + (x(params.pos_o(3))*(2*params.Izz*cos(x(params.pos_eul(1)))^2*cos(x(params.pos_eul(2)))*sin(x(params.pos_eul(2))) - 2*params.Ixx*cos(x(params.pos_eul(2)))*sin(x(params.pos_eul(2))) + 2*params.Iyy*cos(x(params.pos_eul(2)))*sin(x(params.pos_eul(1)))^2*sin(x(params.pos_eul(2)))))/2 + (params.Ixx*x(params.pos_o(1))*cos(x(params.pos_eul(2))))/2 + params.Iyy*x(params.pos_o(1))*cos(x(params.pos_eul(1)))^2*cos(x(params.pos_eul(2))) - params.Izz*x(params.pos_o(1))*cos(x(params.pos_eul(1)))^2*cos(x(params.pos_eul(2))) - params.Iyy*x(params.pos_o(1))*cos(x(params.pos_eul(2)))*sin(x(params.pos_eul(1)))^2 + params.Izz*x(params.pos_o(1))*cos(x(params.pos_eul(2)))*sin(x(params.pos_eul(1)))^2 - params.Iyy*x(params.pos_o(2))*cos(x(params.pos_eul(1)))*sin(x(params.pos_eul(1)))*sin(x(params.pos_eul(2))) + params.Izz*x(params.pos_o(2))*cos(x(params.pos_eul(1)))*sin(x(params.pos_eul(1)))*sin(x(params.pos_eul(2)))) + params.k*params.l*(params.u(1) - params.u(3)) + (params.Ixx*x(params.pos_o(1))*x(params.pos_o(3))*cos(x(params.pos_eul(2))))/2))/(params.Iyy*params.Izz*cos(x(params.pos_eul(2)))*sin(x(params.pos_eul(1)))^4 + params.Iyy*params.Izz*cos(x(params.pos_eul(1)))^4*cos(x(params.pos_eul(2))) + 2*params.Iyy*params.Izz*cos(x(params.pos_eul(1)))^2*cos(x(params.pos_eul(2)))*sin(x(params.pos_eul(1)))^2) + (sin(x(params.pos_eul(2)))*(params.Iyy*cos(x(params.pos_eul(1)))^2 + params.Izz*sin(x(params.pos_eul(1)))^2)*(x(params.pos_o(3))*(2*params.Izz*x(params.pos_o(1))*cos(x(params.pos_eul(1)))*cos(x(params.pos_eul(2)))^2*sin(x(params.pos_eul(1))) - 2*params.Iyy*x(params.pos_o(1))*cos(x(params.pos_eul(1)))*cos(x(params.pos_eul(2)))^2*sin(x(params.pos_eul(1))) - 2*params.Ixx*x(params.pos_o(2))*cos(x(params.pos_eul(2)))*sin(x(params.pos_eul(2))) + 2*params.Izz*x(params.pos_o(2))*cos(x(params.pos_eul(1)))^2*cos(x(params.pos_eul(2)))*sin(x(params.pos_eul(2))) + 2*params.Iyy*x(params.pos_o(2))*cos(x(params.pos_eul(2)))*sin(x(params.pos_eul(1)))^2*sin(x(params.pos_eul(2)))) - x(params.pos_o(2))*(params.Iyy*x(params.pos_o(1))*cos(x(params.pos_eul(1)))^2*cos(x(params.pos_eul(2))) - params.Izz*x(params.pos_o(1))*cos(x(params.pos_eul(1)))^2*cos(x(params.pos_eul(2))) - params.Iyy*x(params.pos_o(1))*cos(x(params.pos_eul(2)))*sin(x(params.pos_eul(1)))^2 + params.Izz*x(params.pos_o(1))*cos(x(params.pos_eul(2)))*sin(x(params.pos_eul(1)))^2 - params.Iyy*x(params.pos_o(2))*cos(x(params.pos_eul(1)))*sin(x(params.pos_eul(1)))*sin(x(params.pos_eul(2))) + params.Izz*x(params.pos_o(2))*cos(x(params.pos_eul(1)))*sin(x(params.pos_eul(1)))*sin(x(params.pos_eul(2)))) - params.b*(params.u(1) - params.u(2) + params.u(3) - params.u(4)) + params.Ixx*x(params.pos_o(1))*x(params.pos_o(2))*cos(x(params.pos_eul(2)))))/(params.Iyy*params.Izz*cos(x(params.pos_eul(1)))^4*cos(x(params.pos_eul(2)))^2 + params.Iyy*params.Izz*cos(x(params.pos_eul(2)))^2*sin(x(params.pos_eul(1)))^4 + 2*params.Iyy*params.Izz*cos(x(params.pos_eul(1)))^2*cos(x(params.pos_eul(2)))^2*sin(x(params.pos_eul(1)))^2);
+    x_dot(params.pos_o(2)) = -((params.Izz*cos(x(params.pos_eul(1)))^2 + params.Iyy*sin(x(params.pos_eul(1)))^2)*(x(params.pos_o(2))*((x(params.pos_o(3))*(params.Iyy*cos(x(params.pos_eul(1)))*sin(x(params.pos_eul(1)))*sin(x(params.pos_eul(2))) - params.Izz*cos(x(params.pos_eul(1)))*sin(x(params.pos_eul(1)))*sin(x(params.pos_eul(2)))))/2 - 2*params.Iyy*x(params.pos_o(1))*cos(x(params.pos_eul(1)))*sin(x(params.pos_eul(1))) + 2*params.Izz*x(params.pos_o(1))*cos(x(params.pos_eul(1)))*sin(x(params.pos_eul(1)))) + x(params.pos_o(3))*((x(params.pos_o(2))*(params.Iyy*cos(x(params.pos_eul(1)))*sin(x(params.pos_eul(1)))*sin(x(params.pos_eul(2))) - params.Izz*cos(x(params.pos_eul(1)))*sin(x(params.pos_eul(1)))*sin(x(params.pos_eul(2)))))/2 + (x(params.pos_o(3))*(2*params.Izz*cos(x(params.pos_eul(1)))^2*cos(x(params.pos_eul(2)))*sin(x(params.pos_eul(2))) - 2*params.Ixx*cos(x(params.pos_eul(2)))*sin(x(params.pos_eul(2))) + 2*params.Iyy*cos(x(params.pos_eul(2)))*sin(x(params.pos_eul(1)))^2*sin(x(params.pos_eul(2)))))/2 + (params.Ixx*x(params.pos_o(1))*cos(x(params.pos_eul(2))))/2 + params.Iyy*x(params.pos_o(1))*cos(x(params.pos_eul(1)))^2*cos(x(params.pos_eul(2))) - params.Izz*x(params.pos_o(1))*cos(x(params.pos_eul(1)))^2*cos(x(params.pos_eul(2))) - params.Iyy*x(params.pos_o(1))*cos(x(params.pos_eul(2)))*sin(x(params.pos_eul(1)))^2 + params.Izz*x(params.pos_o(1))*cos(x(params.pos_eul(2)))*sin(x(params.pos_eul(1)))^2 - params.Iyy*x(params.pos_o(2))*cos(x(params.pos_eul(1)))*sin(x(params.pos_eul(1)))*sin(x(params.pos_eul(2))) + params.Izz*x(params.pos_o(2))*cos(x(params.pos_eul(1)))*sin(x(params.pos_eul(1)))*sin(x(params.pos_eul(2)))) + params.k*params.l*(params.u(1) - params.u(3)) + (params.Ixx*x(params.pos_o(1))*x(params.pos_o(3))*cos(x(params.pos_eul(2))))/2))/(params.Iyy*params.Izz*cos(x(params.pos_eul(1)))^4 + params.Iyy*params.Izz*sin(x(params.pos_eul(1)))^4 + 2*params.Iyy*params.Izz*cos(x(params.pos_eul(1)))^2*sin(x(params.pos_eul(1)))^2) - ((params.Iyy*cos(x(params.pos_eul(1)))*sin(x(params.pos_eul(1))) - params.Izz*cos(x(params.pos_eul(1)))*sin(x(params.pos_eul(1))))*(x(params.pos_o(3))*(2*params.Izz*x(params.pos_o(1))*cos(x(params.pos_eul(1)))*cos(x(params.pos_eul(2)))^2*sin(x(params.pos_eul(1))) - 2*params.Iyy*x(params.pos_o(1))*cos(x(params.pos_eul(1)))*cos(x(params.pos_eul(2)))^2*sin(x(params.pos_eul(1))) - 2*params.Ixx*x(params.pos_o(2))*cos(x(params.pos_eul(2)))*sin(x(params.pos_eul(2))) + 2*params.Izz*x(params.pos_o(2))*cos(x(params.pos_eul(1)))^2*cos(x(params.pos_eul(2)))*sin(x(params.pos_eul(2))) + 2*params.Iyy*x(params.pos_o(2))*cos(x(params.pos_eul(2)))*sin(x(params.pos_eul(1)))^2*sin(x(params.pos_eul(2)))) - x(params.pos_o(2))*(params.Iyy*x(params.pos_o(1))*cos(x(params.pos_eul(1)))^2*cos(x(params.pos_eul(2))) - params.Izz*x(params.pos_o(1))*cos(x(params.pos_eul(1)))^2*cos(x(params.pos_eul(2))) - params.Iyy*x(params.pos_o(1))*cos(x(params.pos_eul(2)))*sin(x(params.pos_eul(1)))^2 + params.Izz*x(params.pos_o(1))*cos(x(params.pos_eul(2)))*sin(x(params.pos_eul(1)))^2 - params.Iyy*x(params.pos_o(2))*cos(x(params.pos_eul(1)))*sin(x(params.pos_eul(1)))*sin(x(params.pos_eul(2))) + params.Izz*x(params.pos_o(2))*cos(x(params.pos_eul(1)))*sin(x(params.pos_eul(1)))*sin(x(params.pos_eul(2)))) - params.b*(params.u(1) - params.u(2) + params.u(3) - params.u(4)) + params.Ixx*x(params.pos_o(1))*x(params.pos_o(2))*cos(x(params.pos_eul(2)))))/(params.Iyy*params.Izz*cos(x(params.pos_eul(2)))*sin(x(params.pos_eul(1)))^4 + params.Iyy*params.Izz*cos(x(params.pos_eul(1)))^4*cos(x(params.pos_eul(2))) + 2*params.Iyy*params.Izz*cos(x(params.pos_eul(1)))^2*cos(x(params.pos_eul(2)))*sin(x(params.pos_eul(1)))^2) - (sin(x(params.pos_eul(2)))*(params.Iyy*cos(x(params.pos_eul(1)))*sin(x(params.pos_eul(1))) - params.Izz*cos(x(params.pos_eul(1)))*sin(x(params.pos_eul(1))))*(x(params.pos_o(2))*((x(params.pos_o(3))*(params.Iyy*cos(x(params.pos_eul(1)))^2*cos(x(params.pos_eul(2))) - params.Izz*cos(x(params.pos_eul(1)))^2*cos(x(params.pos_eul(2))) - params.Iyy*cos(x(params.pos_eul(2)))*sin(x(params.pos_eul(1)))^2 + params.Izz*cos(x(params.pos_eul(2)))*sin(x(params.pos_eul(1)))^2))/2 - (x(params.pos_o(2))*(2*params.Iyy*cos(x(params.pos_eul(1)))*sin(x(params.pos_eul(1))) - 2*params.Izz*cos(x(params.pos_eul(1)))*sin(x(params.pos_eul(1)))))/2) + x(params.pos_o(3))*((x(params.pos_o(2))*(params.Iyy*cos(x(params.pos_eul(1)))^2*cos(x(params.pos_eul(2))) - params.Izz*cos(x(params.pos_eul(1)))^2*cos(x(params.pos_eul(2))) - params.Iyy*cos(x(params.pos_eul(2)))*sin(x(params.pos_eul(1)))^2 + params.Izz*cos(x(params.pos_eul(2)))*sin(x(params.pos_eul(1)))^2))/2 + (x(params.pos_o(3))*(2*params.Iyy*cos(x(params.pos_eul(1)))*cos(x(params.pos_eul(2)))^2*sin(x(params.pos_eul(1))) - 2*params.Izz*cos(x(params.pos_eul(1)))*cos(x(params.pos_eul(2)))^2*sin(x(params.pos_eul(1)))))/2 + params.Ixx*x(params.pos_o(2))*cos(x(params.pos_eul(2)))) - params.k*params.l*(params.u(2) - params.u(4))))/(params.Iyy*params.Izz*cos(x(params.pos_eul(2)))*sin(x(params.pos_eul(1)))^4 + params.Iyy*params.Izz*cos(x(params.pos_eul(1)))^4*cos(x(params.pos_eul(2))) + 2*params.Iyy*params.Izz*cos(x(params.pos_eul(1)))^2*cos(x(params.pos_eul(2)))*sin(x(params.pos_eul(1)))^2);
+    x_dot(params.pos_o(3)) = ((params.Iyy*cos(x(params.pos_eul(1)))*sin(x(params.pos_eul(1))) - params.Izz*cos(x(params.pos_eul(1)))*sin(x(params.pos_eul(1))))*(x(params.pos_o(2))*((x(params.pos_o(3))*(params.Iyy*cos(x(params.pos_eul(1)))*sin(x(params.pos_eul(1)))*sin(x(params.pos_eul(2))) - params.Izz*cos(x(params.pos_eul(1)))*sin(x(params.pos_eul(1)))*sin(x(params.pos_eul(2)))))/2 - 2*params.Iyy*x(params.pos_o(1))*cos(x(params.pos_eul(1)))*sin(x(params.pos_eul(1))) + 2*params.Izz*x(params.pos_o(1))*cos(x(params.pos_eul(1)))*sin(x(params.pos_eul(1)))) + x(params.pos_o(3))*((x(params.pos_o(2))*(params.Iyy*cos(x(params.pos_eul(1)))*sin(x(params.pos_eul(1)))*sin(x(params.pos_eul(2))) - params.Izz*cos(x(params.pos_eul(1)))*sin(x(params.pos_eul(1)))*sin(x(params.pos_eul(2)))))/2 + (x(params.pos_o(3))*(2*params.Izz*cos(x(params.pos_eul(1)))^2*cos(x(params.pos_eul(2)))*sin(x(params.pos_eul(2))) - 2*params.Ixx*cos(x(params.pos_eul(2)))*sin(x(params.pos_eul(2))) + 2*params.Iyy*cos(x(params.pos_eul(2)))*sin(x(params.pos_eul(1)))^2*sin(x(params.pos_eul(2)))))/2 + (params.Ixx*x(params.pos_o(1))*cos(x(params.pos_eul(2))))/2 + params.Iyy*x(params.pos_o(1))*cos(x(params.pos_eul(1)))^2*cos(x(params.pos_eul(2))) - params.Izz*x(params.pos_o(1))*cos(x(params.pos_eul(1)))^2*cos(x(params.pos_eul(2))) - params.Iyy*x(params.pos_o(1))*cos(x(params.pos_eul(2)))*sin(x(params.pos_eul(1)))^2 + params.Izz*x(params.pos_o(1))*cos(x(params.pos_eul(2)))*sin(x(params.pos_eul(1)))^2 - params.Iyy*x(params.pos_o(2))*cos(x(params.pos_eul(1)))*sin(x(params.pos_eul(1)))*sin(x(params.pos_eul(2))) + params.Izz*x(params.pos_o(2))*cos(x(params.pos_eul(1)))*sin(x(params.pos_eul(1)))*sin(x(params.pos_eul(2)))) + params.k*params.l*(params.u(1) - params.u(3)) + (params.Ixx*x(params.pos_o(1))*x(params.pos_o(3))*cos(x(params.pos_eul(2))))/2))/(params.Iyy*params.Izz*cos(x(params.pos_eul(2)))*sin(x(params.pos_eul(1)))^4 + params.Iyy*params.Izz*cos(x(params.pos_eul(1)))^4*cos(x(params.pos_eul(2))) + 2*params.Iyy*params.Izz*cos(x(params.pos_eul(1)))^2*cos(x(params.pos_eul(2)))*sin(x(params.pos_eul(1)))^2) + ((params.Iyy*cos(x(params.pos_eul(1)))^2 + params.Izz*sin(x(params.pos_eul(1)))^2)*(x(params.pos_o(3))*(2*params.Izz*x(params.pos_o(1))*cos(x(params.pos_eul(1)))*cos(x(params.pos_eul(2)))^2*sin(x(params.pos_eul(1))) - 2*params.Iyy*x(params.pos_o(1))*cos(x(params.pos_eul(1)))*cos(x(params.pos_eul(2)))^2*sin(x(params.pos_eul(1))) - 2*params.Ixx*x(params.pos_o(2))*cos(x(params.pos_eul(2)))*sin(x(params.pos_eul(2))) + 2*params.Izz*x(params.pos_o(2))*cos(x(params.pos_eul(1)))^2*cos(x(params.pos_eul(2)))*sin(x(params.pos_eul(2))) + 2*params.Iyy*x(params.pos_o(2))*cos(x(params.pos_eul(2)))*sin(x(params.pos_eul(1)))^2*sin(x(params.pos_eul(2)))) - x(params.pos_o(2))*(params.Iyy*x(params.pos_o(1))*cos(x(params.pos_eul(1)))^2*cos(x(params.pos_eul(2))) - params.Izz*x(params.pos_o(1))*cos(x(params.pos_eul(1)))^2*cos(x(params.pos_eul(2))) - params.Iyy*x(params.pos_o(1))*cos(x(params.pos_eul(2)))*sin(x(params.pos_eul(1)))^2 + params.Izz*x(params.pos_o(1))*cos(x(params.pos_eul(2)))*sin(x(params.pos_eul(1)))^2 - params.Iyy*x(params.pos_o(2))*cos(x(params.pos_eul(1)))*sin(x(params.pos_eul(1)))*sin(x(params.pos_eul(2))) + params.Izz*x(params.pos_o(2))*cos(x(params.pos_eul(1)))*sin(x(params.pos_eul(1)))*sin(x(params.pos_eul(2)))) - params.b*(params.u(1) - params.u(2) + params.u(3) - params.u(4)) + params.Ixx*x(params.pos_o(1))*x(params.pos_o(2))*cos(x(params.pos_eul(2)))))/(params.Iyy*params.Izz*cos(x(params.pos_eul(1)))^4*cos(x(params.pos_eul(2)))^2 + params.Iyy*params.Izz*cos(x(params.pos_eul(2)))^2*sin(x(params.pos_eul(1)))^4 + 2*params.Iyy*params.Izz*cos(x(params.pos_eul(1)))^2*cos(x(params.pos_eul(2)))^2*sin(x(params.pos_eul(1)))^2) + (sin(x(params.pos_eul(2)))*(params.Iyy*cos(x(params.pos_eul(1)))^2 + params.Izz*sin(x(params.pos_eul(1)))^2)*(x(params.pos_o(2))*((x(params.pos_o(3))*(params.Iyy*cos(x(params.pos_eul(1)))^2*cos(x(params.pos_eul(2))) - params.Izz*cos(x(params.pos_eul(1)))^2*cos(x(params.pos_eul(2))) - params.Iyy*cos(x(params.pos_eul(2)))*sin(x(params.pos_eul(1)))^2 + params.Izz*cos(x(params.pos_eul(2)))*sin(x(params.pos_eul(1)))^2))/2 - (x(params.pos_o(2))*(2*params.Iyy*cos(x(params.pos_eul(1)))*sin(x(params.pos_eul(1))) - 2*params.Izz*cos(x(params.pos_eul(1)))*sin(x(params.pos_eul(1)))))/2) + x(params.pos_o(3))*((x(params.pos_o(2))*(params.Iyy*cos(x(params.pos_eul(1)))^2*cos(x(params.pos_eul(2))) - params.Izz*cos(x(params.pos_eul(1)))^2*cos(x(params.pos_eul(2))) - params.Iyy*cos(x(params.pos_eul(2)))*sin(x(params.pos_eul(1)))^2 + params.Izz*cos(x(params.pos_eul(2)))*sin(x(params.pos_eul(1)))^2))/2 + (x(params.pos_o(3))*(2*params.Iyy*cos(x(params.pos_eul(1)))*cos(x(params.pos_eul(2)))^2*sin(x(params.pos_eul(1))) - 2*params.Izz*cos(x(params.pos_eul(1)))*cos(x(params.pos_eul(2)))^2*sin(x(params.pos_eul(1)))))/2 + params.Ixx*x(params.pos_o(2))*cos(x(params.pos_eul(2)))) - params.k*params.l*(params.u(2) - params.u(4))))/(params.Iyy*params.Izz*cos(x(params.pos_eul(1)))^4*cos(x(params.pos_eul(2)))^2 + params.Iyy*params.Izz*cos(x(params.pos_eul(2)))^2*sin(x(params.pos_eul(1)))^4 + 2*params.Iyy*params.Izz*cos(x(params.pos_eul(1)))^2*cos(x(params.pos_eul(2)))^2*sin(x(params.pos_eul(1)))^2);
+    
+    
+    
+    % Double integrator (C)
     % x_dot(params.pos_p) = x(params.pos_v);
     % x_dot(params.pos_v) = -params.u(1:3);
 
-    x_dot(params.pos_p) = x(params.pos_p) + x(params.pos_v)*params.Ts;
-    x_dot(params.pos_v) = x(params.pos_v) + params.u(1:3)*params.Ts;
-
-
-
-
-    % eq. 38 armesto
-    %x_dot(params.pos_p) = (1-(params.Ts*params.gamma(3)))*x(params.pos_p) + params.Ts*(params.gamma(1)*y(params.pos_uwb_out) + params.gamma(2)*y(params.pos_cam_out));
-    % eq. 37 armesto 
-    %x_dot(params.pos_v) = (params.pos_v) + (params.Ts*x(params.pos_acc) + 0.5*params.Ts^2*x(params.pos_jerk)); %no dynamics, i just want the position
-    % eq. 36 armesto
-    %x_dot(params.pos_acc) = x(params.pos_acc) + (params.Ts*(x(params.pos_jerk) + params.u(1:3) + cross(x(params.pos_alpha),x(params.pos_v)) + cross(x(params.pos_omega),x(params.pos_acc))));
-    % eq. 39 armesto
-    %x_dot(params.pos_bias) = x(params.pos_bias) + (params.Ts*x(params.pos_bias_v));        
-
-    %%% model dynamics - quaternion
-
-    % Skew matrix - eq. 41 armesto
-    % q = x(params.pos_quat);
-    % S = [q(1) -q(2) -q(3) -q(4); ...
-    %      q(2) +q(1) +q(4) -q(3);   ...
-    %      q(3) -q(4) +q(1) +q(2);   ...
-    %      q(4) +q(3) -q(2) +q(1)];
-    % 
-    % % quaternion dynamics - eq. 40 armesto
-    % tmp = 0.5*params.Ts*x(params.pos_omega) + 0.25*params.Ts^2*x(params.pos_alpha);
-    % den = x(params.pos_omega)+0.5*params.Ts*x(params.pos_alpha);
-    % vec = [cos(norm(tmp)); ...
-    %        sin(norm(tmp)/norm(den))*(den)];
-    % if any(isnan(vec))
-    %     x_dot(params.pos_quat) = [1 0 0 0]';
-    % else
-    %     x_dot(params.pos_quat) = S*vec;
-    % end
-    % x_dot(params.pos_quat) = x(params.pos_quat)' + 0*quatnormalize(x_dot(params.pos_quat)');
-    % 
-    % % model dynamics - angular velocity - eq. 41b armesto
-    % x_dot(params.pos_omega) = x(params.pos_omega) + 0*params.Ts*(x(params.pos_alpha) + 0*params.u(4:6));
+    % Double integrator (Z)
+    % x_dot(params.pos_p) = x(params.pos_p) + x(params.pos_v)*params.Ts;
+    % x_dot(params.pos_v) = x(params.pos_v) + params.u(1:3)*params.Ts;
 
     % parameter dynamics
-    x_dot(params.pos_gamma) = params.gamma; 
+    %x_dot(params.pos_gamma) = params.gamma; %x(params.pos_gamma); 
 end
