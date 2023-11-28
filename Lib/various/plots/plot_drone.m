@@ -635,7 +635,12 @@ function plot_drone(obj,varargin)
             subplot(size(obj.setup.params.optstory.val,1),1,i);
             hold on
             grid on
-            box on 
+            box on  
+            if i == 1
+                ylabel(['uwb ',num2str((1/params.UWB_samp)*100), 'Hz - Noise: ', num2str(params.noise_mat(params.pos_uwb_out(1),2)), ' m'])
+            else
+                ylabel(['cam ',num2str((1/params.CAM_samp)*100), 'Hz - Noise: ', num2str(params.noise_mat(params.pos_cam_out(1),2)), ' m'])
+            end
             plot(obj.setup.params.optstory.val(i,1:end-3),'LineWidth',2);
         end
     catch
