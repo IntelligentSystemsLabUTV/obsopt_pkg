@@ -1,13 +1,16 @@
-# gitignore file
-fig/**
+# dir
+simulations/*
+workspace/*
+Papers/*
+codegen/*
+fig/*
+data/*
+slprj/*
 Latex/**
-results/**
 workspace/**
 config/**
 x86/**
 doc/**
-slprj/**
-data/**
 
 # files
 *.asv
@@ -21,6 +24,4 @@ data/**
 *.tmp
 *.bag
 *.e57
-
-# exceptions
-!results/simulations/battery/report
+codegeneration.m
