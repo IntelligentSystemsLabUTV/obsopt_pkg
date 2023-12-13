@@ -10,8 +10,18 @@
 % t: time instant (may be not used)
 % OUTPUT:
 % y: output measurement
-function [y, obs] = measure_general(x,params,t,u,obs)
+function [y, obs] = measure_drone(x,params,t,u,obs)
+
+    % compute the time index
+    pos = zeros(1,length(t));
+    for i=1:length(t)
+        tdiff = obs.setup.time-t(i);   
+        pos(i) = find(abs(tdiff) == min(abs(tdiff)),1,'first');    
+        pos(i) = max(1,pos(i));        
+    end
 
     % get the observed components of the state vector
-    y = x(params.observed_state,:);
+    y = x(params.observed_state,:);    
+
+    
 end

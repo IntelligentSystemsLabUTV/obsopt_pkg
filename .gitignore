@@ -1,5 +1,3 @@
-# gitignore file
-
 # dir
 simulations/*
 workspace/*
@@ -8,9 +6,22 @@ codegen/*
 fig/*
 data/*
 slprj/*
+Latex/**
+workspace/**
+config/**
+x86/**
+doc/**
 
 # files
 *.asv
-*.mat
+*.save
+.gitignore
+*.autosave
+*.original
 *.slxc
+*.zip
+*.prj
+*.tmp
+*.bag
+*.e57
 codegeneration.m

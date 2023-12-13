@@ -1,27 +1,41 @@
-%% PLANT model and data
-% model simulation
-% plant data
-% this function defines the model parameters. It's a general method,
-% depending only on the parameters_init.m script, defining the model
-% variables and costants. 
+%% MODEL_INIT
+% file: model_init.m
+% author: Federico Oliva
+% date: 10/01/2022
+% description: this function defines the model parameters. It's a general 
+% method, depending only on the params_init.m script, defining the 
+% model variables and costants. A default case is set for each entry, but
+% please check before running the code. 
+% INPUT: no input
+% OUTPUT: 
+% params: structure with all the necessary parameter to the model
 function params = model_init(varargin)
 
     % get params_init.m script
     if any(strcmp(varargin,'params_init'))
         pos = find(strcmp(varargin,'params_init'));
         params_init = varargin{pos+1};
-        params = params_init();
+
+        if any(strcmp(varargin,'Ntraj'))
+            pos = find(strcmp(varargin,'Ntraj'));
+            Ntraj = varargin{pos+1};
+            params = params_init(Ntraj);
+        else
+            params = params_init(1);
+        end
+        
     else
         params.X = 5;
     end
     
-    % handle parameters setup (identification task)
+    % get the model parameters to be estimated. Default is standard MHE
+    % with no model identification capabilities.
     fields = fieldnames(params);
     if ~any(strcmp(fields,'estimated_params'))
         params.estimated_params = [];
     end
     
-    % sample time
+    % sampling time
     if any(strcmp(varargin,'Ts'))
         pos = find(strcmp(varargin,'Ts'));
         Ts = varargin{pos+1};
@@ -29,7 +43,7 @@ function params = model_init(varargin)
         Ts = 1e-1;
     end
     
-    % starting and finish time
+    % start and finish time
     if any(strcmp(varargin,'T0'))
         pos = find(strcmp(varargin,'T0'));
         time_tmp = varargin{pos+1};
@@ -40,13 +54,13 @@ function params = model_init(varargin)
         tend = 1;
     end
 
-    % setup the structure
+    % setup the structure as far as time and iterations are concerned
     params.time = t0:Ts:tend;
     params.Ts = Ts;
     params.Niter = length(params.time);
     params.tspan = [0, Ts];
     
-    % get noise if exists. Default is 0
+    % get noise if exists. Default is 0 (no noise)
     if any(strcmp(varargin,'noise'))
         pos = find(strcmp(varargin,'noise'));
         params.noise = varargin{pos+1};
@@ -54,12 +68,12 @@ function params = model_init(varargin)
         params.noise = 0;
     end
     
-    % get noise setup if exists. Default is mu=0, std=5e-2;
+    % get noise setup if exists. Default is mu=0, std=5e-2 (Gaussian)
     if any(strcmp(varargin,'noise_spec'))
         pos = find(strcmp(varargin,'noise_spec'));
         noise_spec = varargin{pos+1};
-        params.noise_mu = noise_spec(1);
-        params.noise_std = noise_spec(2);
+        params.noise_mu = noise_spec(:,1);
+        params.noise_std = noise_spec(:,2);
     else
         params.noise_mu = 0;
         params.noise_std = 5e-2;
@@ -70,18 +84,8 @@ function params = model_init(varargin)
         pos = find(strcmp(varargin,'StateDim'));
         params.StateDim = varargin{pos+1};
     else
-        params.StateDim = 1;
-    end
-    
-    % get set of observed states. Default is 1
-    if any(strcmp(varargin,'ObservedState'))
-        pos = find(strcmp(varargin,'ObservedState'));
-        params.observed_state = varargin{pos+1};
-    else
-        params.observed_state = 1;
-    end
-    % set the output dimensions from the observed state
-    params.OutDim = length(params.observed_state);
+        params.StateDim = params.dim_state;
+    end               
     
     % get model if exists. Default is a 1 dimension asymptotically stable
     % system.
@@ -97,7 +101,15 @@ function params = model_init(varargin)
         pos = find(strcmp(varargin,'measure'));
         params.measure = varargin{pos+1};
     else
-        params.measure = @(x,params) x;
+        params.measure = @(x,params,t) x;
+    end
+    
+    % get measure if exists. Default measures the whole state
+    if any(strcmp(varargin,'params_update'))
+        pos = find(strcmp(varargin,'params_update'));
+        params.params_update = varargin{pos+1};
+    else
+        params.params_update = @(x,params) 1;
     end
     
     % get the integration algorithm. Default is ode45
@@ -108,39 +120,86 @@ function params = model_init(varargin)
         params.ode = @ode45;
     end
     
-    % input enable
+    % get the integration settings
+    if any(strcmp(varargin,'odeset'))
+        pos = find(strcmp(varargin,'odeset'));
+        params.odeset = odeset('RelTol',varargin{pos+1}(1),'AbsTol',varargin{pos+1}(2));
+    else
+        params.odeset = odeset('RelTol',1e-3,'AbsTol',1e-6);
+    end
+    
+    % check and set the control presence (default is free evolution)
     if any(strcmp(varargin,'input_enable'))
         pos = find(strcmp(varargin,'input_enable'));
         params.input_enable = varargin{pos+1};
     else
         params.input_enable = 0;
     end
-    
-    % input 
-    if any(strcmp(varargin,'dim_input'))
-        pos = find(strcmp(varargin,'dim_input'));
-        params.dim_input = varargin{pos+1};
-    else
-        params.dim_input = 1;
-    end
 
-    % input law 
-    % default case 
-    params.input = params.input_enable*randn(params.dim_input,1).*sin(params.time);
-    % now check varargin
+    % input law definition. Default is free evolution 
     if any(strcmp(varargin,'input_law'))
         pos = find(strcmp(varargin,'input_law'));
-        if ~isempty(params.input_enable*varargin{pos+1})
-            params.input = params.input_enable*varargin{pos+1};
-        end
+        if ~isempty(varargin{pos+1})
+            params.input = varargin{pos+1};
+        else
+            params.input = @(x,params) 0;
+        end 
     end
-    % set initial input
-    params.u = params.input(:,1);
-    
-    % set initial condition perturbed
-%     perc = [0.3, 0.3, 0.1, 0.1];
-    perc = 2;
-%     params.X_est(:,1) = params.X(:,1).*(1 + perc*params.noise*randn(params.StateDim,1));
-    params.X_est(:,1) = params.X(:,1).*(1 + perc.*params.noise*ones(params.StateDim,1)) + 0*params.noise_std*randn(params.StateDim,1);
+               
+    % remark: the params.Ntraj variable describes on how many different
+    % trajectories the MHE is run. This makes sense in the control design
+    % framework, which is under development. If standard MHE is to be used,
+    % please ignore obs.setup.Ntraj as it is set to 1.
+    for traj=1:params.Ntraj
+        
+        %%%% initial condition %%%%
+        % it is taken from params
+        init = params.X(traj).val(:,1);
+        
+        % different kinds of perturbation can be imposed. See below
+        if 1
+            %%%% PERTURBATION ON X0 WITH PERCENTAGE %%%%
+            % define perturbation. Both the optimised and not variables are 
+            % condiered. If a perturbation was to be considered on 
+            % non-optimised variables, there would be a "non-estimated" 
+            % dynamics which could hijack the estimation process. There 
+            % could be situations in which this makes sense so try it, but  
+            % at yourown risk
+            params.perc = zeros(params.StateDim,params.Ntraj);
+            
+            % randomly define the percentage (bool flag, see below)
+            randflag = 0; 
+            noise_std = 5e-1*ones(1,numel(params.perturbed_vars));
+
+            % if case: random perturbation percentage - optimised vars            
+            if randflag
+                params.perc(params.perturbed_vars,traj) = 1*randn(1,length(params.perturbed_vars)).*noise_std;
+            else
+                params.perc(params.perturbed_vars,traj) = 1*ones(1,length(params.perturbed_vars)).*noise_std;
+            end            
+            
+            % final setup on perc
+            params.perc = 1*params.perc;            
+            params.X_est(traj).val(:,1) = init;
+            
+            if params.noise && 1                                        
+                % around init
+                params.X_est(traj).val(params.perturbed_vars,1) = 1*init(params.perturbed_vars).*(1 + params.noise*params.perc(params.perturbed_vars,traj).*ones(length(params.perturbed_vars),1)) + ...
+                                                                  0*params.noise*noise_std'.*randn(length(params.perturbed_vars),1);    
+%                 params.X_est(traj).val(params.perturbed_vars,1) = 0;
+                params.X_est(traj).val(params.pos_quat(1),1) = 1;
+                params.X_est(traj).val(params.pos_quat,1) = quatnormalize(params.X_est(traj).val(params.pos_quat,1)');
+%                 params.X_est(traj).val(3,1) = 0.5;
+            end            
+
+            % test - bias starting always from 0
+            if params.noise 
+                params.X_est(traj).val(params.pos_bias,1) = 0;
+%                 params.X_est(traj).val(params.pos_bias_w,1) = 0;
+            end
+        end
+
+        
+    end
     
 end

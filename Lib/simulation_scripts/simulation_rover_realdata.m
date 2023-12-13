@@ -1,0 +1,233 @@
+%% SIMULATION_GENERAL_V3
+% file: simulation_general_v3.m
+% author: Federico Oliva
+% date: 10/01/2022
+% description: function to setup and use the MHE observer on general model
+% INPUT: none
+% OUTPUT: params,obs
+function [obs,params] = simulation_rover_realdata(data)
+
+%%%% Init Section %%%%
+% uncomment to close previously opened figures
+% close all
+% rng('default');
+% rng(42);
+% rng(23);
+rng(2);
+
+for i=1:length(data)
+    Len(i) = length(data(i).val.time);
+end
+
+% truncate experiments
+UpNiter = max(Len);
+
+% create measurements
+for i=1:length(data)
+    if Len(i) < UpNiter
+        padtmp = UpNiter - Len(i);
+    else
+        padtmp = 0;
+    end
+    % distances
+    D = data(i).val.UWB.';
+    % position 
+    p = data(i).val.p.';
+    p = p + [0.23; 0.12; 0];
+    % velocity
+    v = zeros(size(p));
+    % IMU
+    IMU = data(i).val.IMU.';
+    % quaternion
+    Q = data(i).val.q.';
+    Qstory(i).val = Q;
+    tmp = Qstory(i).val(:,end).*ones(size(Qstory(i).val,1),padtmp);
+    Qstory(i).val = [Qstory(i).val tmp];
+    % RPY
+    [YA, PI, RO]  = quat2angle(Q.');
+    % EUL = [wrapTo4PiRound(RO), wrapTo4PiRound(PI), wrapTo4PiRound(YA)].';
+    EUL = [RO, PI, YA].';
+    % angular velocity
+    W = data(i).val.W.';
+    % W = [-1*W(3,:); 1*W(2,:); 1*W(1,:)];
+    % stack Y
+    Y(i).val = [D; p; v; IMU; EUL; W];
+    tmp = Y(i).val(:,end).*ones(size(Y(i).val,1),padtmp);
+    Y(i).val = [Y(i).val tmp];
+    data(i).val.pjump = [data(i).val.pjump; (data(i).val.pjump(end,:)'.*ones(size(data(i).val.pjump,2),padtmp))'];
+    data(i).val.qjump = [data(i).val.qjump; (data(i).val.qjump(end,:)'.*ones(size(data(i).val.qjump,2),padtmp))'];
+    tmpTs = data(i).val.time(end) - data(i).val.time(end-1);
+    data(i).val.time = [data(i).val.time (data(i).val.time(end)+tmpTs):tmpTs:(data(i).val.time(end)+padtmp*tmpTs)];
+    if Len(i) < UpNiter
+        Len(i) = size(Y(i).val,2);
+    end
+end
+
+
+
+    
+% init observer buffer (see https://doi.org/10.48550/arXiv.2204.09359)
+Nts = 10;
+Nw = floor(UpNiter/Nts);
+
+% set sampling time
+Ts = mean(diff(data(1).val.time));
+
+% set initial and final time instant
+t0 = 0;
+% tend = 60;
+% uncomment to test the MHE with a single optimisation step
+tend = 1*(UpNiter-1)*Ts;
+
+%%%% params init function %%%%
+params_init = @params_rover;
+
+%%%% params update function %%%%
+params_update = @params_update_rover;
+
+%%%% model function %%%%
+model = @model_rover;
+model = @model_rover_EKF;
+
+%%%% model reference function %%%%
+model_reference = @model_rover_reference;
+
+%%%% measure function %%%%
+measure = @measure_rover;
+measure = @measure_rover_EKF;
+measure_reference = @measure_rover_reference;
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+%%%% filters %%%%
+[filter, filterScale] = filter_define(Ts,1);
+
+%%%% integration method %%%%
+ode = @odeEuler;
+
+%%%% input law %%%
+input_law = @control;
+
+%%%% params init %%%%
+params = model_init('Ts',Ts,'T0',[t0, tend],'noise',0, 'Ntraj', length(data),'params_update', params_update, ...
+            'model',model,'measure',measure,'ode',ode, 'odeset', [1e-3 1e-6], ...
+            'input_enable',1,'input_law',input_law,'params_init',params_init);
+             
+%%%% observer init %%%%
+% defien arrival cost
+terminal_states = params.opt_vars;
+terminal_weights = 1e0*ones(size(terminal_states));
+% define Yweights
+Yweights = ones(params.OutDim,1);
+% Yweights(params.pos_quat_out) = 0.1;
+
+% create observer class instance. For more information on the setup
+% options check directly the class constructor in obsopt.m
+obs = obsopt('DataType', 'simulated', 'optimise', 0 , 'MultiStart', params.multistart, 'J_normalise', 1, 'MaxOptTime', Inf, ... 
+          'Nw', Nw, 'Nts', Nts, 'ode', ode, 'PE_ma0iter', 0, 'WaitAllBuffer', 2, 'params',params, 'filters', filterScale,'filterTF', filter, ...
+          'model_reference',model_reference, 'measure_reference',measure_reference, ...
+          'Jdot_thresh',0.95,'MaxIter', 5, 'Jterm_store', 1, 'AlwaysOpt', 1 , 'print', 0 , 'SafetyDensity', Inf, 'AdaptiveParams', [10 160 1 1 0.5 params.pos_acc_out(1:2)], ...
+          'AdaptiveSampling',0, 'FlushBuffer', 1, 'opt', @patternsearch, 'terminal', 0, 'terminal_states', terminal_states, 'terminal_weights', terminal_weights, 'terminal_normalise', 1, 'Yweights', Yweights, ...
+          'ConPos', [], 'LBcon', [], 'UBcon', [],'Bounds', 0,'NONCOLcon',@nonlcon_fcn_rover);
+
+%% %%%% SIMULATION %%%%
+% obs.init.X.val(params.pos_other,1) = 0;
+% obs.init.X_est.val(params.pos_other,1) = 0;
+% start time counter
+t0 = tic;
+
+% integration loop
+for i = 1:obs.setup.Niter
+    
+    % Display iteration step
+    if ((mod(i,10) == 0) || (i == 1))
+        clc
+        disp(['Iteration Number: ', num2str(obs.setup.time(i)),'/',num2str(obs.setup.time(obs.setup.Niter))])
+        disp(['Last J:', num2str(obs.init.Jstory(end))]);
+    end
+    
+    % set current iteration in the obsopt class
+    obs.init.ActualTimeIndex = i;
+    obs.init.t = obs.setup.time(i);
+
+    % define time span (single integration)
+    startpos = max(1,obs.init.ActualTimeIndex-1);
+    stoppos = obs.init.ActualTimeIndex;
+    tspan = obs.setup.time(startpos:stoppos);
+    
+    %%%% PROPAGATION %%%%
+    % forward propagation of the previous estimate    
+        
+    for traj = 1:obs.setup.Ntraj
+        
+        % update traj
+        obs.init.traj = traj;
+             
+        % propagate only if the time gets over the initial time instant
+        if(obs.init.ActualTimeIndex > 1)
+
+            % real system - initial condition perturbed             
+            X = obs.setup.ode(@(t,x)obs.setup.model(t, x, obs.init.params, obs), tspan, obs.init.X_est(traj).val(:,startpos),params.odeset);
+            obs.init.X_est(traj).val(:,startpos:stoppos) = [X.y(:,1),X.y(:,end)]; 
+
+        end
+        
+        %%%% REAL MEASUREMENT %%%%
+        % here the noise is noise added aggording to noise_spec
+        y_meas(traj).val = Y(traj).val(:,obs.init.ActualTimeIndex);    
+        obs.init.Y_full_story(traj).val(1,:,obs.init.ActualTimeIndex) = y_meas(traj).val;
+        obs.init.Ytrue_full_story(traj).val(1,:,obs.init.ActualTimeIndex) = y_meas(traj).val;
+        obs.init.noise_story(traj).val(1,:,obs.init.ActualTimeIndex) = 0;
+        obs.init.input_story_ref(traj).val(:,obs.init.ActualTimeIndex) = zeros(params.dim_input,1);
+        if mod(obs.init.ActualTimeIndex-1,params.UWB_samp) == 0 
+            obs.init.params.p_jump(obs.init.traj).val(:,end+1) = data(traj).val.pjump(max(1,obs.init.ActualTimeIndex),:);
+            obs.init.params.p_jump_der(obs.init.traj).val(:,end+1) = 0;
+            obs.init.params.q_jump(obs.init.traj).val(:,end+1) = data(traj).val.qjump(max(1,obs.init.ActualTimeIndex),:);
+            obs.init.params.UWB_pos(end+1) = obs.init.ActualTimeIndex;
+        end
+
+        %% ground truth
+        obs.init.X(traj).val(params.pos_quat,obs.init.ActualTimeIndex) = Qstory(traj).val(:,obs.init.ActualTimeIndex);
+        
+    end
+    
+    %%%% MHE OBSERVER (SAVE MEAS) %%%%
+    if params.hyb
+        t1 = tic;
+        obs = obs.observer(obs.init.X_est,y_meas);
+        obs.init.iter_time(obs.init.ActualTimeIndex) = toc(t1);   
+        if obs.init.break
+            break;
+        end
+    end
+
+    if params.ekf
+        for traj=1:params.Ntraj
+            obs.init.traj = traj;
+            obs = EKF_rover(obs,obs.init.X_est(traj).val(:,startpos),y_meas(traj).val);
+        end
+    end
+
+    %%% test %%%
+    obs.init.params.UWB_samp_EKF = obs.init.params.UWB_samp;
+    obs.init.params.IMU_samp_EKF = obs.init.params.IMU_samp;    
+                                             
+    
+    
+
+end
+
+
+% overall computation time
+obs.init.total_time = toc(t0);
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+%% %%%%%%%%%%%%%%%%%%%%%%%%%%%% PLOTS %%%%%%%%%%%%%%%%%%%%%
+% obs self plots
+% obs.plot_section_control(); 
+
+% the whole process could be long, why not going for a nap? No worries, 
+% this "sounds" like a nice way to wake up. (Uncomment)
+% load handel
+% sound(y,Fs)
+end
+
