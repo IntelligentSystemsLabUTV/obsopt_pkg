@@ -1,11 +1,24 @@
 # gitignore file
-*
+fig/
+Latex/
+results/
+workspace/
+config/
+x86/
+doc/
+slprj/
+jackal/
 
-# exceptions (dir)
-!data/
-!doc/
-!Lib/
+# files
+*.asv
+*.save
+.gitignore
+*.autosave
+*.original
+*.slxc
+*.zip
+*.prj
+*.tmp
 
-#exceptions (files)
-!COPYING
-!README.md
+# exceptions
+!results/simulations/battery/report

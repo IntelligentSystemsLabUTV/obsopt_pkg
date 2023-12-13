@@ -11,11 +11,21 @@
 % params: structure with all the necessary parameter to the model
 function params = model_init(varargin)
 
+    % input law definition. Default is free evolution 
+    if any(strcmp(varargin,'addons'))
+        pos = find(strcmp(varargin,'addons'));
+        if ~isempty(varargin{pos+1})
+            addon = varargin{pos+1};
+        else
+            addon = [];
+        end 
+    end
+
     % get params_init.m script
     if any(strcmp(varargin,'params_init'))
         pos = find(strcmp(varargin,'params_init'));
         params_init = varargin{pos+1};
-        params = params_init();
+        params = params_init(addon);
     else
         params.X = 5;
     end
@@ -77,18 +87,7 @@ function params = model_init(varargin)
         params.StateDim = varargin{pos+1};
     else
         params.StateDim = params.dim_state;
-    end
-    
-    % get set of observed states. Default is 1
-    if any(strcmp(varargin,'ObservedState'))
-        pos = find(strcmp(varargin,'ObservedState'));
-        params.observed_state = varargin{pos+1};
-    else
-        params.observed_state = 1;
-    end
-    
-    % set the output dimensions from the observed state
-    params.OutDim = length(params.observed_state);
+    end               
     
     % get model if exists. Default is a 1 dimension asymptotically stable
     % system.
@@ -138,10 +137,6 @@ function params = model_init(varargin)
     else
         params.input_enable = 0;
     end
-    
-    % input dimension. Default is the whole state dimension. Whether to use
-    % it or not shall be explicited in the @model function
-    params.dim_input = params.StateDim;
 
     % input law definition. Default is free evolution 
     if any(strcmp(varargin,'input_law'))
@@ -151,7 +146,7 @@ function params = model_init(varargin)
         else
             params.input = @(x,params) 0;
         end 
-    end
+    end    
                
     % remark: the params.Ntraj variable describes on how many different
     % trajectories the MHE is run. This makes sense in the control design
@@ -175,38 +170,26 @@ function params = model_init(varargin)
             params.perc = zeros(params.StateDim,params.Ntraj);
             
             % randomly define the percentage (bool flag, see below)
-            randflag = 0;
-            
-            % if case: random perturbation percentage - non optimised vars
-            if randflag
-                params.perc(params.nonopt_vars,traj) = 1*randn(1,length(params.nonopt_vars))*5e-1;
-            else
-                params.perc(params.nonopt_vars,traj) = 1*ones(1,length(params.nonopt_vars))*6e-1;
-            end
+            randflag = 1; 
+            noise_std = 0*5e-1;
 
-            % % if case: random perturbation percentage - optimised vars
+            % if case: random perturbation percentage - optimised vars            
             if randflag
-                params.perc(params.opt_vars,traj) = 1*randn(1,length(params.opt_vars));
+                params.perc(params.multi_traj_var,traj) = 1*randn(1,length(params.multi_traj_var))*noise_std;
             else
-                params.perc(params.opt_vars,traj) = 1*ones(1,length(params.opt_vars))*6e-1;
-            end
+                params.perc(params.multi_traj_var,traj) = 1*ones(1,length(params.multi_traj_var))*noise_std;
+            end            
+            
 
             % final setup on perc
-            params.perc = 1*params.perc;
-            params.X_est(traj).val(:,1) = init.*(1 + params.noise*params.perc(:,traj).*ones(params.StateDim,1)) + params.noise*params.noise_std.*randn(params.StateDim,1);
-        else
-        
-            %%%% PERTURBATION ON X0 WITH RANDOM NOISE %%%%
-            % define noise boundaries (uniform distribution)
-            params.bound_delta_x = params.noise*1e-1*[-1,1]*1;
-            params.bound_delta_x_dot = params.noise*1e-1*[-1,1]*1;
-
-            % define the perturbation on the initial condition
-            noise = [unifrnd(params.bound_delta_x(1),params.bound_delta_x(2),2,1); unifrnd(params.bound_delta_x_dot(1),params.bound_delta_x_dot(2),2,1)];
-
-            % final setup on initial condition
+            params.perc = 1*params.perc;            
             params.X_est(traj).val(:,1) = init;
-            params.X_est(traj).val(1:params.dim_state,1) = params.X(traj).val(1:params.dim_state,1) + params.noise*noise;
+            
+            if params.noise                                            
+                % around init
+                params.X_est(traj).val(params.multi_traj_var,1) = init(params.multi_traj_var).*(1 + params.noise*params.perc(params.multi_traj_var,traj).*ones(length(params.multi_traj_var),1)) + ...
+                                                                  params.noise*noise_std.*randn(length(params.multi_traj_var),1);                                
+            end
         end
 
         
