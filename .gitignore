@@ -6,8 +6,11 @@ workspace/*
 Papers/*
 codegen/*
 fig/*
+data/*
+slprj/*
 
 # files
 *.asv
 *.mat
+*.slxc
 codegeneration.m
