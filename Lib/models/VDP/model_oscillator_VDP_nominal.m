@@ -11,7 +11,7 @@
 % obs: observer class instance (may be not used)
 % OUTPUT:
 % x_dot: dynamics equations
-function [x_dot, x] = model_oscillator_VDP(tspan,x,Params,obs)
+function [x_dot, x] = model_oscillator_VDP_nominal(tspan,x,Params,obs)
 
     % init the dynamics 
     x_dot = zeros(length(x),1);

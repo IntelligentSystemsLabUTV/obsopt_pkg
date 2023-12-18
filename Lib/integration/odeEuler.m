@@ -47,10 +47,6 @@ for i = 1:M-1
     
     % Solution at ti+1
     X(:,i+1) = Xjump + dt*K1(:,i);
-
-    % test quatnormalize
-    X(13:16,i+1) = quatnormalize(X(13:16,i+1)');
-
     
     % shift time instant
     t0 = tspan(i+1);

@@ -13,9 +13,5 @@ function params_out = params_update_oscillator_VDP(params,x)
 
     % assign params
     params_out = params;
-    
-    % update the nonlinearity
-    % params_out.A_mu = x(4);
-    % params_out.F_mu = x(5);
-    % params_out.Phi_mu = x(6);    
+   
 end

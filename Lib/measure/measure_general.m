@@ -10,8 +10,8 @@
 % t: time instant (may be not used)
 % OUTPUT:
 % y: output measurement
-function [y, obs] = measure_general(x,params,t,u,obs)
+function [y, obs] = measure_general(x,Params,t,u,obs)
 
     % get the observed components of the state vector
-    y = x(params.observed_state,:);
+    y = x(Params.ObservedState,:);
 end
