@@ -1,15 +1,23 @@
-%% SIMULATION_GENERAL_V3
-% file: simulation_general_v3.m
+%% generate_plant
+% file: generate_plant.m
 % author: Federico Oliva
-% date: 10/01/2022
-% description: function to setup and use the MHE observer on general model
+% date: 20/12/2023
+% description: script generating data from a nominal Van Der Pol oscillator
+% info: see obsopt_manual.pdf for reference
 % INPUT: none
-% OUTPUT: out
+% OUTPUT: 
+%           Y: measurements
+%           X: state
+%           U: input
+%           T: time vector
 
-%%%% Init Section %%%%
+%% Init Section 
+% clear and cose all
 clc
 clear
 close all
+
+% random seed init
 rng('default');
 
 % set sampling time
@@ -19,7 +27,8 @@ Ts = 1e-2;
 T0 = 0;
 Tend = 10;
 
-% initialize Params
+% init Params (see ref)
+% in this case look at the code in "params_oscillator_VDP.m"
 Params = model_init('ParamsInit',       @params_oscillator_VDP, ...
                     'Ts',               Ts, ...
                     'T0',               T0, ...
@@ -33,10 +42,20 @@ Params = model_init('ParamsInit',       @params_oscillator_VDP, ...
                     );
 
 
-% create an instance of obs (just because I am using the model)
+% create an instance of obsopt
+% we do this just because it's easy to use the obsopt class but you can do
+% differently
 obs = obsopt('Params',Params);
 
-% define initial conditions
+% set the noise characteristics
+% enable noise
+noise_flag = 1;
+% noise mean
+noise_mu = zeros(Params.DimOut,1);
+% noise standard deviation
+noise_std = 5e-2*ones(Params.DimOut,1);
+
+% store initial conditions in the output variables
 for traj = 1:Params.Ntraj
 
     % state
@@ -46,19 +65,21 @@ for traj = 1:Params.Ntraj
     U(traj).val(:,1) = Params.Input(T0,X(traj).val(:,1),Params,[]);
 
     % measure
+    % noise considers the characteristics from the init section
     [Y(traj).val(:,1), ~] = Params.Measure(X(traj).val(:,1),Params,Params.T(1:2),U(traj).val(:,1),[]);
+    Y(traj).val(:,1) = Y(traj).val(:,1) + noise_flag*(noise_mu + noise_std.*randn(size(noise_std)));
 
 end
 
 %% model integration
-
-% cycle over the time vector
+% cycle over the time vector starting from 2 because the initial condition
+% has been set before
 for i = 2:Params.Niter
 
     % tspan
     tspan = Params.T(i-1:i);
 
-    % cycle over the trajectories
+    % cycle over the trajectories (see ref)
     for traj = 1:Params.Ntraj
 
         % true system - correct initial condition and no noise considered                 
@@ -71,11 +92,16 @@ for i = 2:Params.Niter
         U(traj).val(:,i) = Params.Input(T0,X(traj).val(:,i-1),Params,obs);
 
         % measure
+        % noise considers the characteristics from the init section
         [Y(traj).val(:,i), ~] = Params.Measure(X(traj).val(:,i),Params,Params.T(i-1:i),U(traj).val(:,i),[]);
+        Y(traj).val(:,i) = Y(traj).val(:,i) + noise_flag*(noise_mu + noise_std.*randn(size(noise_std)));
 
     end
 
 end
 
+% assign the time vector to the time output variable
 T = Params.T;
+
+% clear workspace except for the outputs
 keep X Y U T

@@ -1,158 +1,215 @@
-%%%%%%% LICENSING %%%%%%%
-% Copyright 2020-2021 Federico Oliva
-% This program is free software: you can redistribute it and/or modify
-% it under the terms of the GNU General Public License as published by
-% the Free Software Foundation, either version 3 of the License, or
-% (at your option) any later version.
+%% obsopt
+% file: obsopt.m
+% author: Federico Oliva
+% date: 20/12/2023
+% description: class implementing MHE observers and TBOD methods (see ref)
 
-% This program is distributed in the hope that it will be useful,
-% but WITHOUT ANY WARRANTY; without even the implied warranty of
-% MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-% GNU General Public License for more details.
-
-% You should have received a copy of the GNU General Public License
-% along with this program.  If not, see <http://www.gnu.org/licenses/>.
-%%%%%%%%%%%%%%%%%%%%%%%%%%
-
-%%%%%%%% CODE %%%%%%%%%%%%
-
-%% class definition - obsopt observer
-% This class allows to apply a newton-like observer to a specified model,
-% within a model integration setup in the form:
-% 1) initial setup
-% ---- for loop ----
-% 2) model integration 
-% 3) measurements (with noise)
-% 4) newton-like observer (obsopt)
-% -----> back to 2
-% 5) plot section (optional)
+% class definition - obsopt observer
+% the obsopt class is a handle class: Objects of handle classes are 
+% referred to by reference, meaning that when you assign a handle object 
+% to a variable or pass it as an argument to a function, you're actually 
+% working with a reference to the object rather than a copy of the 
+% object itself.
 classdef obsopt < handle
+
     %%% class properties
     properties
 
         % Params: structure containing all the useful variables
         Params;
 
-        % methods (function handles)
+        % methods provided from external scripts (function handles)
         Functions;
 
-        % time vector
+        % simulation time vector
         T;
 
-        % state of the plant - nominal
+        % state of the plant - nominal (optional)
         X;
 
-        % output of the plant - nominal
+        % output of the plant - nominal (optional)
         Y;
 
         % control input of the plant - nominal 
         U;
 
-        % state of the plant 
+        % state of the plant - estimated
         Xhat;
 
-        % output of the plant
+        % output of the plant - estimated
         Yhat;
 
-        % control input of the plant 
+        % control input of the plant  - estimated
         Uhat;
     end
     
-    %%% class methods %%%
+    %%% class methods (built-in)
     methods
+
         % class constructor. Each of these variables can be specifically
         % set by calling the constructor with specific properties, i.e. by
-        % properly using the varargin parameter. Otherwise a default system
-        % is set up
+        % properly using the varargin parameter. Some of then are mandatory,
+        % others are optional. In this case a default value is used
         function Obj = obsopt(varargin)
             
+            % set the Params structure. This structure is used as a
+            % container for all the variables that might be useful during
+            % the simulation. There are some standard variables within
+            % Params, but the user can freely add or remove them depending
+            % on th goal. The main approach to handle the class is to keep
+            % all the properties fixed except from Params. Consider it as a
+            % sort of workspace.
             try
+
+                % check if the Params option is present in varagin
                 any(strcmp(varargin,'Params'))
+                
+                % find the related position
                 pos = find(strcmp(varargin,'Params'));
+
+                % the structure is right after
                 Params = varargin{pos+1};
 
                 % assign Params
                 Obj.Params = Params;
                 
-                % get model from Params
+                % get model handle function from Params
                 Obj.Functions.Model = Params.Model;
                 
-                % get measure from Params
+                % get measure handle function from Params
                 Obj.Functions.Measure = Params.Measure;
 
-                % get input from Params
+                % get input handle function from Params
                 Obj.Functions.Input = Params.Input;
                 
-                % get the integration algorithm
+                % get the integration algorithm handle function from Params
                 Obj.Functions.Ode = Params.Ode;
+
+                % store the integration options (see model_init.m)
                 Obj.Params.Odeset = Params.Odeset;
                
-                % get state init
-                Obj.X = Params.X;
-                Obj.Xhat = Params.Xhat;
+                % get state initial value (see model_init)
+                Obj.X = Params.X;       % nominal plant
+                Obj.Xhat = Params.Xhat; % estimated plant
 
-                % set the time
+                % set the time vector
                 Obj.T = Params.T;
                                 
             catch 
+
+                % something is missing, check the Params definition
                 error('Error in parsing "Params"');
+
             end
              
-            % run or no the optimisation
-            if any(strcmp(varargin,'Optimise'))
-                pos = find(strcmp(varargin,'Optimise'));
-                Obj.Params.Optimise = varargin{pos+1};
+            % the class implements an MHE observer ora TBOD method. One
+            % might want to check the estimated plant behaviour in absence
+            % of any observer, just to see how different initial
+            % conditions, parameters or setup affect the estimated state
+            % trajectories. in this case, no optimization problem should be
+            % run in any instant of the simultion. If this is the case,
+            % please set Optimize to zero. 
+            if any(strcmp(varargin,'Optimize'))
+
+                % find Optimize in varargin
+                pos = find(strcmp(varargin,'Optimize'));
+
+                % set the option in Params
+                Obj.Params.Optimize = varargin{pos+1};
+
             else
-                warning('No "optimise" option provided: set default to: true');
-                Obj.Params.Optimise = 1;
+
+                % Optimize is not mandatory. if not found, set to default 0
+                warning('No "optimize" option provided: set default to: true');
+                Obj.Params.Optimize = 0;
             end
                        
-            % option to print out the optimisation process or not. Default
-            % is not (0).
+            % option to print out the optimization process or not. 
             if any(strcmp(varargin,'Print'))
+
+                % find Print in varargin
                 pos = find(strcmp(varargin,'Print'));
+
+                % set the option in Params
                 Obj.Params.Print = varargin{pos+1};
+
             else
+
+                % Print is not mandatory. Default is not printing (0).
                 warning('No "print" option provided: set default to: false');
                 Obj.Params.Print = 0;
+
             end
             
-            % get the maximum number of iterations in the optimisation
-            % process. Default is 100.
+            % get the maximum number of iterations in the optimization
+            % process.
             if any(strcmp(varargin,'MaxIter'))
+
+                % find MaxIter in varargin
                 pos = find(strcmp(varargin,'MaxIter'));
                 Obj.Params.MaxIter = varargin{pos+1};
+
             else
+
+                % MaxIter is not mandatory. Default is 100
                 warning('No "MaxIter" option provided: set default to: 100');
                 Obj.Params.MaxIter = 100;
-            end
-            
-            % Discrete sampling time (for filters)
-            Obj.Params.DTs = Obj.Params.Nts*Obj.Params.Ts;
 
-            % get the conditions to consider the optimisation result. See 
-            % reference on the algorithm for more detailed information. 
-            % Default is 90%.
-            if any(strcmp(varargin,'JdotThresh'))
+            end
+           
+            % get the conditions to consider the optimization result. 
+            % Briefly, if the cost function of the MHE problem is at least 
+            % a percentage lower than the initial one, accept the new state 
+            % estimation. See reference for more detailed information. 
+           if any(strcmp(varargin,'JdotThresh'))
+
+               % find JdotThresh in varargin
                 pos = find(strcmp(varargin,'JdotThresh'));
+
+                % set the value in Params
                 Obj.Params.JdotThresh = varargin{pos+1};
-            else
-                warning('No "JdotThresh" option provided: set default to: 1');
-                Obj.Params.JdotThresh = 1;
+
+           else
+
+                % JdotThresh is not mandatory. Default is 90%
+                warning('No "JdotThresh" option provided: set default to: 0.9');
+                Obj.Params.JdotThresh = 0.9;
             end
             
-            % normalise the cost function
-            if any(strcmp(varargin,'JNormalise'))
-                pos = find(strcmp(varargin,'JNormalise'));
-                Obj.Params.JNormalise = varargin{pos+1};
+            % normalize the cost function. As pointed out in ref, the
+            % different terms in the output mismatch used in the cost
+            % function might have different orders of magnitude. thus, a
+            % normalization is required. This option enables or not such a
+            % procedure.
+            if any(strcmp(varargin,'JNormalize'))
+
+                % find JNormalize in varargin
+                pos = find(strcmp(varargin,'JNormalize'));
+
+                % set the value in Params
+                Obj.Params.JNormalize = varargin{pos+1};
+
             else
-                warning('No "JNormalise" option provided: set default to: true');
-                warning('Remark: if you want to manually set the cost function weights, set "JNormalise = false" and specify the W matrices in the "Params" file.');
-                Obj.Params.JNormalise = 1;
+
+                % JNormalize is not mandatory. Default is true
+                warning('No "JNormalize" option provided: set default to: true');
+
+                % If you don't want to normalize but still consider this
+                % issue you can directly specify the cost function weights
+                % in the Params definition. see reference
+                warning('Remark: if you want to manually set the cost function weights, set "JNormalize = false" and specify the W matrices in the "Params" file.');
+
+                % set the value
+                Obj.Params.JNormalize = 1;
+
             end
 
-            % get the optimisation method. Default is fminsearch from
-            % MATLAB
+            % get the optimization method. Default is fminsearchcon from
+            % MATLAB. You might want to change this. In this case a
+            % relevant rewriting of the obsopt class might be necessary. We
+            % have already done this on other branches of the repository,
+            % but the whole thing might be quite messy. So, feel free to
+            % contact us for help. 
             Obj.Functions.Fmin = @fminsearchcon;
             
             % get the multistart option
@@ -277,7 +334,7 @@ classdef obsopt < handle
             % create scale factor, namely the weight over time for all the
             % cost function terms. In V1.1 no forgetting factor is
             % implemented. 
-            Obj.Params.Normalised = 0;
+            Obj.Params.Normalized = 0;
             
             % BackIterIndex: t0 index (starting from 1). For more
             % information check the reference. 
@@ -330,24 +387,23 @@ classdef obsopt < handle
             % J_components is used to keep track of the different cost
             % function terms amplitude. Not implemented in V1.1
             Obj.Params.JComponents = ones(Obj.Params.DimOut,Obj.Params.JNterm);
-            Obj.Params.JustOptimised = 0;
+            Obj.Params.JustOptimized = 0;
             
-            % time instants in which the optimisation is run
+            % time instants in which the optimization is run
             Obj.Params.SampleTime = [];
-            % time instand in which the optimisation is accepted 
+            % time instand in which the optimization is accepted 
             % (see J_dot_thresh for more information)
-            Obj.Params.OptChosenTime = [];
             Obj.Params.IterTime = [];
             Obj.Params.TotalTime = [];
             Obj.Params.ExecutionTime = [];
             
-            % optimisation counters. Related to SampleTime and chosen_time
+            % optimization counters. Related to SampleTime and chosen_time
             Obj.Params.OptCounter = 0;
             Obj.Params.SelectCounter = 0;
             Obj.Params.OptTime = [];
             Obj.Params.SelectTime = [];
             
-            %%% start of optimisation setup %%%
+            %%% start of optimization setup %%%
             % optimset: check documentation for fminsearch or fminunc
             Obj.Params.TolX = 0;
             Obj.Params.TolFun = 0;
@@ -379,7 +435,7 @@ classdef obsopt < handle
             ceq = 0;
         end
         
-        % outfun: this method check wether or not the optimisation process
+        % outfun: this method check wether or not the optimization process
         % shall be stopped or not. Check setup.J_thresh for more
         % information. 
         function stop = outfun(Obj,x, optimValues, state)
@@ -413,7 +469,7 @@ classdef obsopt < handle
                 % set the trajectory
                 Obj.Params.traj = traj;
                 
-                % non optimised vals - traj dependent
+                % non optimized vals - traj dependent
                 x_nonopt = varargin{2}(traj).val;
                 
                 % add non optimized vars to state
@@ -601,7 +657,7 @@ classdef obsopt < handle
             Obj.Params.NtsPos = NtsPos;
 
             %%%% observer %%%%
-            if  (distance < Obj.Params.NtsVal(NtsPos))
+            if  (distance == Obj.Params.NtsVal(NtsPos))
                
                 % OUTPUT measurements - buffer of N elements
 
@@ -664,7 +720,7 @@ classdef obsopt < handle
                         % start from the correct one                             
                         Obj.Params.TempX0NonOpt(traj).val = Obj.Xhat(traj).val(Obj.Params.VarsNonOpt,Obj.Params.BackTimeIndex);
 
-                        % change only the values which are to be optimised
+                        % change only the values which are to be optimized
                         % only 1 set of vars regardless to the number
                         % of trajectories used as we're not estimating
                         % the state or the model parameters
@@ -690,10 +746,10 @@ classdef obsopt < handle
                     end
                         
                     %%% normalisation %%%
-                    if (Obj.Params.JNormalise) && (~Obj.Params.Normalised) 
+                    if (Obj.Params.JNormalize) && (~Obj.Params.Normalized) 
 
                         % get the time index until when you want to
-                        % normalise. A buffer should work. 
+                        % normalize. A buffer should work. 
                         range = 1:Obj.Params.ActualTimeIndex;
                         
                         % cycle over all the Y used for the cost function
@@ -754,21 +810,21 @@ classdef obsopt < handle
                             
                         % the normalization is done only once in the whole
                         % simulation.
-                        Obj.Params.Normalised = 1;
+                        Obj.Params.Normalized = 1;
                         
                     end
                   
                     % let's proceed with the optimization
-                    if (Obj.Params.Optimise)
+                    if (Obj.Params.Optimize)
 
                         % reset OptIterVal
                         Obj.Params.OptIterVal = 0;
                             
-                        % save J before the optimisation to confront it later 
+                        % save J before the optimization to confront it later 
                         [J_before, Obj_tmp] = Obj.cost_function(Obj.Params.TempX0Opt,Obj.Params.TempX0NonOpt,Obj.Params.Target);
 
 
-                        % Optimisation (only if distance_safe_flag == 1)
+                        % Optimization (only if distance_safe_flag == 1)
                         opt_time = tic;                        
 
                         %%%%% OPTIMISATION - NORMAL MODE %%%%%%                            
@@ -937,6 +993,11 @@ classdef obsopt < handle
                 if Obj.Params.Print
                     clc;
                 end 
+            else
+
+                % keep the last J
+                Obj.Params.JStory(:,Obj.Params.ActualTimeIndex) = Obj.Params.JStory(:,max(1,Obj.Params.ActualTimeIndex-1));
+
             end
         end
     end

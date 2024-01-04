@@ -1,61 +1,60 @@
-%% ODERK4_FAST
+%% odeEuler
 % file: oderk4_fast.m
 % author: Federico Oliva
-% date: 10/01/2022
-% description: this function implements a 4th order Runge-Kutta integration
-% algorithm
+% date: 20/12/2023
+% description: this function implements a forward Euler integration
+%              algorithm
 % INPUT:
-% ode: handle function to the dynamics
-% tspan: time interval for the integration
-% y0: initial condition
-% options: integration options (see ode45 help)
-% varargin: additional parameters (see options)
+%           ode: handle function to the dynamics
+%           tspan: time interval for the integration
+%           y0: initial condition
+%           options: integration options (see ode45 help could be used)
+%           varargin: additional parameters (see options)
 % OUTPUT:
-% out: structure with integration results
+%           out: structure with integration results
 function out = odeEuler(ode,tspan,y0,options,varargin)
 
-%%%% init section %%%%
+    % init section
 
-% number of state's components
-N = length(y0);            
+    % number of state's components
+    N = length(y0);            
 
-% numer of time steps
-M = length(tspan);         
+    % numer of time steps
+    M = length(tspan);         
 
-% time step
-dt = tspan(2) - tspan(1);   
+    % time step
+    dt = tspan(2) - tspan(1);   
 
-% initial time instant
-t0 = tspan(1);
+    % initial time instant
+    t0 = tspan(1);
 
-% Matrices allocation
-X = zeros(N,M);
-X(:,1) = y0;
-K1 = zeros(N,M);
+    % Matrices allocation
+    X = zeros(N,M);
+    K1 = zeros(N,M);
 
-% integration
-for i = 1:M-1
+    % set initial condition
+    X(:,1) = y0;
+
+    % integration: cycle over the number of time steps. We integrate M-1 times
+    % because every time we integrate into the next step.
+    for i = 1:M-1
     
-    % State and time at ti
-    x = X(:,i);
+        % State and time at t_i
+        x = X(:,i);
     
-    % Runge Kutta 4
-    [K1(:,i), Xjump] = feval(ode,t0,x);  
+        % evaluate the model
+        % remark: check the structure of the model to understand what is Xjump
+        [K1(:,i), Xjump] = feval(ode,t0,x);  
+    
+        % Solution at ti+1 (forward Euler)
+        X(:,i+1) = Xjump + dt*K1(:,i);
+    
+        % shift time instant
+        t0 = tspan(i+1);
+    
+    end
 
-    %%% just to update the drive correctly %%%
-    %tmp = feval(ode,t0,x);
-    
-    % Solution at ti+1
-    X(:,i+1) = Xjump + dt*K1(:,i);
-    
-    % shift time instant
-    t0 = tspan(i+1);
-    
-end
+    % store
+    out.y = X;
 
-% any angles? - wrap them
-% X(13,:) = wrapToPi(X(13,:));
-
-% store
-out.y = X;
 end
