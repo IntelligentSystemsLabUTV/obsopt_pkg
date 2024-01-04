@@ -81,6 +81,9 @@ classdef obsopt < handle
 
                 % get input handle function from Params
                 Obj.Functions.Input = Params.Input;
+
+                % get params update handle function from Params
+                Obj.Functions.ParamsUpdate = Params.ParamsUpdate;
                 
                 % get the integration algorithm handle function from Params
                 Obj.Functions.Ode = Params.Ode;
@@ -102,7 +105,7 @@ classdef obsopt < handle
 
             end
              
-            % the class implements an MHE observer ora TBOD method. One
+            % the class implements an MHE observer or a TBOD method. One
             % might want to check the estimated plant behaviour in absence
             % of any observer, just to see how different initial
             % conditions, parameters or setup affect the estimated state
@@ -120,7 +123,7 @@ classdef obsopt < handle
             else
 
                 % Optimize is not mandatory. if not found, set to default 0
-                warning('No "optimize" option provided: set default to: true');
+                warning('No "optimize" option provided: set default to: false');
                 Obj.Params.Optimize = 0;
             end
                        
@@ -205,149 +208,303 @@ classdef obsopt < handle
             end
 
             % get the optimization method. Default is fminsearchcon from
-            % MATLAB. You might want to change this. In this case a
-            % relevant rewriting of the obsopt class might be necessary. We
-            % have already done this on other branches of the repository,
+            % MATLAB Exchange. You might want to change this. In this case 
+            % a relevant rewriting of the obsopt class might be necessary. 
+            % We have already done this on other branches of the repository
             % but the whole thing might be quite messy. So, feel free to
             % contact us for help. 
             Obj.Functions.Fmin = @fminsearchcon;
             
-            % get the multistart option
+            % The he BounPos option allows the user to add a barrier
+            % function term in the MHE cost function. This term can be used
+            % to enforce upper and lower bounds on any state variable. Note
+            % that, differently from fminsearchcon, the bounds can be
+            % enforced also on state variables which are not optimization
+            % variables. This comes in handy when you have, for instance,
+            % constraints on parameters (see battery estimation). 
+            % We suggest to use the fminsearchcon option to bound the
+            % optimization variables, and the BounPos option to constrain
+            % the rest of the state variables.
+
+            % if present in the options, BoundPos is found. BoundPos shall
+            % be a vector specifying which state variables the user wants
+            % to constrain. For instance, if we have constraints on the 1st
+            % and 4th state variable, BoundPos will be [1 4].
             if any(strcmp(varargin,'BoundsPos'))
+
+                % find BoundPos position
                 pos = find(strcmp(varargin,'BoundsPos'));
-                Obj.Params.BoundsPos = varargin{pos+1};                
+
+                % assign the value
+                Obj.Params.BoundsPos = varargin{pos+1};     
+
             else
+
+                % BoundPos is not mandatory. If not specificed, it is set
+                % to "no bounds", namely an empty vector
                 warning('No "BoundsPos" option provided: set default to: [].');
                 Obj.Params.BoundsPos = [];
+
             end            
             
-            % get the multistart option
+            % If BoundPos is specified, BoundsValLow is a vector with the
+            % lower bound in the constraints. It shall agree with the
+            % dimension of BoundsPos. Considering the case of before,
+            % BoundsValLow here could be [-20.4 100.3]
             if any(strcmp(varargin,'BoundsValLow'))
+
+                % find BoundsValLow position
                 pos = find(strcmp(varargin,'BoundsValLow'));
+
+                % assign the value
                 Obj.Params.BoundsValLow = varargin{pos+1};                
+
             else
+
+                % If not specified, same approach with BoundsPos, namely
+                % empty vector
                 warning('No "BoundsValLow" option provided: set default to: [].');
                 Obj.Params.BoundsValLow = [];
+
             end
             
-            % get the multistart option
+            % Same as BoundsValUp but with upper bounds, e.g., [45.2 1000]
             if any(strcmp(varargin,'BoundsValUp'))
+
+                % find BoundsValUp position
                 pos = find(strcmp(varargin,'BoundsValUp'));
+
+                % assign the value
                 Obj.Params.boundsValUp = varargin{pos+1};                
             else
+
+                % If not specified, same approach with BoundsPos, namely
+                % empty vector
                 warning('No "BoundsValUp" option provided: set default to: [].');
                 Obj.Params.BoundsValUp = [];
+
             end
-            
-            % get the multistart option
-            if any(strcmp(varargin,'BoundsWeight'))
-                pos = find(strcmp(varargin,'BoundsWeight'));
-                Obj.Params.BoundsWeight = varargin{pos+1};                
-            else
-                warning('No "BoundsWeight" option provided: set default to the identity matrix of dimension "BoundsPos".');
-                Obj.Params.BoundsWeight = ones(1,numel(Obj.Params.BoundsPos));
-            end
-            
-            % handle constraints
+                        
+            % In this section all the constraints used by fminsearchcon are
+            % assigned. See fminsearchcon reference for more information.
+            % If none of them is specified, all are initialized as empty
+            % vectors
+
+            % Inequality constraint (A)
             if any(strcmp(varargin,'Acon'))
+
+                % Find position
                 pos = find(strcmp(varargin,'Acon'));
+
+                % assign the value
                 Obj.Params.Acon = varargin{pos+1};
+
             else
+
+                % If not specified, initialize to empty vector
                 warning('No "Acon" option provided: set default to: [].');
                 Obj.Params.Acon = [];                    
+
             end
+
+            % Inequality constraint (b)
             if any(strcmp(varargin,'Bcon'))
+
+                % Find position
                 pos = find(strcmp(varargin,'Bcon'));
+
+                % assign the value
                 Obj.Params.Bcon = varargin{pos+1};
+
             else
+
+                % If not specified, initialize to empty vector
                 warning('No "Bcon" option provided: set default to: [].');
-                Obj.Params.Bcon = [];                
+                Obj.Params.Bcon = [];     
+
             end
+
+            % Equality constraint (A)
             if any(strcmp(varargin,'AconEq'))
+
+                % find position
                 pos = find(strcmp(varargin,'AconEq'));
+
+                % ssign the value
                 Obj.Params.AconEq = varargin{pos+1};
+
             else
+
+                % If not specified, initialize to empty vector
                 warning('No "AconEq" option provided: set default to: [].');
-                Obj.Params.AconEq = [];                
+                Obj.Params.AconEq = [];    
+
             end
+
+            % Equality constraint (b)
             if any(strcmp(varargin,'BconEq'))
+
+                % find position
                 pos = find(strcmp(varargin,'BconEq'));
                 Obj.Params.BconEq = varargin{pos+1};
+
             else
+
+                % If not specified, initialize to empty vector
                 warning('No "BconEq" option provided: set default to: [].');
                 Obj.Params.BconEq = [];                
+
             end
+
+            % Lower bounds on the optimization variables
             if any(strcmp(varargin,'LBcon'))
+
+                % find position
                 pos = find(strcmp(varargin,'LBcon'));
+
+                % assign the value
                 Obj.Params.LBcon = varargin{pos+1};
+
             else
+
+                % If not specified, initialize to empty vector
                 warning('No "LBcon" option provided: set default to: -Inf.');
-                Obj.Params.LBcon = -Inf*ones(1,length(Obj.Params.VarsOpt));                
+                Obj.Params.LBcon = -Inf*ones(1,length(Obj.Params.VarsOpt));  
+
             end
+
+            % Upper bounds on the optimization variables
             if any(strcmp(varargin,'UBcon'))
+
+                % find position
                 pos = find(strcmp(varargin,'UBcon'));
                 Obj.Params.UBcon = varargin{pos+1};
+
             else
+
+                % If not specified, initialize to empty vector
                 warning('No "UBcon" option provided: set default to: Inf.');
                 Obj.Params.UBcon = Inf*ones(1,length(Obj.Params.VarsOpt));          
+
             end
+
+            % general nonlìnear constraint function. This is a handle, see
+            % ref from fminsearchcon for more info
             if any(strcmp(varargin,'NONCOLcon'))
+
+                % find position
                 pos = find(strcmp(varargin,'NONCOLcon'));
+
+                % assign the handle
                 Obj.Functions.NONCOLcon = varargin{pos+1}; 
+
             else
+
+                % If not specified, initialize to the method fro the class.
+                % Such a method returns zero constraints by default. In
+                % case the user wants to add nonlinear constraints we
+                % suggest to code them in an external function, as they
+                % could greatly vary from a test case to another. You don't
+                % want leftovers from previous projects within the obsopt
+                % class itself. 
                 warning('No "NONCOLcon" option provided: set default to @Obj.NONCOLcon.');
                 Obj.Functions.NONCOLcon = @Obj.NONCOLcon;
             end
             
-            % terms
-            Obj.Params.JNterm = 1; % currently one for the Y. The arrival is an additional variable 
+            % number of terms in the cost function, without considering the
+            % arrival cost. It is used for storage. it is set to 1 as
+            % currently only the output mismatch is considered. Future
+            % developments might increase this value
+            Obj.Params.JNterm = 1; 
 
-            % Output weights
+            % Output weights from the Params file. These will be rescaled
+            % by the normalization of the cost function, if enabled. 
+            % Remark: if you want to manually set the cost function weights
+            % specify the "OutputWeights" matrices in the "Params" file.
             try
-                warning('Remark: if you want to manually set the cost function weights, specify the "OutputWeights" matrices in the "Params" file.');
+                
+                % get the values from Params
                 Obj.Params.OutputWeights = Params.OutputWeights;
+
+                % initialize the scaled values to the original
+                % OutputWeights, they will be reassigned later
                 Obj.Params.OutputWeightsScaled = Obj.Params.OutputWeights;
+
             catch
+
+                % OutputWeights are mandatory
                 error('No terminal weights found in "Params"');
+
             end
             
-            % terminal weights
+            % Terminal weights from the Params file. These will be rescaled
+            % by the normalization of the cost function, if enabled. 
+            % Remark: if you want to manually set the cost function weights
+            % specify the "TerminalWeights" matrices in the "Params" file.
             try
-                warning('Remark: if you want to manually set the cost function weights, specify the "TerminalWeights" matrices in the "Params" file.');
+                
+                % get the values from Params
                 Obj.Params.TerminalWeights = Params.TerminalWeights;
+
+                % initialize the scaled values to the original
+                % TerminalWeights, they will be reassigned later
                 Obj.Params.TerminalWeightsScaled = Obj.Params.TerminalWeights;
+
             catch
+
+                % TerminalWeights are mandatory
                 error('No terminal weights found in "Params"');
+
             end
             
-            % number of reference trajectories            
+            % number of reference trajectories (see ref for TBOD)          
             Obj.Params.Ntraj = Params.Ntraj;
+
+            % trajectory counter, initialized to 1
             Obj.Params.Traj = 1;
 
-            % Nts saved and pos
+            % In the MHE the measurement buffer is updated every time a new
+            % sample is available. In the standard version of the MHE, each
+            % sample is spaced from the previous one by NTs samples. This
+            % is not true anymore if the buffer is not equally spaced, as
+            % it has been proposed in battery_estimation. For isntance,
+            % assume that we are considering a N=4 buffer, with Nts
+            % distribution [3 7 7 3]. In this case, before sampling a new
+            % measurement, we need to wait either 3 or 7 samples depending
+            % on which element of the buffer we are filling. Thus, we need
+            % to keep track of where we are in the buffer filling. Nsaved
+            % and NTsPos keep track of this, as it will be als recalled 
+            % later in the code. 
             Obj.Params.Nsaved = 0;
             Obj.Params.NTsPos = 1;
-
-            % set the params update
-            Obj.Functions.ParamsUpdate = Params.ParamsUpdate;
             
-            % create scale factor, namely the weight over time for all the
-            % cost function terms. In V1.1 no forgetting factor is
-            % implemented. 
+            % this variable is a flag to check wether the cost function
+            % normalization has already been done or not. Clearly, the
+            % normalization shall be done only once, before the first
+            % optimization, because the cost function weights must remain
+            % the same for the entire simulation.
             Obj.Params.Normalized = 0;
             
-            % BackIterIndex: t0 index (starting from 1). For more
-            % information check the reference. 
+            % BackTimeIndex: position in the time vector of the first
+            % sample present in the buffer. It is used to know from where
+            % start the model integration (k-N+1) in the ref
             Obj.Params.BackTimeIndex = 1; 
+
+            % related time instant value from the time vector
             Obj.Params.BackTime = Obj.T(Obj.Params.BackTimeIndex);
 
-            % ActualTime: t0 index (starting from 1). For more
-            % information check the reference.
+            % ActualTimeIndex: position of the current time instant in the
+            % time vector (k) in ref
             Obj.Params.ActualTimeIndex = 1;
+
+            % related time instant from the time vector
             Obj.Params.ActualTime = Obj.T(Obj.Params.ActualTimeIndex);
             
-            % measure buffer: these buffers are used to store the measured
-            % and estimated values on the observed states.           
+            % measure buffer (Y,Yhat): these buffers are used to store the 
+            % measuredand estimated values on the observed states. There is 
+            % a different buffer for each trajectory, mainly for the TBOD 
+            % control buffer (U,Uhat): these buffers are used to store the
+            % control signals. again, one buffer for each trajectory.
             for i=1:Obj.Params.Ntraj
 
                 % output
@@ -357,18 +514,26 @@ classdef obsopt < handle
                 % control
                 Obj.U(i).val(:,1) = zeros(Obj.Params.DimInput,1);
                 Obj.Uhat(i).val(:,1) = zeros(Obj.Params.DimInput,1);
+
             end
             
-            % buffer adaptive sampling: these buffers keep track of the
-            % time instants in which the measured data have been stored. 
+            % this vector keeps track of the time indices when the output
+            % has been sampled. In the standard MHE all these vaues will be
+            % NTs samples distant. In the Adaptive and MultiScale MHE this
+            % is in general not true (see ref)
             Obj.Params.YSpace = zeros(1,Obj.Params.N);
+
+            % here we store all the sampling indices. Used in the plot to
+            % select the sampled values during all the simulation.
             Obj.Params.YSpaceFullStory = 1; % init to first element of T
 
-            % buffer
+            % measurement buffer (Ybuffer): contains the actual
+            % measurements sampled at the indices stored in Yspace.
             for i=1:Obj.Params.Ntraj
+
+                % initialize the array
                 Obj.Params.Ybuffer(i).val = zeros(1,Obj.Params.N);
-                Obj.Params.Target(i).val = Obj.Params.Ybuffer(i).val;
-                Obj.Params.TargetStory(i).val = [];
+
             end
 
             % buffer
@@ -447,7 +612,7 @@ classdef obsopt < handle
         end
         
         
-        % cost function: Objective to be minimised by the MHE observer
+        % cost function: Objective to be minimized by the MHE observer
         function [J_final,Obj] = cost_function(Obj,varargin) 
 
             % init the cost function
@@ -598,13 +763,6 @@ classdef obsopt < handle
              Obj.Params.JStory(Obj.Params.OptIterVal,Obj.Params.ActualTimeIndex) = J_final;
         end
         
-        % Target function (observer or control design)
-        function Obj = Target(Obj)          
-            for i=1:Obj.Params.Ntraj
-                Obj.Params.Target(i).val = Obj.Params.Ybuffer(i).val;
-            end
-        end               
-        
         % observer function: this method wraps up all the afromentioned
         % methods and actually implements the observer. Check the reference
         % for more information. 
@@ -733,15 +891,11 @@ classdef obsopt < handle
 
                     end
                         
-                    % set Target
-                    Obj = Obj.Target();
+                    % 
                     for traj = 1:Obj.Params.Ntraj
                     
                         % set trajectory
                         Obj.Params.traj = traj;
-                        nonzero_space = find(Obj.Params.YSpace ~= 0);
-                        nonzero_pos = Obj.Params.YSpace(nonzero_space);
-                        Obj.Params.TargetStory(traj).val(:,nonzero_pos) = Obj.Params.Target(traj).val(:,nonzero_space);
 
                     end
                         
@@ -821,7 +975,7 @@ classdef obsopt < handle
                         Obj.Params.OptIterVal = 0;
                             
                         % save J before the optimization to confront it later 
-                        [J_before, Obj_tmp] = Obj.cost_function(Obj.Params.TempX0Opt,Obj.Params.TempX0NonOpt,Obj.Params.Target);
+                        [J_before, Obj_tmp] = Obj.cost_function(Obj.Params.TempX0Opt,Obj.Params.TempX0NonOpt,Obj.Params.Ybuffer);
 
 
                         % Optimization (only if distance_safe_flag == 1)
@@ -839,7 +993,7 @@ classdef obsopt < handle
                             % fminsearchon (it's from FileExchange) so this
                             % is the only workaround I came up with 
                             problem = createOptimProblem('fmincon', ...
-                                                         'objective',       @(x)Obj.cost_function(x,Obj.Params.TempX0NonOpt,Obj.Params.Target), ...
+                                                         'objective',       @(x)Obj.cost_function(x,Obj.Params.TempX0NonOpt,Obj.Params.Ybuffer), ...
                                                          'x0',              Obj.Params.TempX0Opt, ...
                                                          'lb',              Obj.Params.LBcon, ...
                                                          'ub',              Obj.Params.UBcon, ...

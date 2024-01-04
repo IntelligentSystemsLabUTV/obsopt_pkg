@@ -1,15 +1,27 @@
-% ITERATIVE_PSEUDO_DERIVATIVE  Compute time derivative over a buffer 
-% dy = iterative_pseudo_derivative(Ts, y, wlen, bufsize, median, reset) 
-% Ts: Sampling time 
-% y: New data sample 
-% wlen: Length of the two subwindows where the median/mean is evaluated 
-% bufsize: Samples buffer length 
-% median: Flag to select median computation over buffer or sample average 
-% reset: Flag to discard the data buffer 
-
-% (------bufsize------) 
-% (-wlen-)-----(-wlen-) 
-% [------]-----[------] 
+%% PseudoDer
+% file: PseudoDer.m
+% author: Daniele Carnevale
+% date: 10/02/2021
+% description: this function computes the time derivative of a signal over 
+%              a buffer by approximating the incremental difference formula
+% INPUT: 
+%           Ts: sampling time 
+%           y: new data sample
+%           wlen: length of the two subwindows where the median/mean is 
+%           evaluated
+%           bufsize: samples buffer length 
+%           median: flag to select median computation over buffer or sample average
+%           reset: flag to discard the data buffer
+% OUTPUT: 
+%           dy: derivative value
+%           der_buffer: updated signal buffer
+%           counter: buffer filling status counter
+%  
+%           how the algorithm works:
+%           (------bufsize------) 
+%           (-wlen-)-----(-wlen-) 
+%           [--V1--]-----[--V2--]
+%           dy = (V2 - V1)/(Ts * wlen)
 
 function [dy, der_buffer, counter]  = PseudoDer(Ts,y,wlen,bufsize,signalsize,median,reset,obs,der_buffer, counter)   
   
@@ -54,8 +66,12 @@ function [dy, der_buffer, counter]  = PseudoDer(Ts,y,wlen,bufsize,signalsize,med
             temp2 = temp2/wlen; 
         end 
       
+        % compute derivative
         dy = (temp2-temp1)/(Ts*(bufsize-wlen)); 
      else 
+
+        % no derivative if not enough signal data
         dy = zeros(signalsize,1); 
+        
      end 
  end

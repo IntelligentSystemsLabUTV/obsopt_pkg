@@ -1,3 +1,4 @@
+% FILE FROM MATLAB EXCHANGE
 function keep(varargin);
 %KEEP keeps the caller workspace variables of your choice and clear the rest.
 %       Its usage is just like "clear" but only for variables.
