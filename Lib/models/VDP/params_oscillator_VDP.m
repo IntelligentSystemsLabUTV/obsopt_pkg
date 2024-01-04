@@ -28,7 +28,7 @@ function Params = params_oscillator_VDP(varargin)
 
     % init observer buffer (see ref)
     Params.N = 10;
-    Params.Nts = 10;
+    Params.Nts = 20;
 
     % here we init a vector of lenggth N with the down-sampling factor Nts.
     % we do this beacuse the down-sampling could change in time 
@@ -46,13 +46,13 @@ function Params = params_oscillator_VDP(varargin)
     Params.DimInput = 2;
 
     % output dim
-    Params.DimOut = 1;
+    Params.DimOut = 2;
 
     % the standard measurement model is y=Cx, where a subset of the state
     % vector x is taken. This array defines the index of the state to be
     % collected. e.g., [1] for the first element, [1 3] for the first and
     % third element
-    Params.ObservedState = 2;  
+    Params.ObservedState = [1 2];  
     
     % the MHE is based on the output mismatch (y-yhat). Indeed, one could
     % be interested in considering in the optimization problem not the
