@@ -51,6 +51,10 @@ classdef obsopt < handle
         % properties, i.e. by properly using the varargin parameter. Some 
         % of then are mandatory, others are optional. In this case a 
         % default value is used
+        % INPUT: 
+        %           varargin:   all the options as in simulation_general
+        % OUTPUT:
+        %           Obj: obsopt class (self)
         function Obj = obsopt(varargin)
             
             % set the Params structure. This structure is used as a
@@ -621,6 +625,13 @@ classdef obsopt < handle
         % It is used as a backup when no external function is provided in 
         % the constructor. It returns zero as it describes a problem 
         % without nonlinear constraints
+        % INPUT: 
+        %           varargin:   in general this is decided depending on the
+        %                       test case. Here there are no inputs because
+        %                       it returns zero
+        % OUTPUT:
+        %           c: inequality constraints identity outcome
+        %           ceq: equality constraints identity outcome
         function [c, ceq] = NONCOLcon(varargin)
 
             % inequality constraints
@@ -635,6 +646,14 @@ classdef obsopt < handle
         % shall be stopped or not. Specifically, it stops the optimization
         % when the maximum number of optimizations are reached or when the
         % tolerance on the cost function improvement is violated.
+        % INPUT: 
+        %           Obj: obsopt class (self)
+        %           x: current optimization variables
+        %           optimValues: cost function value
+        %           state: current optimization state (idle, init, ...)
+        %           check on matlab fmincon page
+        % OUTPUT:
+        %           stop: boolean to stop or not the optimization
         function stop = outfun(Obj,x, optimValues, state)
 
             % check on iterations and cost function tolerance
@@ -655,6 +674,16 @@ classdef obsopt < handle
         
         % cost function: this method computes the objective to be minimized 
         % by the MHE observer and the TBOD method
+        % INPUT: 
+        %           Obj: obsopt class (self)
+        %           varargin:
+        %                       x_opt: optimization variables
+        %                       x_nonopt: non optimized variables
+        %                       y_Target: measurement buffer used for the
+        %                       output mismatch.
+        % OUTPUT:
+        %           J_final: cost function
+        %           Obj: obsopt class (self)
         function [J_final,Obj] = cost_function(Obj,varargin) 
 
             % init the cost function
@@ -849,25 +878,44 @@ classdef obsopt < handle
              Obj.Params.JStory(Obj.Params.OptIterVal,Obj.Params.ActualTimeIndex) = J_final;
         end
         
-        % observer function: this method wraps up all the afromentioned
-        % methods and actually implements the observer. Check the reference
-        % for more information. 
+        % observer function: this method implements a single call to the
+        % observer. Check ref for more information 
+        % INPUT: 
+        %           Obj: obsopt class (self)
+        %           xhat: the estimated plant trajectory
+        %           y: the last measured output from the nominal plant
+        % OUTPUT:
+        %           Obj: obsopt class (self)
         function Obj = observer(Obj,xhat,y)
+
+            % the function basically follows these steps:
+            %   1:  unwrap/setup the state/measurements
+            %   2:  decide whether or not to sample the measurement
+            %       2.a:    if so store in the buffer
+            %       2.b:    if needed, normalize the cost function
+            %       2.c     decide whether to optimize
+            %               2.c.a   if so optimize
+            %               2.c.b   decide whether accept or not the new X
+            %                       2.c.b.a if so, propagate the new X
             
-            % extract the estimated state from the provided struct
+            % STEP 1
+
+            % cycle over the trajectories, and extract the estimated state 
+            % from the provided struct
             for traj=1:Obj.Params.Ntraj
 
-                % get current trajectory
+                % set current trajectory
                 Obj.Params.traj = traj;
 
                 % extract value
                 xhat_tmp(traj).val = xhat(traj).val(:,Obj.Params.ActualTimeIndex);
+
             end
 
             % store in xhat (used from now on)
             xhat = xhat_tmp;
             
-            %%% get estimated measures
+            % cycle over the trajectories, and get estimated measures
             for traj=1:Obj.Params.Ntraj
 
                 % set trajectory
@@ -880,9 +928,11 @@ classdef obsopt < handle
 
                 % save measure
                 Obj.Yhat(traj).val(:,Obj.Params.ActualTimeIndex) = yhat(traj).val;
+
             end
             
-            %%% get measure
+            % cycle over the trajectories, and get measure from 
+            % teh nominal plant
             for traj=1:Obj.Params.Ntraj
 
                 % set trajectory
@@ -893,19 +943,31 @@ classdef obsopt < handle
                 
             end                   
 
-            % fisrt bunch of data - read Y every Nts and check if the signal is
-            distance = Obj.Params.ActualTimeIndex-Obj.Params.YSpace(end);   
+            % STEP 2
 
-            % here add some guideline
+            % compute the sample-distance from the last sample
+            distance = Obj.Params.ActualTimeIndex - Obj.Params.YSpace(end);   
+
+            % As introduced in the constructor, if we have a buffer not
+            % equally spaced, e.g., [3 7 7 3], we need to keep track where
+            % we are in picking the next minimu distance between samples.
+            % This is done by increasing any time the Nsaved counter (see
+            % below) and then taking the module between nsaved and the
+            % buffer length. That is the current index in the buffer,
+            % namely NtsPos
             NtsPos = mod(Obj.Params.Nsaved,Obj.Params.N)+1;
             Obj.Params.NtsPos = NtsPos;
 
-            %%%% observer %%%%
+            % check if the down-sampling distance is met. if so, proceed
             if  (distance == Obj.Params.NtsVal(NtsPos))
                
-                % OUTPUT measurements - buffer of N elements
+                % STEP 2.a
 
-                % measure
+                % here we increase the Nsaved counter, which will be used
+                % as previously introduced
+                Obj.Params.Nsaved = Obj.Params.Nsaved + 1;
+                
+                % Now we can store in the buffer
                 for traj=1:Obj.Params.Ntraj
 
                     % set trajectory 
@@ -913,97 +975,128 @@ classdef obsopt < handle
 
                     % shift buffer
                     Obj.Params.Ybuffer(traj).val(:,1:end-1) = Obj.Params.Ybuffer(traj).val(:,2:end);
+
+                    % assign new measurement
                     Obj.Params.Ybuffer(traj).val(:,end) = y(traj).val;
+
                 end
 
-                % adaptive sampling                
+                % shift buffer positions memory                
                 Obj.Params.YSpace(1:end-1) = Obj.Params.YSpace(2:end);
+
+                % update buffer position memory
                 Obj.Params.YSpace(end) = Obj.Params.ActualTimeIndex;
                 
-                % i don't really know what's this for
-                Obj.Params.Nsaved = Obj.Params.Nsaved + 1;
-                
-                % store measure times
+                % store measure times. See the constructor for more info on
+                % SampleTime
                 Obj.Params.SampleTime = [Obj.Params.SampleTime Obj.Params.ActualTimeIndex];
 
-                % check only on the first traj as the sampling is coherent
-                % on the 2.             
-                % WaitAlBuffer == 1 --> start when all the buffer is full
+                % now we check if in the buffer we have stored enough data
+                % to slve the oprimization problem. Refer to the ref for
+                % the necessary condition. Independently from that we wait
+                % until the entire buffer is filled before starting with
+                % the optimization. So, if we have a buffer of 30 elements,
+                % but the necessary condition for the MHE is N >= 10, we
+                % don't care. We wait until we have 30 saples. As for the
+                % TBOD, this approach is consistent, as we wait for the
+                % whole trajectory to be sampled.
                 cols_nonzeros = length(find(Obj.Params.YSpace ~= 0));  
 
-                % comment on this (waitbuffer)
+                % indeed, this flag is how much we want to wait. It comes
+                % without saying that if we wanted to wait for just 5
+                % samples, we would set flag = 5. So, the user can try
+                % different fill&wait strategies by changing this variable
                 flag = Obj.Params.N;
                 
-                % real
+                % we check the condition and if it is satisfied we proceed
+                % with the following steps
                 if cols_nonzeros >= flag      
-
-                    % get the maximum distance (???)
-                    first_nonzero = find(Obj.Params.YSpace,1,'first');
-                    Y_space_nonzero = Obj.Params.YSpace(first_nonzero:end);
-                    max_dist = max(diff(Y_space_nonzero));
-                    if isempty(max_dist)
-                        max_dist = 1;
-                    end
-                        
+    
                     % setup buffers
+                    % here we count how many samples have been collected
+                    % up to now. If flag = N before, this line is useless,
+                    % but if the user is using a different wait&fill
+                    % strategy, there might be less samples than N
                     n_samples = min(length(Obj.Params.SampleTime)-1,Obj.Params.N);
+
+                    % colect the last n_samples time indices
                     buf_Y_space_full_story = Obj.Params.SampleTime(end-n_samples:end);
                         
-                    % back time index
+                    % compute the sample-distances between all these last
+                    % n_samples
                     buf_dist = diff(buf_Y_space_full_story);
+
+                    % the current index minus the sum of all these
+                    % differences gives us the BackTimeIndex. 
                     Obj.Params.BackTimeIndex = max(Obj.Params.ActualTimeIndex-sum(buf_dist(1:end)),1); 
                     Obj.Params.BackTime = Obj.T(Obj.Params.BackTimeIndex);
+
+                    % remark: one could say that instead of this last
+                    % calculations one could just use the distances in
+                    % NtsVal. This is true if the samplings are
+                    % deterministic, but this might not be the case if the
+                    % Adaptive MHE was used. Thus, we prefer to leave this
+                    % approach to better adapt to future refinements of
+                    % the code. 
                    
-                    % set of initial conditions
+                    % set the initial conditions for the optimization
+
+                    % optimization variabless. here we assign ro tempX0Opt
+                    % only the values of the first trajectory because the
+                    % optimization variables are the same for all the
+                    % trajctories. Thus, initializing with the first or
+                    % other trajectories makes no difference
+                    Obj.Params.TempX0Opt = Obj.Xhat(1).val(Obj.Params.VarsOpt,Obj.Params.BackTimeIndex);
+
+                    % cycle over the trajectories
                     for traj=1:Obj.Params.Ntraj
 
                         % set trajetory 
                         Obj.Params.traj = traj;
 
-                        % start from the correct one                             
+                        % start from the non optimied variables                            
                         Obj.Params.TempX0NonOpt(traj).val = Obj.Xhat(traj).val(Obj.Params.VarsNonOpt,Obj.Params.BackTimeIndex);
-
-                        % change only the values which are to be optimized
-                        % only 1 set of vars regardless to the number
-                        % of trajectories used as we're not estimating
-                        % the state or the model parameters
-                        Obj.Params.TempX0Opt = Obj.Xhat(1).val(Obj.Params.VarsOpt,Obj.Params.BackTimeIndex);
-                            
+    
                         % reconstruct temp_x0 from opt/nonopt vars
                         Obj.Params.TempX0(traj).val = zeros(Obj.Params.DimState,1);
                         Obj.Params.TempX0(traj).val(Obj.Params.VarsOpt) = Obj.Params.TempX0Opt;
                         Obj.Params.TempX0(traj).val(Obj.Params.VarsNonOpt) = Obj.Params.TempX0NonOpt(traj).val;
 
                     end
-                        
-                    % 
-                    for traj = 1:Obj.Params.Ntraj
-                    
-                        % set trajectory
-                        Obj.Params.traj = traj;
 
-                    end
+                    % STEP 2.b
                         
-                    %%% normalisation %%%
-                    if (Obj.Params.JNormalize) && (~Obj.Params.Normalized) %&& (numel(Obj.Params.DimOutCompare) > 1)
+                    % if setup in the options, do the one-time
+                    % normalization of the cost function. The Normalized
+                    % flag will be set to true once this process is done
+                    if (Obj.Params.JNormalize) && (~Obj.Params.Normalized) 
 
                         % get the time index until when you want to
-                        % normalize. A buffer should work. 
+                        % normalize. Our default choice is up until the
+                        % current index, which is a full measurement buffer
                         range = 1:Obj.Params.ActualTimeIndex;
                         
-                        % cycle over all the Y used for the cost function
+                        % cycle over all the output dimensions
                         for dim=1:length(Obj.Params.DimOutCompare)
 
-                            % init max variable
+                            % init max variable. we want to store here the
+                            % maximum output mismatch value. 
+                            % We will normalize over this maximum value,
+                            % if it does not result zero of course
                             Emax = zeros(Obj.Params.Ntraj);
 
                             % cycle over the trajectories
                             for traj=1:Obj.Params.Ntraj
 
-                                % evaliate the output mismatch using the
+                                % evaluate the output mismatch using the
                                 % current measurements and Y estimation
                                 % remark: if you have perfect measurements,
                                 % this mismatch is zero. (noise free scenario)
+                                % we take the square because this is what
+                                % is done in the cost function. remember
+                                % that we are normalizing on the cost
+                                % function elements, not on the simple
+                                % output measurement.
                                 E = (Obj.Yhat(traj).val(Obj.Params.DimOutCompare(dim),range) - ...
                                      Obj.Y(traj).val(Obj.Params.DimOutCompare(dim),range)).^2;
 
@@ -1027,10 +1120,16 @@ classdef obsopt < handle
                             Obj.Params.OutputWeightsScaled(Obj.Params.DimOutCompare(dim)) = Obj.Params.OutputWeights(Obj.Params.DimOutCompare(dim))/Emax;
                         end     
                             
-                        % now we deal with a similar thing but for the
+                        % now we do a similar process but for the
                         % terminal weights.
 
-                        % get the norm of the terminal states in the range
+                        % get the norm of the terminal states in the range.
+                        % We do this because the trajectories could swing
+                        % from very different values in the time range.
+                        % Thus, for each element, we take the norm over the
+                        % entire range and we assume it as a good estimate
+                        % of its order of magnitude. We use this estimation
+                        % to copute the scaling factor for every state.
                         E = vecnorm(Obj.Xhat(traj).val(Obj.Params.TerminalStates,range)',2,1);
                     
                         % cycle over the terminal states
@@ -1052,61 +1151,77 @@ classdef obsopt < handle
                         Obj.Params.Normalized = 1;
                         
                     end
+
+                    % STEP 2.c
                   
                     % let's proceed with the optimization
                     if (Obj.Params.Optimize)
 
-                        % reset OptIterVal
+                        % reset OptIterVal (each time we perform MaxIter
+                        % optimization runs)
                         Obj.Params.OptIterVal = 0;
                             
-                        % save J before the optimization to confront it later 
-                        [J_before, Obj_tmp] = Obj.cost_function(Obj.Params.TempX0Opt,Obj.Params.TempX0NonOpt,Obj.Params.Ybuffer);
+                        % save J before the optimization to confront it
+                        % later with JdotThresh
+                        [J_before, ~] = Obj.cost_function(Obj.Params.TempX0Opt,Obj.Params.TempX0NonOpt,Obj.Params.Ybuffer);
                        
 
-                        %%%%% OPTIMISATION - NORMAL MODE %%%%%%                            
-                        % run optimization
+                        % OPTIMISATION      
                                                                                             
-                        % create problem
+                        % create the optimization problem
                         try
+
                             % create a problem for fminsearchcon
                             % remark: the structure is the same as fmincon
                             % without the inequality constraints.
                             % createOptimProblem does not accept
                             % fminsearchon (it's from FileExchange) so this
-                            % is the only workaround I came up with 
-                            problem = createOptimProblem('fmincon', ...
-                                                         'objective',       @(x)Obj.cost_function(x,Obj.Params.TempX0NonOpt,Obj.Params.Ybuffer), ...
-                                                         'x0',              Obj.Params.TempX0Opt, ...
-                                                         'lb',              Obj.Params.LBcon, ...
-                                                         'ub',              Obj.Params.UBcon, ...
-                                                         'Aeq',             Obj.Params.AconEq, ...
-                                                         'beq',             Obj.Params.BconEq, ...
-                                                         'nonlcon',         @(x)Obj.NONCOLcon(x,Obj), ...
-                                                         'options',         Obj.Params.Myoptioptions);
+                            % is the only workaround I came up with: first
+                            % create the problem with fmincon and then
+                            % replace the constraints and the solver name
+                            problem = createOptimProblem('fmincon', ...                                                                                     % solver
+                                                         'objective',       @(x)Obj.cost_function(x,Obj.Params.TempX0NonOpt,Obj.Params.Ybuffer), ...        % cost function handle
+                                                         'x0',              Obj.Params.TempX0Opt, ...                                                       % initial condition
+                                                         'lb',              Obj.Params.LBcon, ...                                                           % lower bound constraints                                                       
+                                                         'ub',              Obj.Params.UBcon, ...                                                           % upper bound constraints
+                                                         'Aeq',             Obj.Params.AconEq, ...                                                          % equality constraints (A)
+                                                         'beq',             Obj.Params.BconEq, ...                                                          % equality constraints (b)
+                                                         'nonlcon',         @(x)Obj.NONCOLcon(x,Obj), ...                                                   % nonlinear constraints                            
+                                                         'options',         Obj.Params.Myoptioptions);                                                      % solver options
 
                             % no inequality constraints
                             problem = rmfield(problem,'bineq');
                             problem = rmfield(problem,'Aineq'); 
 
-                            % set the 
+                            % set the options and the solver
                             problem.options = Obj.Params.Myoptioptions;
                             problem.solver = 'fminsearchcon';
+
                         catch ME
+
+                            % there are a thousand of thing that could go
+                            % wrong here, so we put this to leave a space
+                            % for a smart breakpoint to test the setup
+                            % without rerunning everything. 
                             disp(ME);
                             error('WRONG OPTIMISATION SETUP');
+
                         end 
+
+                        % STEP 2.c.a
                                 
-                        [NewXopt, J] = Obj.Functions.Fmin(problem.objective, ...
-                                                          problem.x0, ...
-                                                          problem.lb, ...
-                                                          problem.ub, ...
-                                                          problem.Aeq, ...
-                                                          problem.beq, ...
-                                                          problem.nonlcon, ...
-                                                          problem.options ...
+                        % here we run the optimization (and pray)
+                        [NewXopt, J] = Obj.Functions.Fmin(problem.objective, ...    % cost function handle
+                                                          problem.x0, ...           % initial condition
+                                                          problem.lb, ...           % lower bound constraints
+                                                          problem.ub, ...           % upper bound constraints
+                                                          problem.Aeq, ...          % equality constraints (A)
+                                                          problem.beq, ...          % equality constraints (b)
+                                                          problem.nonlcon, ...      % nonlinear constraints
+                                                          problem.options ...       % solver options
                                                           );
 
-                        % comment on this
+                        % store the cost function 
                         Obj.Params.JStory(Obj.Params.OptIterVal:end,Obj.Params.ActualTimeIndex) = J;
                         
                         % reconstruct NewXopt from opt/nonopt vars
@@ -1118,10 +1233,12 @@ classdef obsopt < handle
                             % set trajectory
                             Obj.Params.traj = traj;
 
-                            % stack vector
+                            % stack vector with  opt and nonopt variables
                             NewXopt_end = zeros(Obj.Params.DimState,1);
                             NewXopt_end(Obj.Params.VarsOpt) = NewXopt;
-                            NewXopt_end(Obj.Params.VarsNonOpt) = Obj.Params.TempX0NonOpt(traj).val;                          
+                            NewXopt_end(Obj.Params.VarsNonOpt) = Obj.Params.TempX0NonOpt(traj).val;     
+
+                            % assign to the struct
                             NewXopt_tmp(traj).val = NewXopt_end;  
 
                         end
@@ -1131,16 +1248,31 @@ classdef obsopt < handle
 
                         % optimization counter
                         if traj == 1
+
+                            % number of optimization runs
                             Obj.Params.OptCounter = Obj.Params.OptCounter + 1;
+
+                            % store time index of the optimization
                             Obj.Params.OptTime = [Obj.Params.OptTime Obj.Params.ActualTimeIndex];
+
                         end
 
-                        % check J_dot condition
+                        % STEP 2.c.b
+
+                        % check JDotThresh condition 
                         J_diff = (J/J_before);
 
-                        if (J_diff <= Obj.Params.JdotThresh)                                                     
+                        % if this works, then proceed to propagate the new
+                        % state foward
+                        if (J_diff <= Obj.Params.JdotThresh)     
 
-                            % on each trajectory
+                            % update counter of how many times the
+                            % optimization has been accepted and the
+                            % relative time index
+                            Obj.Params.SelectCounter = Obj.Params.SelectCounter + 1;
+                            Obj.Params.SelectTime = [Obj.Params.SelectTime Obj.Params.ActualTimeIndex];
+
+                            % cycle over the trajectories
                             for traj=1:Obj.Params.Ntraj
 
                                 % set traj
@@ -1149,89 +1281,109 @@ classdef obsopt < handle
                                 % update state
                                 Obj.Xhat(traj).val(:,Obj.Params.BackTimeIndex) = NewXopt(traj).val;
 
-                                % store measure times
-                                if traj == 1
-                                    Obj.Params.SelectCounter = Obj.Params.SelectCounter + 1;
-                                    Obj.Params.SelectTime = [Obj.Params.SelectTime Obj.Params.ActualTimeIndex];
-                                end
-
                                 % state to repropagate 
                                 x_propagate = NewXopt(traj).val;
 
-                                % update Params
+                                % update Params. FUNDAMENTAL, otherwise the
+                                % model parameters might not be the correct
+                                % ones
                                 Obj.Params = Obj.Functions.ParamsUpdate(Obj.Params,x_propagate);
 
-                                % FIRST MEASURE UPDATE 
-                                % manage measurements
+                                % set initial time, namely k-N+1
                                 Obj.Params.BackTime = Obj.T(Obj.Params.BackTimeIndex);
 
-                                % ESTIMATED measurements
-                                % measures       
-                                % NB: the output storage has to be done in
-                                % Obj.Params.BackTimeIndex+1 as the propagation has been
-                                % performed 
+                                % State and measure update of the first 
+                                % time index, namely k-N+1
+                                % here there is no model integration
+                                % because we are considerng the initial
+                                % state
+
+                                % ESTIMATED measurement
                                 Yhat_meas = Obj.Functions.Measure(x_propagate,Obj.Params,Obj.Params.BackTime,Obj.Uhat(traj).val(:,Obj.Params.BackTimeIndex),Obj);
 
-                                % set value
+                                % store the obtained value
                                 Obj.Yhat(traj).val(:,Obj.Params.BackTimeIndex) = Yhat_meas;
                                     
-                                % PROPAGATION 
+                                % compute how many integrations we need to
+                                % compute from backTime to ActualTime. This
+                                % variable defines the length of the
+                                % propagation range
                                 n_iter_propagate = Obj.Params.ActualTimeIndex-Obj.Params.BackTimeIndex;
     
                                 % cycle over the propagation range
                                 for j=1:n_iter_propagate
                                             
                                     % back time
-                                    Obj.Params.BackTimeIndex = Obj.Params.BackTimeIndex+1;
+                                    Obj.Params.BackTimeIndex = Obj.Params.BackTimeIndex + 1;
 
-                                    % get time interval
+                                    % get time interval (span)
                                     tspan = Obj.T(Obj.Params.BackTimeIndex-1:Obj.Params.BackTimeIndex);                                                                                                                     
 
                                     % integrate
                                     Xtmp = Obj.Functions.Ode(@(t,x)Obj.Params.Model(t, x, Obj.Params, Obj), tspan, x_propagate,Obj.Params.Odeset);                                    
                                     x_propagate = Xtmp.y(:,end);                      
 
-                                    % set the evolution
+                                    % set the evolution in the estimated
+                                    % trajectory
                                     Obj.Xhat(traj).val(:,Obj.Params.BackTimeIndex) = x_propagate;
                                         
                                     % ESTIMATED measurements
-                                    % measures       
-                                    % NB: the output storage has to be done in
-                                    % Obj.Params.BackTimeIndex+1 as the propagation has been
-                                    % performed 
                                     Yhat_tmp = Obj.Params.Measure(x_propagate,Obj.Params,Obj.Params.BackTime,Obj.Uhat(traj).val(:,Obj.Params.BackTimeIndex-1),Obj);
                                         
-                                    % get filters - yhat
+                                    % store the measurement
                                     Obj.Yhat(traj).val(:,Obj.Params.BackTimeIndex) = Yhat_tmp;            
                                         
                                 end
-                             end
+
+                            end
+
                         else
+
+                            % remark: we finish here not only when the
+                            % JDotThresh condition is not met but also when
+                            % the cost function is NaN or Inf. So, if you
+                            % pyt JDotThresh = 1 and you still finish here,
+                            % you migt want to check the cost function
                                 
-                            % on each trajectory
+                            % here we restore the initial consition to the
+                            % initial conditio before the optimization. The
+                            % rest is not affected because we never
+                            % re-propaated forward.
+
+                            % cycle over trajectories
                             for traj=1:Obj.Params.Ntraj
-                                Obj.Params.traj = traj;
-                                % keep the initial guess
+                                    
+                                % reset the initial condition
                                 Obj.Xhat(traj).val(Obj.Params.VarsOpt,Obj.Params.BackTimeIndex) = Obj.Params.TempX0Opt;
+
                             end
                                 
-                            % restore Params
-                                
-                            Obj.Params = Obj.Functions.ParamsUpdate(Obj.Params,Obj.Params.TempX0(traj).val);                                                        
+                            % we simply restore the parameters to the
+                            % non-optimized values
+                            Obj.Params = Obj.Functions.ParamsUpdate(Obj.Params,Obj.Params.TempX0(traj).val);     
+
                         end
+
                     end
+
                 end
 
                 % clear the screen 
                 if Obj.Params.Print
+
                     clc;
+
                 end 
+
             else
 
-                % keep the last J
+                % if no sampling is done, keep the last J
                 Obj.Params.JStory(:,Obj.Params.ActualTimeIndex) = Obj.Params.JStory(:,max(1,Obj.Params.ActualTimeIndex-1));
 
             end
+
         end
+
     end
+
 end

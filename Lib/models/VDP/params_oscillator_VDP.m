@@ -28,7 +28,7 @@ function Params = params_oscillator_VDP(varargin)
 
     % init observer buffer (see ref)
     Params.N = 10;
-    Params.Nts = 20;
+    Params.Nts = 40;
 
     % here we init a vector of lenggth N with the down-sampling factor Nts.
     % we do this beacuse the down-sampling could change in time 
