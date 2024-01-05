@@ -1,4 +1,4 @@
-%% model_oscillator_VDP
+    %% model_oscillator_VDP
 % file: model_oscillator_VDP.m
 % author: Federico Oliva
 % date: 20/12/2023
